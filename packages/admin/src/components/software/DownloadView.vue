@@ -1,11 +1,6 @@
 <script setup lang="ts">
-import { Download, Loader2, Moon, Sun } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { useTheme } from '@/composables/useTheme'
 
-const { toggleTheme, isDark } = useTheme()
 const downloading = ref(false)
 const error = ref<string | null>(null)
 const softwareName = ref('toolbox')
@@ -43,47 +38,39 @@ async function handleDownload() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <div class="fixed top-4 right-4 z-50">
-      <Button variant="outline" size="icon" class="rounded-full shadow-lg" @click="toggleTheme()">
-        <Sun v-if="isDark" class="w-5 h-5" />
-        <Moon v-else class="w-5 h-5" />
-      </Button>
-    </div>
-    <div class="container mx-auto px-4 py-8">
-      <div class="flex flex-col items-center justify-center min-h-[60vh]">
-        <Card class="w-full max-w-md">
-          <CardContent class="pt-6">
-            <div class="text-center space-y-6">
-              <div class="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-                <Download class="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h1 class="text-2xl font-semibold mb-2">
-                  {{ softwareName === 'toolbox' ? '工具盒' : softwareName }}
-                </h1>
-                <p class="text-muted-foreground">
-                  点击下方按钮下载最新版本
-                </p>
-              </div>
+  <div class="flex items-center justify-center min-h-screen relative">
+    <!-- 光晕 -->
+    <div class="absolute" style="top:20%; left:50%; transform:translateX(-50%); width:400px; height:200px; background: radial-gradient(ellipse, rgba(6,182,212,0.06) 0%, transparent 70%);" />
 
-              <p v-if="error" class="text-sm text-destructive">
-                {{ error }}
-              </p>
+    <!-- 下载卡片 -->
+    <div class="relative text-center" style="width:320px; background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 36px 32px;">
+      <!-- 图标 -->
+      <div class="mx-auto mb-4 flex items-center justify-center rounded-xl" style="width:56px; height:56px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(59,130,246,0.2)); font-size:24px;">
+        📦
+      </div>
 
-              <Button
-                class="w-full"
-                size="lg"
-                :disabled="downloading"
-                @click="handleDownload"
-              >
-                <Loader2 v-if="downloading" class="w-4 h-4 mr-2 animate-spin" />
-                <Download v-else class="w-4 h-4 mr-2" />
-                {{ downloading ? '获取下载链接...' : '立即下载' }}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div style="color:#f1f5f9; font-size:18px; font-weight:600; margin-bottom:4px;">
+        {{ softwareName === 'toolbox' ? 'Toolbox 工具盒' : softwareName }}
+      </div>
+      <div style="color:#64748b; font-size:11px; margin-bottom:20px;">
+        组件升级管理客户端
+      </div>
+
+      <!-- 下载按钮 -->
+      <button
+        class="w-full rounded-lg py-2.5 text-white text-sm font-medium transition-opacity"
+        :class="{ 'opacity-60': downloading }"
+        :disabled="downloading"
+        style="background: linear-gradient(135deg, #06b6d4, #3b82f6);"
+        @click="handleDownload"
+      >
+        {{ downloading ? '获取下载链接...' : '⬇ 立即下载' }}
+      </button>
+
+      <div v-if="error" class="mt-3 text-xs" style="color: #f87171;">{{ error }}</div>
+
+      <div class="mt-3" style="color:#475569; font-size:9px;">
+        适用于 Windows 10/11
       </div>
     </div>
   </div>
