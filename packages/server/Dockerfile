@@ -32,7 +32,7 @@ COPY --from=deps /deploy/node_modules ./node_modules
 # Copy pre-built application artifacts
 COPY packages/server/dist ./dist
 COPY packages/server/bootstrap.js ./
-COPY packages/admin/dist ./admin
+COPY packages/server/admin ./admin
 COPY packages/server/config.example.toml ./config.example.toml
 
 EXPOSE 7001
