@@ -80,4 +80,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Show image size
-        run: docker buildx imagetools inspect ${{ steps.meta.outputs.tags }} --format '{{.Size}}'
+        run: |
+          TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+          echo "Image: $TAG"
+          docker pull "$TAG"
+          docker images "$TAG" --format "Size: {{.Size}}"
