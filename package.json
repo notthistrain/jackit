@@ -1,0 +1,17 @@
+{
+  "name": "upgrade-component",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:server": "pnpm --filter @svnlink/server dev",
+    "dev:admin": "pnpm --filter @svnlink/admin dev",
+    "dev:toolbox": "pnpm --filter @svnlink/toolbox dev",
+    "build": "pnpm -r build",
+    "test": "pnpm --filter @svnlink/server test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@uni-helper/eslint-config": "^0.7.3",
+    "eslint": "^10.3.0"
+  }
+}

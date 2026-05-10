@@ -1,0 +1,25 @@
+---
+import '../styles/global.css'
+import Layout from '@/components/layout.vue'
+import ToolsPage from '@/components/pages/tools-page.vue'
+import Titlebar from '@/components/titlebar.vue'
+import UpdateDialog from '@/components/update-dialog.vue'
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>工具箱</title>
+  </head>
+  <body>
+    <div id="app" class="h-full flex flex-col">
+      <Titlebar client:load />
+      <Layout currentPage="tools" client:load>
+        <ToolsPage client:load />
+      </Layout>
+      <UpdateDialog client:load />
+    </div>
+  </body>
+</html>

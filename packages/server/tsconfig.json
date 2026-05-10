@@ -1,0 +1,25 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "target": "ES2018",
+    "lib": ["ES2018"],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "rootDir": "src",
+    "module": "commonjs",
+    "resolveJsonModule": true,
+    "typeRoots": ["./typings", "./node_modules/@types"],
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "declaration": true,
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "exclude": ["*.js", "*.ts", "dist", "node_modules", "test"]
+}

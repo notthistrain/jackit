@@ -1,0 +1,26 @@
+{
+  "productName": "工具箱",
+  "version": "0.1.0",
+  "identifier": "com.seichitech.toolbox",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:4321",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "url": "/index.html",
+        "title": "工具箱",
+        "width": 900,
+        "height": 690,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}
