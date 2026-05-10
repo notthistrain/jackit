@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { Software, SoftwareVersion } from '@/types'
-import { ArrowLeft, BookOpen, Calendar, ExternalLink, FileCode, Hash, Package } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useApi } from '@/composables/useApi'
 import { formatDate } from '@/lib/utils'
 import ManualEditor from './ManualEditor.vue'
@@ -25,10 +21,8 @@ async function fetchData() {
     error.value = '无效的软件ID'
     return
   }
-
   loading.value = true
   error.value = null
-
   try {
     const [softwareData, versionsData] = await Promise.all([
       api.software.getById(softwareId.value),
@@ -64,25 +58,17 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center gap-4">
-      <Button variant="ghost" size="sm" as-child>
-        <a href="/">
-          <ArrowLeft class="w-4 h-4 mr-1" />
-          返回列表
-        </a>
-      </Button>
-    </div>
+  <div>
+    <!-- 返回链接 -->
+    <a href="/" style="color: #67e8f9; font-size: 12px;" class="inline-flex items-center gap-1 hover:underline mb-4">
+      ← 返回列表
+    </a>
 
-    <div v-if="loading" class="text-center py-12 text-muted-foreground">
-      加载中...
-    </div>
-
-    <div v-else-if="error" class="text-center py-12 text-muted-foreground">
-      {{ error }}
-    </div>
+    <div v-if="loading" class="text-center py-20" style="color: #64748b;">加载中...</div>
+    <div v-else-if="error" class="text-center py-20" style="color: #f87171;">{{ error }}</div>
 
     <template v-else-if="software">
+      <!-- 编辑说明书模式 -->
       <ManualEditor
         v-if="editingManual"
         :software-id="softwareId"
@@ -91,91 +77,63 @@ onMounted(() => {
       />
 
       <template v-else>
-        <div class="flex items-start justify-between">
-          <div>
-            <h1 class="text-2xl font-semibold">
-              {{ software.displayName || software.name }}
-            </h1>
-            <p class="text-muted-foreground mt-1">
-              {{ software.description || '暂无描述' }}
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <Button v-if="software.manual" variant="outline" size="sm" as-child>
-              <a :href="`/manual?id=${software.id}`" target="_blank">
-                <ExternalLink class="w-4 h-4 mr-1" />
-                查看说明书
+        <!-- 信息卡片 -->
+        <div class="glass-card p-5 mb-4">
+          <!-- 头部 -->
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="shrink-0 flex items-center justify-center rounded-xl bg-gradient-primary" style="width:40px; height:40px; font-size:16px;">📦</div>
+              <div>
+                <div style="color: #e2e8f0; font-size: 16px; font-weight: 600;">{{ software.displayName || software.name }}</div>
+                <div v-if="software.identifier" style="color: #67e8f9; font-size: 11px;">{{ software.identifier }}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <a
+                v-if="software.manual"
+                :href="`/manual?id=${software.id}`"
+                target="_blank"
+                style="color: #67e8f9; font-size: 11px; padding: 5px 12px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25); border-radius: 6px;"
+              >
+                📄 说明书
               </a>
-            </Button>
-            <Button variant="outline" size="sm" @click="editingManual = true">
-              <BookOpen class="w-4 h-4 mr-1" />
-              编辑说明书
-            </Button>
-            <SoftwareEditDialog :software="software" @updated="handleUpdated" />
+              <button
+                style="color: #94a3b8; font-size: 11px; padding: 5px 12px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25); border-radius: 6px;"
+                @click="editingManual = true"
+              >
+                编辑说明书
+              </button>
+              <SoftwareEditDialog :software="software" @updated="handleUpdated" />
+            </div>
+          </div>
+
+          <!-- 描述 -->
+          <div v-if="software.description" style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 14px; color: #94a3b8; font-size: 12px; line-height: 1.7; margin-bottom: 16px;">
+            {{ software.description }}
+          </div>
+
+          <!-- 元数据网格 -->
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <div style="color: #64748b; font-size: 10px; margin-bottom: 2px;">最新版本</div>
+              <div style="color: #67e8f9; font-size: 13px; font-weight: 500;">{{ versions.length > 0 ? versions[0].sequence : '-' }}</div>
+            </div>
+            <div>
+              <div style="color: #64748b; font-size: 10px; margin-bottom: 2px;">版本数量</div>
+              <div style="color: #e2e8f0; font-size: 13px; font-weight: 500;">{{ versions.length }}</div>
+            </div>
+            <div>
+              <div style="color: #64748b; font-size: 10px; margin-bottom: 2px;">创建时间</div>
+              <div style="color: #94a3b8; font-size: 13px; font-weight: 500;">{{ formatDate(software.createdAt) }}</div>
+            </div>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle class="text-lg">
-              基本信息
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div class="space-y-1">
-                <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Package class="w-4 h-4" />
-                  软件名称
-                </div>
-                <p class="font-medium">
-                  {{ software.name }}
-                </p>
-              </div>
-              <div class="space-y-1">
-                <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Hash class="w-4 h-4" />
-                  标识符
-                </div>
-                <p class="font-medium">
-                  <Badge v-if="software.identifier" variant="secondary">
-                    {{ software.identifier }}
-                  </Badge>
-                  <span v-else class="text-muted-foreground">-</span>
-                </p>
-              </div>
-              <div class="space-y-1">
-                <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                  <FileCode class="w-4 h-4" />
-                  文件扩展名
-                </div>
-                <p class="font-medium">
-                  {{ software.ext || '-' }}
-                </p>
-              </div>
-              <div class="space-y-1">
-                <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Calendar class="w-4 h-4" />
-                  创建时间
-                </div>
-                <p class="font-medium">
-                  {{ formatDate(software.createdAt) }}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <VersionTable :versions="versions" :software-id="softwareId" @refresh="fetchData" />
-          </CardContent>
-        </Card>
+        <!-- 版本历史 -->
+        <VersionTable :versions="versions" :software-id="softwareId" @refresh="fetchData" />
       </template>
     </template>
 
-    <div v-else class="text-center py-12 text-muted-foreground">
-      软件不存在或已被删除
-    </div>
+    <div v-else class="text-center py-20" style="color: #64748b;">软件不存在或已被删除</div>
   </div>
 </template>
