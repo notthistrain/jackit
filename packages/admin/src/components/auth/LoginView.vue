@@ -1,103 +1,94 @@
 <script setup lang="ts">
-import { Lock, LogIn, Moon, Package, Sun, User } from 'lucide-vue-next'
 import { ref } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useAuth } from '@/composables/useAuth'
-import { useTheme } from '@/composables/useTheme'
+import { useToast } from '@/composables/useToast'
 
-const { isDark, toggleTheme } = useTheme()
 const { login } = useAuth()
+const toast = useToast()
 
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
-const error = ref('')
 
 async function handleLogin() {
   if (!username.value || !password.value) {
-    error.value = '请输入用户名和密码'
+    toast.error('请输入用户名和密码')
     return
   }
-
   loading.value = true
-  error.value = ''
-
   try {
-    const result = await login(username.value, password.value)
-    if (result.success) {
-      window.location.href = '/'
-    } else {
-      error.value = result.message || '登录失败，请检查用户名和密码'
-    }
-  // eslint-disable-next-line unused-imports/no-unused-vars
-  } catch (err) {
-    error.value = '登录失败，请检查用户名和密码'
-  } finally {
+    await login(username.value, password.value)
+    window.location.href = '/'
+  }
+  catch (err) {
+    toast.error('登录失败，请检查用户名和密码')
+  }
+  finally {
     loading.value = false
   }
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex items-center justify-center p-4">
-    <Button variant="ghost" size="icon" class="fixed top-4 right-4" @click="toggleTheme()">
-      <Sun v-if="isDark" class="w-5 h-5" />
-      <Moon v-else class="w-5 h-5" />
-    </Button>
+  <div class="flex items-center justify-center min-h-screen relative">
+    <!-- 光晕装饰 -->
+    <div class="absolute" style="top:-60px; right:-40px; width:300px; height:300px; background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%); border-radius:50%;" />
+    <div class="absolute" style="bottom:-80px; left:-60px; width:250px; height:250px; background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%); border-radius:50%;" />
 
-    <Card class="w-full max-w-md">
-      <CardHeader class="text-center">
-        <div class="flex justify-center mb-4">
-          <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Package class="w-6 h-6 text-primary" />
-          </div>
+    <!-- 登录卡片 -->
+    <div
+      class="relative"
+      style="width: 420px; background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 40px 36px;"
+    >
+      <!-- 品牌 -->
+      <div class="flex items-center gap-2.5 mb-7">
+        <div class="flex items-center justify-center rounded-xl bg-gradient-primary" style="width:36px; height:36px; font-size:16px;">
+          📦
         </div>
-        <CardTitle class="text-2xl">upgrade-component</CardTitle>
-        <CardDescription>软件版本管理系统</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form @submit.prevent="handleLogin" class="space-y-4">
-          <div class="space-y-2">
-            <Label for="username">用户名</Label>
-            <div class="relative">
-              <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="username"
-                v-model="username"
-                type="text"
-                placeholder="请输入用户名"
-                class="pl-10"
-              />
-            </div>
-          </div>
+        <div>
+          <div style="color: #f1f5f9; font-weight: 600; font-size: 15px;">Upgrade</div>
+          <div style="color: #64748b; font-size: 10px;">组件升级管理平台</div>
+        </div>
+      </div>
 
-          <div class="space-y-2">
-            <Label for="password">密码</Label>
-            <div class="relative">
-              <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="password"
-                v-model="password"
-                type="password"
-                placeholder="请输入密码"
-                class="pl-10"
-              />
-            </div>
-          </div>
+      <!-- 表单 -->
+      <form @submit.prevent="handleLogin" class="space-y-3.5">
+        <div class="flex items-center gap-3">
+          <label style="color: #94a3b8; font-size: 12px; min-width: 48px; white-space: nowrap;">用户名</label>
+          <input
+            v-model="username"
+            type="text"
+            placeholder="请输入用户名"
+            class="flex-1 dark-input px-3 py-2.5 text-xs"
+          />
+        </div>
+        <div class="flex items-center gap-3">
+          <label style="color: #94a3b8; font-size: 12px; min-width: 48px; white-space: nowrap;">密码</label>
+          <input
+            v-model="password"
+            type="password"
+            placeholder="请输入密码"
+            class="flex-1 dark-input px-3 py-2.5 text-xs"
+            @keyup.enter="handleLogin"
+          />
+        </div>
+      </form>
 
-          <p v-if="error" class="text-sm text-destructive">
-            {{ error }}
-          </p>
+      <!-- 登录按钮 -->
+      <button
+        class="w-full mt-5 rounded-lg py-2.5 text-sm font-medium text-white transition-opacity"
+        :class="{ 'opacity-60 cursor-not-allowed': loading }"
+        :disabled="loading"
+        style="background: linear-gradient(135deg, #06b6d4, #3b82f6);"
+        @click="handleLogin"
+      >
+        {{ loading ? '登录中...' : '登 录' }}
+      </button>
 
-          <Button type="submit" class="w-full" :disabled="loading">
-            <LogIn class="w-4 h-4 mr-2" />
-            {{ loading ? '登录中...' : '登录' }}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <!-- 底部 -->
+      <div class="text-center mt-4" style="color: #475569; font-size: 10px;">
+        🔒 安全连接 · Upgrade Admin
+      </div>
+    </div>
   </div>
 </template>

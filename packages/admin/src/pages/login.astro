@@ -1,8 +1,8 @@
 ---
-import Layout from '@/layouts/blank.astro';
-import LoginView from '@/components/auth/LoginView.vue';
+import Layout from '@/layouts/blank.astro'
+import LoginView from '@/components/auth/LoginView.vue'
 ---
 
-<Layout title="登录 - upgrade-component">
-  <LoginView client:load />
+<Layout title="登录 - Upgrade">
+  <LoginView client:only="vue" />
 </Layout>
