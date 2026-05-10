@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { CreateVersionDTO, SoftwareVersion, UpdateVersionDTO } from '@/types'
-import { Pencil, Plus } from 'lucide-vue-next'
 import { onUnmounted, ref, watch } from 'vue'
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -13,9 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { useApi } from '@/composables/useApi'
 
 const props = defineProps<{
@@ -90,50 +85,62 @@ onUnmounted(() => {
 <template>
   <Dialog v-model:open="open">
     <DialogTrigger as-child>
-      <Button v-if="isEdit" variant="ghost" size="sm">
-        <Pencil class="w-4 h-4" />
-      </Button>
-      <Button v-else variant="outline" size="sm">
-        <Plus class="w-4 h-4 mr-1" />
-        添加版本
-      </Button>
+      <button v-if="isEdit" style="color:#67e8f9; font-size:11px; padding:5px 12px; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.25); border-radius:6px;">
+        编辑
+      </button>
+      <button v-else class="bg-gradient-primary rounded-md px-3 py-1.5 text-white text-xs font-medium">
+        + 添加版本
+      </button>
     </DialogTrigger>
-    <DialogContent class="sm:max-w-[500px]">
+    <DialogContent
+      class="sm:max-w-[500px]"
+      style="background: linear-gradient(180deg, #111827, #0f172a); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;"
+    >
       <DialogHeader>
-        <DialogTitle>{{ isEdit ? '编辑版本' : '添加版本' }}</DialogTitle>
-        <DialogDescription>
+        <DialogTitle style="color: white;">{{ isEdit ? '编辑版本' : '添加版本' }}</DialogTitle>
+        <DialogDescription style="color: #94a3b8; font-size: 13px;">
           {{ isEdit ? '修改版本信息' : '为软件添加新版本' }}
         </DialogDescription>
       </DialogHeader>
       <form class="space-y-4" @submit.prevent="handleSubmit">
-        <div class="space-y-2">
-          <Label for="sequence">版本号 *</Label>
-          <Input id="sequence" v-model="form.sequence" placeholder="如: 1.0.0" required />
+        <div class="flex items-center gap-3">
+          <label class="shrink-0" style="color:#94a3b8; font-size:12px; min-width:64px;">版本号</label>
+          <input v-model="form.sequence" class="flex-1 dark-input px-3 py-2 text-xs" placeholder="如: 1.0.0" required />
         </div>
-        <div class="space-y-2">
-          <Label for="key">文件路径</Label>
-          <Input id="key" v-model="form.key" placeholder="S3 文件路径" />
+        <div class="flex items-center gap-3">
+          <label class="shrink-0" style="color:#94a3b8; font-size:12px; min-width:64px;">文件路径</label>
+          <input v-model="form.key" class="flex-1 dark-input px-3 py-2 text-xs" placeholder="S3 文件路径" />
         </div>
-        <div class="space-y-2">
-          <Label for="size">文件大小 (字节)</Label>
-          <Input id="size" v-model.number="form.size" type="number" placeholder="文件大小" />
+        <div class="flex items-center gap-3">
+          <label class="shrink-0" style="color:#94a3b8; font-size:12px; min-width:64px;">文件大小</label>
+          <input v-model.number="form.size" class="flex-1 dark-input px-3 py-2 text-xs" type="number" placeholder="文件大小（字节）" />
         </div>
-        <div class="flex items-center space-x-2">
-          <Checkbox id="force" v-model:checked="form.force" />
-          <Label for="force">强制更新</Label>
+        <div class="flex items-center gap-3">
+          <div class="shrink-0" style="color:#94a3b8; font-size:12px; min-width:64px;">强制更新</div>
+          <div class="flex items-center space-x-2">
+            <Checkbox id="force" v-model:checked="form.force" />
+            <label for="force" style="color:#e2e8f0; font-size:12px;">开启强制更新</label>
+          </div>
         </div>
-        <div class="space-y-2">
-          <Label for="changelog">更新日志</Label>
-          <Textarea id="changelog" v-model="form.changelog" placeholder="版本更新内容" rows="4" />
+        <div class="flex items-start gap-3">
+          <label class="shrink-0 pt-2" style="color:#94a3b8; font-size:12px; min-width:64px;">更新日志</label>
+          <textarea v-model="form.changelog" class="flex-1 dark-input px-3 py-2 text-xs" rows="4" placeholder="版本更新内容" />
         </div>
       </form>
       <DialogFooter>
-        <Button variant="outline" @click="open = false">
+        <button
+          style="color:#94a3b8; font-size:12px; padding:7px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px;"
+          @click="open = false"
+        >
           取消
-        </Button>
-        <Button :disabled="loading || !form.sequence" @click="handleSubmit">
+        </button>
+        <button
+          class="bg-gradient-primary rounded-md px-4 py-1.5 text-white text-xs font-medium"
+          :disabled="loading || !form.sequence"
+          @click="handleSubmit"
+        >
           {{ loading ? '保存中...' : '保存' }}
-        </Button>
+        </button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
