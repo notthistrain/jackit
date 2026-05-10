@@ -1,31 +1,25 @@
 ---
-import ToastProvider from '@/components/ToastProvider.vue';
-import '../styles/global.css';
-const { title = 'upgrade-component' } = Astro.props;
+import '@/styles/global.css'
+import ToastProvider from '@/components/ToastProvider.vue'
+
+interface Props {
+  title: string
+}
+
+const { title } = Astro.props
 ---
 
+<!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
     <title>{title}</title>
-    <script is:inline>
-      (function() {
-        var stored = localStorage.getItem('theme');
-        var theme = stored || 'light';
-        var resolved = theme === 'system' 
-          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : theme;
-        if (resolved === 'dark') {
-          document.documentElement.classList.add('dark');
-        }
-      })();
-    </script>
   </head>
-  <body class="min-h-screen bg-background">
-    <ToastProvider client:only="vue" />
+  <body style="background: linear-gradient(135deg, #020617, #0c1a3a, #0a1628); min-height: 100vh;">
     <slot />
+    <ToastProvider client:load />
   </body>
 </html>
