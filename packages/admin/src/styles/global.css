@@ -1,192 +1,220 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "vue-sonner/style.css";
-
-@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --color-background: hsl(222 47% 8%);
+  --color-foreground: hsl(214 32% 91%);
+  --color-card: hsl(222 47% 8%);
+  --color-card-foreground: hsl(214 32% 91%);
+  --color-popover: hsl(222 47% 8%);
+  --color-popover-foreground: hsl(214 32% 91%);
+  --color-primary: hsl(188 94% 43%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(215 20% 16%);
+  --color-secondary-foreground: hsl(214 32% 91%);
+  --color-muted: hsl(215 20% 16%);
+  --color-muted-foreground: hsl(215 16% 57%);
+  --color-accent: hsl(217 91% 60%);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(220 13% 15%);
+  --color-input: hsl(220 13% 18%);
+  --color-ring: hsl(188 94% 43%);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* 自定义颜色 */
+  --color-dark-bg: #0c1222;
+  --color-dark-sidebar: #0a1628;
+  --color-dark-sidebar-end: #111d35;
+  --color-dark-card-bg: rgba(255, 255, 255, 0.04);
+  --color-dark-card-border: rgba(255, 255, 255, 0.08);
+  --color-cyan: #06b6d4;
+  --color-blue: #3b82f6;
+  --color-cyan-text: #67e8f9;
+  --color-blue-text: #93c5fd;
+  --color-green-text: #6ee7b7;
+  --color-red-text: #f87171;
+  --color-purple-text: #c4b5fd;
+  --color-label: #94a3b8;
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
 }
 
-@layer base {
-  :root {
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(222.2 84% 4.9%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(222.2 84% 4.9%);
-    --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(222.2 84% 4.9%);
-    --primary: hsl(222.2 47.4% 11.2%);
-    --primary-foreground: hsl(210 40% 98%);
-    --secondary: hsl(210 40% 96.1%);
-    --secondary-foreground: hsl(222.2 47.4% 11.2%);
-    --muted: hsl(210 40% 96.1%);
-    --muted-foreground: hsl(215.4 16.3% 46.9%);
-    --accent: hsl(210 40% 96.1%);
-    --accent-foreground: hsl(222.2 47.4% 11.2%);
-    --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(210 40% 98%);
-    --border: hsl(214.3 31.8% 91.4%);
-    --input: hsl(214.3 31.8% 91.4%);
-    --ring: hsl(222.2 84% 4.9%);
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: hsl(222.2 84% 4.9%);
-    --foreground: hsl(210 40% 98%);
-    --card: hsl(222.2 84% 4.9%);
-    --card-foreground: hsl(210 40% 98%);
-    --popover: hsl(222.2 84% 4.9%);
-    --popover-foreground: hsl(210 40% 98%);
-    --primary: hsl(210 40% 98%);
-    --primary-foreground: hsl(222.2 47.4% 11.2%);
-    --secondary: hsl(217.2 32.6% 17.5%);
-    --secondary-foreground: hsl(210 40% 98%);
-    --muted: hsl(217.2 32.6% 17.5%);
-    --muted-foreground: hsl(215 20.2% 65.1%);
-    --accent: hsl(217.2 32.6% 17.5%);
-    --accent-foreground: hsl(210 40% 98%);
-    --destructive: hsl(0 62.8% 30.6%);
-    --destructive-foreground: hsl(210 40% 98%);
-    --border: hsl(217.2 32.6% 17.5%);
-    --input: hsl(217.2 32.6% 17.5%);
-    --ring: hsl(212.7 26.8% 83.9%);
-  }
-
-  * {
-    border-color: var(--border);
-    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
-  }
-
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-  }
+* {
+  border-color: hsl(220 13% 15%);
 }
 
-@layer base {
-  html {
-    color-scheme: light;
-  }
-  
-  html.dark {
-    color-scheme: dark;
-  }
-  
-  html.theme-transition,
-  html.theme-transition *,
-  html.theme-transition *::before,
-  html.theme-transition *::after {
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
-  }
-  
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+body {
+  background-color: #0c1222;
+  color: hsl(214 32% 91%);
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-.rich-text h1 {
-  font-size: 1.75rem;
+/* 渐变主题色工具类 */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+}
+
+/* 毛玻璃卡片 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+/* 暗色输入框 */
+.dark-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #e2e8f0;
+}
+
+.dark-input:focus {
+  border-color: #06b6d4;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+}
+
+.dark-input::placeholder {
+  color: #475569;
+}
+
+/* 统计卡片变体 */
+.stat-card-1 {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(59, 130, 246, 0.12));
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+.stat-card-2 {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(99, 102, 241, 0.12));
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.stat-card-3 {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.12));
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* 操作类型 tag */
+.tag-publish {
+  background: rgba(6, 182, 212, 0.12);
+  color: #67e8f9;
+}
+
+.tag-edit {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+}
+
+.tag-delete {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.tag-create {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+.tag-auth {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c4b5fd;
+}
+
+/* 说明书富文本样式 */
+.manual-content h1 {
+  color: #e2e8f0;
+  font-size: 26px;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 4px;
 }
 
-.rich-text h2 {
-  font-size: 1.5rem;
+.manual-content h2 {
+  color: #cbd5e1;
+  font-size: 17px;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.rich-text h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+.manual-content p {
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.9;
+  margin-bottom: 16px;
 }
 
-.rich-text ul,
-.rich-text ol {
-  padding-left: 1.5rem;
-  margin: 0.5rem 0;
+.manual-content ul,
+.manual-content ol {
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 2;
+  padding-left: 20px;
+  margin-bottom: 16px;
 }
 
-.rich-text ul {
-  list-style-type: disc;
+.manual-content code {
+  background: rgba(6, 182, 212, 0.1);
+  color: #67e8f9;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
 }
 
-.rich-text ol {
-  list-style-type: decimal;
-}
-
-.rich-text blockquote {
-  border-left: 3px solid var(--border);
-  padding-left: 1rem;
-  margin: 0.5rem 0;
-  color: var(--muted-foreground);
-}
-
-.rich-text code {
-  background-color: var(--muted);
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.rich-text pre {
-  background-color: var(--muted);
-  padding: 0.75rem;
-  border-radius: 0.375rem;
-  overflow-x: auto;
-}
-
-.rich-text pre code {
-  background: none;
-  padding: 0;
-}
-
-.rich-text table {
-  border-collapse: collapse;
+.manual-content table {
   width: 100%;
-  margin: 0.5rem 0;
-  overflow: hidden;
-  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 16px;
 }
 
-.rich-text table td,
-.rich-text table th {
-  border: 1px solid var(--border);
-  padding: 0.5rem;
+.manual-content th {
   text-align: left;
+  color: #64748b;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.rich-text table th {
-  background-color: var(--muted);
-  font-weight: 600;
+.manual-content td {
+  color: #94a3b8;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.manual-content strong {
+  color: #cbd5e1;
+}
+
+/* TipTap 编辑器暗色样式 */
+.tiptap-editor .tiptap {
+  color: #e2e8f0;
+  min-height: 300px;
+}
+
+.tiptap-editor .tiptap:focus {
+  outline: none;
+}
+
+.tiptap-toolbar button {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 3px 6px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.tiptap-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tiptap-toolbar button.is-active {
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #67e8f9;
 }
