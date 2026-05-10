@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import type { Software } from '@/types'
-import { Eye, RefreshCw, Search, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref, watch } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -72,110 +68,129 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex items-center gap-4">
-      <div class="relative flex-1 max-w-sm">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          v-model="keyword"
-          placeholder="搜索软件名称..."
-          class="pl-9"
-          @keyup.enter="handleSearch"
-        />
+  <div>
+    <!-- 统计卡片行 -->
+    <div class="flex gap-4 mb-4">
+      <div class="flex-1 stat-card-1 rounded-xl p-4">
+        <div style="color:#67e8f9; font-size:20px; font-weight:700;">{{ total }}</div>
+        <div style="color:#94a3b8; font-size:11px;">总软件数</div>
       </div>
-      <Button @click="handleSearch">
-        搜索
-      </Button>
-      <Button variant="outline" size="icon" @click="fetchData">
-        <RefreshCw class="w-4 h-4" />
-      </Button>
-      <SoftwareCreateDialog @created="handleCreated" />
+      <div class="flex-1 stat-card-2 rounded-xl p-4">
+        <div style="color:#93c5fd; font-size:20px; font-weight:700;">—</div>
+        <div style="color:#94a3b8; font-size:11px;">本周更新</div>
+      </div>
+      <div class="flex-1 stat-card-3 rounded-xl p-4">
+        <div style="color:#6ee7b7; font-size:20px; font-weight:700;">—</div>
+        <div style="color:#94a3b8; font-size:11px;">总下载</div>
+      </div>
     </div>
 
-    <div class="border rounded-lg">
+    <!-- 表格卡片 -->
+    <div class="glass-card p-4">
+      <!-- 标题栏 -->
+      <div class="flex justify-between items-center mb-3">
+        <span style="color:#e2e8f0; font-size:13px; font-weight:600;">软件列表</span>
+        <div class="flex gap-2">
+          <input
+            v-model="keyword"
+            class="dark-input px-2.5 py-1.5 text-xs"
+            style="width:180px;"
+            placeholder="🔍 搜索..."
+            @keyup.enter="handleSearch"
+          />
+          <button
+            class="bg-gradient-primary rounded-md px-3 py-1.5 text-white text-xs font-medium"
+            @click="fetchData"
+          >
+            ↻
+          </button>
+          <SoftwareCreateDialog @created="handleCreated" />
+        </div>
+      </div>
+      <!-- Shadcn Table -->
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>名称</TableHead>
-            <TableHead>显示名</TableHead>
-            <TableHead>标识符</TableHead>
-            <TableHead>版本数</TableHead>
-            <TableHead>创建时间</TableHead>
-            <TableHead class="text-right">
-              操作
-            </TableHead>
+          <TableRow style="background: rgba(255,255,255,0.04);">
+            <TableHead style="color:#64748b; font-size:11px;">名称</TableHead>
+            <TableHead style="color:#64748b; font-size:11px;">标识</TableHead>
+            <TableHead style="color:#64748b; font-size:11px;">版本数</TableHead>
+            <TableHead style="color:#64748b; font-size:11px;">创建时间</TableHead>
+            <TableHead style="color:#64748b; font-size:11px; text-align:right;">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
+          <!-- loading / empty / data rows -->
           <TableRow v-if="loading">
-            <TableCell colspan="6" class="text-center py-8 text-muted-foreground">
-              加载中...
-            </TableCell>
+            <TableCell colspan="5" style="color:#64748b; text-align:center; padding:32px;">加载中...</TableCell>
           </TableRow>
           <TableRow v-else-if="softwareList.length === 0">
-            <TableCell colspan="6" class="text-center py-8 text-muted-foreground">
-              暂无数据
-            </TableCell>
+            <TableCell colspan="5" style="color:#64748b; text-align:center; padding:32px;">暂无数据</TableCell>
           </TableRow>
-          <TableRow v-for="software in softwareList" :key="software.id">
-            <TableCell class="font-medium">
-              {{ software.name }}
-            </TableCell>
-            <TableCell>{{ software.displayName || '-' }}</TableCell>
+          <TableRow
+            v-for="software in softwareList"
+            :key="software.id"
+            style="border-bottom: 1px solid rgba(255,255,255,0.04);"
+            class="hover:bg-white/[0.03]"
+          >
             <TableCell>
-              <Badge v-if="software.identifier" variant="secondary">
-                {{ software.identifier }}
-              </Badge>
-              <span v-else class="text-muted-foreground">-</span>
+              <div class="flex items-center gap-2">
+                <div class="shrink-0 flex items-center justify-center rounded-md bg-gradient-primary" style="width:28px; height:28px; font-size:11px;">📦</div>
+                <div>
+                  <div style="color:#e2e8f0; font-size:12px; font-weight:500;">{{ software.name }}</div>
+                  <div v-if="software.displayName" style="color:#64748b; font-size:10px;">{{ software.displayName }}</div>
+                </div>
+              </div>
             </TableCell>
-            <TableCell>{{ software.versions?.length || 0 }}</TableCell>
-            <TableCell>{{ formatDate(software.createdAt) }}</TableCell>
-            <TableCell class="text-right">
+            <TableCell>
+              <span v-if="software.identifier" style="color:#67e8f9; font-size:11px; background: rgba(6,182,212,0.1); padding:1px 6px; border-radius:3px;">{{ software.identifier }}</span>
+              <span v-else style="color:#475569;">-</span>
+            </TableCell>
+            <TableCell style="color:#94a3b8; font-size:12px;">{{ software.versions?.length || 0 }}</TableCell>
+            <TableCell style="color:#64748b; font-size:11px;">{{ formatDate(software.createdAt) }}</TableCell>
+            <TableCell style="text-align:right;">
               <div class="flex items-center justify-end gap-1">
-                <Button variant="ghost" size="sm" as-child>
-                  <a :href="`/software?id=${software.id}`">
-                    <Eye class="w-4 h-4 mr-1" />
-                    详情
-                  </a>
-                </Button>
+                <a :href="`/software?id=${software.id}`" style="color:#67e8f9; font-size:11px;" class="hover:underline">详情</a>
                 <ConfirmDialog
                   title="删除软件"
                   :description="`确定要删除软件「${software.name}」吗？此操作将同时删除该软件的所有版本，且无法撤销。`"
                   @confirm="handleDelete(software.id)"
                 >
-                  <Button variant="ghost" size="sm" :disabled="deletingId === software.id">
-                    <Trash2 class="w-4 h-4 text-destructive" />
-                  </Button>
+                  <button
+                    :disabled="deletingId === software.id"
+                    style="color:#f87171; font-size:11px; padding:2px 6px;"
+                    class="hover:underline"
+                  >
+                    删除
+                  </button>
                 </ConfirmDialog>
               </div>
             </TableCell>
           </TableRow>
         </TableBody>
       </Table>
-    </div>
 
-    <div v-if="total > pageSize" class="flex items-center justify-between">
-      <p class="text-sm text-muted-foreground">
-        共 {{ total }} 条记录
-      </p>
-      <div class="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="page === 1"
-          @click="page--"
-        >
-          上一页
-        </Button>
-        <span class="text-sm">第 {{ page }} 页</span>
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="page * pageSize >= total"
-          @click="page++"
-        >
-          下一页
-        </Button>
+      <!-- 分页 -->
+      <div v-if="total > pageSize" class="flex items-center justify-between mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.04);">
+        <span style="color:#64748b; font-size:11px;">共 {{ total }} 条</span>
+        <div class="flex items-center gap-2">
+          <button
+            :disabled="page === 1"
+            style="color:#94a3b8; font-size:11px; padding:4px 10px;"
+            class="dark-input"
+            @click="page--"
+          >
+            上一页
+          </button>
+          <span style="color:#67e8f9; font-size:12px; font-weight:500;">{{ page }}</span>
+          <button
+            :disabled="page * pageSize >= total"
+            style="color:#94a3b8; font-size:11px; padding:4px 10px;"
+            class="dark-input"
+            @click="page++"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
   </div>
