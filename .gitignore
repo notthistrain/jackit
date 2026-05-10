@@ -5,6 +5,7 @@ node_modules/
 dist/
 .target/
 target
+packages/server/admin/
 
 # astro generated
 .astro/
