@@ -1,13 +1,8 @@
 <script setup lang="ts">
 import type { OperationLog } from '@/types'
-import { RefreshCw, Search } from 'lucide-vue-next'
 import { onMounted, ref, watch } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useApi } from '@/composables/useApi'
 import { formatDate } from '@/lib/utils'
 
@@ -52,12 +47,18 @@ function getActionLabel(actionValue: string) {
   return actionOptions.find(opt => opt.value === actionValue)?.label || actionValue
 }
 
-function getActionVariant(actionValue: string): 'default' | 'secondary' | 'destructive' {
-  if (actionValue.includes('delete'))
-    return 'destructive'
-  if (actionValue.includes('update') || actionValue.includes('edit'))
-    return 'secondary'
-  return 'default'
+function getActionTagClass(actionValue: string): string {
+  if (actionValue.includes('publish') || actionValue.includes('upload'))
+    return 'tag-publish'
+  if (actionValue.includes('edit') || actionValue.includes('update'))
+    return 'tag-edit'
+  if (actionValue.includes('delete') || actionValue.includes('remove'))
+    return 'tag-delete'
+  if (actionValue.includes('create') || actionValue.includes('add'))
+    return 'tag-create'
+  if (actionValue.includes('login') || actionValue.includes('auth'))
+    return 'tag-auth'
+  return 'tag-publish'
 }
 
 watch([page], fetchData)
@@ -66,14 +67,11 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex items-center gap-4">
-      <div class="relative flex-1 max-w-sm">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input v-model="keyword" placeholder="搜索..." class="pl-9" @keyup.enter="handleSearch" />
-      </div>
+  <div>
+    <!-- 筛选栏 -->
+    <div class="flex items-center gap-2 mb-4">
       <Select v-model="action" @update:model-value="handleSearch">
-        <SelectTrigger class="w-[150px]">
+        <SelectTrigger class="dark-input" style="width:120px; font-size:12px; height:32px;">
           <SelectValue placeholder="操作类型" />
         </SelectTrigger>
         <SelectContent>
@@ -82,78 +80,66 @@ onMounted(fetchData)
           </SelectItem>
         </SelectContent>
       </Select>
-      <Button @click="handleSearch">
-        搜索
-      </Button>
-      <Button variant="outline" size="icon" @click="fetchData">
-        <RefreshCw class="w-4 h-4" />
-      </Button>
+      <input
+        v-model="keyword"
+        class="dark-input px-2.5 py-1.5 text-xs"
+        style="width:180px;"
+        placeholder="🔍 搜索..."
+        @keyup.enter="handleSearch"
+      />
+      <button class="bg-gradient-primary rounded-md px-3 py-1.5 text-white text-xs" @click="fetchData">↻</button>
     </div>
 
-    <div class="border rounded-lg">
+    <!-- 表格卡片 -->
+    <div class="glass-card p-4">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>操作类型</TableHead>
-            <TableHead>操作对象</TableHead>
-            <TableHead>操作内容</TableHead>
-            <TableHead>操作时间</TableHead>
+          <TableRow style="background: rgba(255,255,255,0.04);">
+            <TableHead style="color:#64748b; font-size:11px;">时间</TableHead>
+            <TableHead style="color:#64748b; font-size:11px;">操作内容</TableHead>
+            <TableHead style="color:#64748b; font-size:11px;">类型</TableHead>
+            <TableHead style="color:#64748b; font-size:11px;">操作对象</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading">
-            <TableCell colspan="4" class="text-center py-8 text-muted-foreground">
-              加载中...
-            </TableCell>
+            <TableCell colspan="4" style="color:#64748b; text-align:center; padding:32px;">加载中...</TableCell>
           </TableRow>
           <TableRow v-else-if="logs.length === 0">
-            <TableCell colspan="4" class="text-center py-8 text-muted-foreground">
-              暂无日志记录
-            </TableCell>
+            <TableCell colspan="4" style="color:#64748b; text-align:center; padding:32px;">暂无日志记录</TableCell>
           </TableRow>
-          <TableRow v-for="log in logs" :key="log.id">
-            <TableCell class="whitespace-nowrap">
-              <Badge :variant="getActionVariant(log.action)">
-                {{ getActionLabel(log.action) }}
-              </Badge>
-            </TableCell>
-            <TableCell class="whitespace-nowrap">
-              {{ log.target }}
-            </TableCell>
-            <TableCell class="w-full max-w-0">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger as-child>
-                    <span class="text-sm text-muted-foreground cursor-default block truncate">
-                      {{ log.detail }}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent class="max-w-md whitespace-pre-wrap break-all">
-                    {{ log.detail }}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </TableCell>
-            <TableCell class="whitespace-nowrap">
+          <TableRow
+            v-for="log in logs"
+            :key="log.id"
+            style="border-bottom: 1px solid rgba(255,255,255,0.04);"
+            class="hover:bg-white/[0.03]"
+          >
+            <TableCell style="color:#64748b; font-size:11px; white-space:nowrap;">
               {{ formatDate(log.createdAt) }}
+            </TableCell>
+            <TableCell>
+              <span style="color:#94a3b8; font-size:12px;">{{ log.detail }}</span>
+            </TableCell>
+            <TableCell>
+              <span :class="getActionTagClass(log.action)" style="font-size:10px; padding:2px 8px; border-radius:4px; display:inline-block;">
+                {{ getActionLabel(log.action) }}
+              </span>
+            </TableCell>
+            <TableCell style="color:#94a3b8; font-size:11px; white-space:nowrap;">
+              {{ log.target }}
             </TableCell>
           </TableRow>
         </TableBody>
       </Table>
-    </div>
 
-    <div v-if="total > pageSize" class="flex items-center justify-between">
-      <p class="text-sm text-muted-foreground">
-        共 {{ total }} 条记录
-      </p>
-      <div class="flex items-center gap-2">
-        <Button variant="outline" size="sm" :disabled="page === 1" @click="page--">
-          上一页
-        </Button>
-        <span class="text-sm">第 {{ page }} 页</span>
-        <Button variant="outline" size="sm" :disabled="page * pageSize >= total" @click="page++">
-          下一页
-        </Button>
+      <!-- 分页 -->
+      <div v-if="total > pageSize" class="flex items-center justify-between mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.04);">
+        <span style="color:#64748b; font-size:11px;">共 {{ total }} 条</span>
+        <div class="flex items-center gap-2">
+          <button :disabled="page === 1" style="color:#94a3b8; font-size:11px; padding:4px 10px;" class="dark-input" @click="page--">上一页</button>
+          <span style="color:#67e8f9; font-size:12px; font-weight:500;">{{ page }}</span>
+          <button :disabled="page * pageSize >= total" style="color:#94a3b8; font-size:11px; padding:4px 10px;" class="dark-input" @click="page++">下一页</button>
+        </div>
       </div>
     </div>
   </div>
