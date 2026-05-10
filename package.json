@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev:server": "pnpm --filter @svnlink/server dev",
-    "dev:admin": "pnpm --filter @svnlink/admin dev",
-    "dev:toolbox": "pnpm --filter @svnlink/toolbox dev",
+    "dev:server": "pnpm --filter @upgrade-component/server dev",
+    "dev:admin": "pnpm --filter @upgrade-component/admin dev",
+    "dev:toolbox": "pnpm --filter @upgrade-component/toolbox dev",
     "build": "pnpm -r build",
-    "test": "pnpm --filter @svnlink/server test",
+    "test": "pnpm --filter @upgrade-component/server test",
     "lint": "pnpm -r lint"
   },
+  "packageManager": "pnpm@10.30.3",
   "devDependencies": {
     "@uni-helper/eslint-config": "^0.7.3",
     "eslint": "^10.3.0"
