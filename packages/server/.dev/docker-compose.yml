@@ -1,0 +1,34 @@
+services:
+  rustfs:
+    image: rustfs/rustfs:1.0.0-alpha.82
+    container_name: rustfs
+    environment:
+      - RUSTFS_VOLUMES=/data/rustfs0
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_CORS_ALLOWED_ORIGINS=*
+      - RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS=*
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:-rustfsadmin}
+      - RUSTFS_OBS_LOGGER_LEVEL=info
+    ports:
+      - "9090:9000"
+      - "9091:9001"
+    volumes:
+      - ./rustfs/data:/data
+      - ./rustfs/logs:/app/logs
+    restart: always
+
+  server:
+    image: upgrade-component-server:1.0.2
+    container_name: upgrade-component-server
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./server/data:/app/data
+      - ./server/logs:/app/logs
+      - ../config.toml:/app/config.toml:ro
+    ports:
+      - '7001:7001'
+    restart: always

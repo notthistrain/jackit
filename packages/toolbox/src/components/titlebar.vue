@@ -2,18 +2,23 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Minus, Square, X } from 'lucide-vue-next'
 
-const appWindow = getCurrentWindow()
+let _appWindow: ReturnType<typeof getCurrentWindow> | null = null
+function getAppWindow() {
+  if (!_appWindow)
+    _appWindow = getCurrentWindow()
+  return _appWindow
+}
 
 async function minimize() {
-  await appWindow.minimize()
+  await getAppWindow().minimize()
 }
 
 async function toggleMaximize() {
-  await appWindow.toggleMaximize()
+  await getAppWindow().toggleMaximize()
 }
 
 async function close() {
-  await appWindow.close()
+  await getAppWindow().close()
 }
 </script>
 

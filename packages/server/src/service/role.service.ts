@@ -1,6 +1,6 @@
 import type { Repository } from 'typeorm'
 import type { ILogger } from '@midwayjs/core'
-import { Logger, Singleton } from '@midwayjs/core'
+import { Config, Logger, Singleton } from '@midwayjs/core'
 import { InjectEntityModel } from '@midwayjs/typeorm'
 import { Role } from '../entity/role.entity'
 import { User } from '../entity/user.entity'
@@ -16,6 +16,9 @@ export class RoleService {
 
   @Logger()
   logger: ILogger
+
+  @Config('admin.defaultPassword')
+  adminDefaultPassword: string
 
   async findRoleByName(name: string): Promise<Role | null> {
     return this.roleModel.findOne({ where: { name } })
@@ -81,7 +84,8 @@ export class RoleService {
       return
     }
 
-    const passwordHash = await bcrypt.hash('admin123', 10)
+    const password = this.adminDefaultPassword || 'admin123'
+    const passwordHash = await bcrypt.hash(password, 10)
     const user = this.userModel.create({
       username: 'admin',
       passwordHash,

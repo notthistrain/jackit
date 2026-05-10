@@ -1,0 +1,13 @@
+**/node_modules
+**/.git
+**/.vscode
+**/.idea
+**/.astro
+**/target
+**/*.log
+**/*.md
+**/config.toml
+**/config.local.toml
+packages/toolbox
+packages/server/.dev
+packages/server/test

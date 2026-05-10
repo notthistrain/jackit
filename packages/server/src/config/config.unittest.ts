@@ -3,7 +3,7 @@ import type { DataSourceOptions } from 'typeorm'
 
 export default {
   koa: {
-    port: null,
+    port: undefined,
   },
   logger: {
     consoleLevel: 'info',

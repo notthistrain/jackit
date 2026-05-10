@@ -29,7 +29,7 @@
 |------|------|------|
 | 创建 | `src/lib/types.ts` | Tool / ToolVersion 类型定义 |
 | 创建 | `src/lib/utils.ts` | cn() 工具函数 |
-| 创建 | `src/lib/api.ts` | svnlink HTTP API 客户端 |
+| 创建 | `src/lib/api.ts` | upgrade-component HTTP API 客户端 |
 | 创建 | `src/lib/sync.ts` | 同步调度器 |
 | 创建 | `src/composables/use-commands.ts` | 封装 Tauri invoke |
 | 创建 | `src/composables/useAsyncButton.ts` | 原样迁移 |

@@ -134,7 +134,7 @@ pub struct LogConfig {
 fn default_app_name() -> String { "toolbox".into() }
 fn default_environment() -> String { "production".into() }
 fn default_install_path() -> String { "tools".into() }
-fn default_server_address() -> String { "http://10.250.251.31:7001".into() }
+fn default_server_address() -> String { "http://127.0.0.1:7001".into() }
 fn default_s3_port() -> i32 { 9090 }
 fn default_manual_path() -> String { "/manual".into() }
 fn default_db_type() -> String { "sqlite".into() }
@@ -542,7 +542,7 @@ pub fn run() {
 
 - [ ] **步骤 2：删除 main.rs 中的旧 greet**
 
-确认 main.rs 只调用 `svnlink_toolbox_lib::run()`，无需修改。
+确认 main.rs 只调用 `upgrade-component_toolbox_lib::run()`，无需修改。
 
 - [ ] **步骤 3：cargo check**
 
@@ -564,7 +564,7 @@ cd D:/Project/upgrade-component/packages/toolbox/src-tauri
 cargo build 2>&1 | tail -5
 ```
 
-预期：`Finished`，exe 生成在 `target/debug/svnlink-toolbox.exe`
+预期：`Finished`，exe 生成在 `target/debug/upgrade-component-toolbox.exe`
 
 - [ ] **步骤 2：验证配置文件自动创建**
 

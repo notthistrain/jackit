@@ -151,9 +151,14 @@ export class PublishController {
       const content = readFileSync(infoFile.data, 'utf-8')
       parsed = TOML.parse(content) as unknown as InfoToml
       this.logger.info('info.toml content:\n%s', content)
-    } catch (error) {
-      this.logger.error('Failed to parse TOML: %s', error.message)
+    }
+    catch (error) {
+      this.logger.error('Failed to parse TOML: %s', (error as Error).message)
       return ResDTO.fail('Invalid TOML file')
+    }
+
+    if (!parsed?.software || !parsed?.version) {
+      return ResDTO.fail('Missing software or version section in info.toml')
     }
 
     const software = parsed.software
@@ -171,7 +176,15 @@ export class PublishController {
     const force = versionInfo.force ?? false
     const changelog = versionInfo.changelog
     const ext = 'exe'
-    const size = statSync(packageFile.data).size
+
+    let size: number
+    try {
+      size = statSync(packageFile.data).size
+    }
+    catch (error) {
+      this.logger.error('Failed to stat package file: %s', (error as Error).message)
+      return ResDTO.fail('Failed to read uploaded package file')
+    }
 
     this.logger.info('parsed info.toml: name=%s, sequence=%s, displayName=%s', name, sequence, displayName)
 

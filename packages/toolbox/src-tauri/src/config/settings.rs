@@ -148,7 +148,7 @@ impl Default for Config {
 pub fn config_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".seichitech")
+        .join(".tbox")
 }
 
 pub fn config_path() -> PathBuf {

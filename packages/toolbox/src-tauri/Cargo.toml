@@ -1,10 +1,10 @@
 [package]
-name = "svnlink-toolbox"
+name = "upgrade-component-toolbox"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "svnlink_toolbox_lib"
+name = "upgrade-component_toolbox_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

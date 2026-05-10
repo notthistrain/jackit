@@ -1,6 +1,6 @@
 import type { Repository } from 'typeorm'
 import type { ILogger } from '@midwayjs/core'
-import { Inject, Logger, Singleton } from '@midwayjs/core'
+import { Config, Inject, Logger, Singleton } from '@midwayjs/core'
 import { InjectEntityModel } from '@midwayjs/typeorm'
 import { JwtService } from '@midwayjs/jwt'
 import * as bcrypt from 'bcryptjs'
@@ -36,6 +36,9 @@ export class AuthService {
 
   @Logger()
   logger: ILogger
+
+  @Config('admin.defaultPassword')
+  adminDefaultPassword: string
 
   private readonly accessTokenExpiresIn = 3600
   private readonly refreshTokenExpiresIn = 604800
@@ -113,7 +116,7 @@ export class AuthService {
         role: roleName,
       }
     } catch (error) {
-      this.logger.warn('Token refresh failed: %s', error.message)
+      this.logger.warn('Token refresh failed: %s', (error as Error).message)
       return null
     }
   }
@@ -125,7 +128,8 @@ export class AuthService {
       return
     }
 
-    const passwordHash = await this.hashPassword('admin123')
+    const password = this.adminDefaultPassword || 'admin123'
+    const passwordHash = await this.hashPassword(password)
     const user = this.userModel.create({
       username: 'admin',
       passwordHash,

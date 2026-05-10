@@ -40,7 +40,7 @@ pub use remote::{fetch_and_save, SyncResult};
 
 - [ ] **步骤 2：创建 sync/remote.rs**
 
-移植 Go 的 `remote_sync.go`。使用 reqwest 从 svnlink API 拉取工具列表，保存到本地 SQLite：
+移植 Go 的 `remote_sync.go`。使用 reqwest 从 upgrade-component API 拉取工具列表，保存到本地 SQLite：
 
 ```rust
 use reqwest::blocking::Client;
@@ -226,7 +226,7 @@ fn sync_now(state: tauri::State<AppState>, app: tauri::AppHandle) -> Result<(), 
 - [ ] **步骤 1：确保 Tauri CLI 已安装**
 
 ```bash
-pnpm --filter @svnlink/toolbox tauri --version
+pnpm --filter @upgrade-component/toolbox tauri --version
 ```
 
 如果未安装，在 toolbox 的 package.json 中 `@tauri-apps/cli` 已声明为 devDep，`pnpm tauri` 即可使用。
@@ -269,7 +269,7 @@ pnpm tauri build
 - [ ] **步骤 2：验证产物**
 
 ```bash
-ls src-tauri/target/release/svnlink-toolbox.exe
+ls src-tauri/target/release/upgrade-component-toolbox.exe
 ls src-tauri/target/release/bundle/
 ```
 
@@ -281,7 +281,7 @@ ls src-tauri/target/release/bundle/
 
 - [ ] **步骤 1：确认不再需要旧 Wails 项目**
 
-检查 `D:/Project/upgrade-component/toolbox/` 是否还存在（可能在 svnlink 迁移时未被删除）。
+检查 `D:/Project/upgrade-component/toolbox/` 是否还存在（可能在 upgrade-component 迁移时未被删除）。
 
 - [ ] **步骤 2：删除旧项目（确认后）**
 

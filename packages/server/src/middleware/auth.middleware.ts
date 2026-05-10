@@ -82,7 +82,7 @@ export class AuthMiddleware {
       return await this.authService.verifyToken(token) as JwtPayload
     }
     catch (error) {
-      this.logger.warn('Token verification failed: %s', error.message)
+      this.logger.warn('Token verification failed: %s', (error as Error).message)
       return null
     }
   }

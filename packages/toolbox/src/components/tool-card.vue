@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { Tool } from '@/lib/types'
-import type { InstallProgress } from '@/stores/tools'
+import type { InstallProgress, Tool } from '@/lib/types'
 import {
   BookOpen,
   Download,

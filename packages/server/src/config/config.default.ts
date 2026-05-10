@@ -1,11 +1,14 @@
 import type { MidwayConfig } from '@midwayjs/core'
 import type { IMidwayKoaConfigurationOptions } from '@midwayjs/koa'
 import type { DataSourceOptions } from 'typeorm'
+import { loadTomlConfig } from './toml-loader'
+
+const toml = loadTomlConfig()
 
 export default {
-  keys: 'svnlink_1772413730146',
+  keys: 'upgrade-component_1772413730146',
   koa: {
-    port: 7001,
+    port: toml.server?.port || 7001,
     globalPrefix: '/api',
   } as IMidwayKoaConfigurationOptions,
   staticFile: {
@@ -20,8 +23,8 @@ export default {
     mode: 'file',
     whitelist: null,
     limits: {
-      files: 5
-    }
+      files: 5,
+    },
   },
   midwayLogger: {
     default: {
@@ -71,7 +74,7 @@ export default {
     dataSource: {
       default: {
         type: 'better-sqlite3',
-        database: process.env.DB_PATH || './data/svnlink.db',
+        database: toml.database?.path || process.env.DB_PATH || './data/upgrade-component.db',
         entities: ['**/entity/*.entity.*'],
         synchronize: true,
         logging: false,
@@ -79,25 +82,28 @@ export default {
     },
   },
   rustfs: {
-    endpoint: process.env.RUSTFS_ENDPOINT || 'http://127.0.0.1:9090',
-    accessKeyId: process.env.RUSTFS_ACCESS_KEY_ID || 'rustfsadmin',
-    secretAccessKey: process.env.RUSTFS_SECRET_ACCESS_KEY || 'rustfsadmin',
-    bucket: process.env.RUSTFS_BUCKET || 'svnlink',
+    endpoint: toml.rustfs?.endpoint || process.env.RUSTFS_ENDPOINT || 'http://127.0.0.1:9090',
+    accessKeyId: toml.rustfs?.access_key_id || process.env.RUSTFS_ACCESS_KEY_ID || '',
+    secretAccessKey: toml.rustfs?.secret_access_key || process.env.RUSTFS_SECRET_ACCESS_KEY || '',
+    bucket: toml.rustfs?.bucket || process.env.RUSTFS_BUCKET || 'upgrade-component',
     useSSL: false,
-    signExpire: process.env.SIGN_EXPIRE || 30000,
+    signExpire: toml.rustfs?.sign_expire || Number(process.env.SIGN_EXPIRE) || 30000,
   },
   upgradelink: {
-    endpoint: process.env.UPGRADELINK_ENDPOINT || 'http://upgradelink-api:8080',
+    endpoint: toml.upgradelink?.endpoint || process.env.UPGRADELINK_ENDPOINT || 'http://upgradelink-api:8080',
   },
   svn: {
-    username: process.env.SVN_USERNAME || 'guojiuhai',
-    password: process.env.SVN_PASSWORD || 'Password582',
+    username: toml.svn?.username ?? process.env.SVN_USERNAME ?? '',
+    password: toml.svn?.password ?? process.env.SVN_PASSWORD ?? '',
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'svnlink_jwt_secret_key_2026',
+    secret: toml.jwt?.secret ?? process.env.JWT_SECRET ?? 'dev_jwt_secret_change_in_production',
+  },
+  admin: {
+    defaultPassword: toml.admin?.default_password ?? process.env.ADMIN_DEFAULT_PASSWORD ?? '',
   },
   cookie: {
-    secure: process.env.COOKIE_SECURE === 'true' || false,
+    secure: toml.cookie?.secure ?? (process.env.COOKIE_SECURE === 'true' || false),
   },
   permission: {
     super: [

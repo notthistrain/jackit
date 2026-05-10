@@ -4,6 +4,7 @@ node_modules/
 # build output
 dist/
 .target/
+target
 
 # astro generated
 .astro/
@@ -21,6 +22,9 @@ src-tauri/gen/
 .env.local
 .env.production
 
+# server config (contains secrets)
+packages/server/config.toml
+
 # OS
 .DS_Store
 Thumbs.db
@@ -29,11 +33,9 @@ Thumbs.db
 *.old
 *.new
 
-# IDE
-.idea/
-.vscode/
-
 # logs
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+.audit
+logs

@@ -2,7 +2,7 @@
 
 ## 概述
 
-将 toolbox（Wails 3 桌面应用）用 Tauri 2 重构，并将 svnlink 和 toolbox 以 pnpm monorepo 集成到统一目录下。
+将 toolbox（Wails 3 桌面应用）用 Tauri 2 重构，并将 upgrade-component 和 toolbox 以 pnpm monorepo 集成到统一目录下。
 
 **核心原则**：Rust 负责系统级能力（数据库、文件操作、配置、自更新），TypeScript 负责业务逻辑（API 通信、同步调度、UI 状态管理）。
 
@@ -14,8 +14,8 @@ upgrade-component/                    # 根目录
 ├── pnpm-workspace.yaml               # packages: ['packages/*']
 ├── pnpm-lock.yaml
 ├── packages/
-│   ├── server/                       # svnlink server (Midway.js，原样迁移)
-│   ├── admin/                        # svnlink admin (Astro + Vue，原样迁移)
+│   ├── server/                       # upgrade-component server (Midway.js，原样迁移)
+│   ├── admin/                        # upgrade-component admin (Astro + Vue，原样迁移)
 │   └── toolbox/                      # Tauri 2 桌面应用
 │       ├── package.json              # 前端依赖 (Astro, Vue, TailwindCSS, shadcn-vue)
 │       ├── astro.config.mjs          # Astro 配置（MPA 模式）
@@ -42,7 +42,7 @@ upgrade-component/                    # 根目录
 └── CLAUDE.md
 ```
 
-- svnlink 的 `server/` 和 `admin/` 从 `svnlink/packages/` 提升到根 `packages/`
+- upgrade-component 的 `server/` 和 `admin/` 从 `upgrade-component/packages/` 提升到根 `packages/`
 - 各包独立，不共享代码
 
 ## Rust 模块设计
@@ -67,7 +67,7 @@ src-tauri/src/
 │   └── settings.rs      # YAML 配置读写（server URL、同步间隔等）
 └── updater/
     ├── mod.rs
-    ├── check.rs          # 调 svnlink API 对比版本
+    ├── check.rs          # 调 upgrade-component API 对比版本
     ├── download.rs       # 下载 .new 文件 + 进度事件
     ├── apply.rs          # 生成 bat 脚本 → 替换 exe → 重启
     └── cleanup.rs        # 清理 .old/.new 残留文件
@@ -112,7 +112,7 @@ src-tauri/src/
 
 | 命令 | 功能 | 返回 |
 |------|------|------|
-| `updater_check` | 调 svnlink API 检查新版本 | `Option<UpdateInfo>` |
+| `updater_check` | 调 upgrade-component API 检查新版本 | `Option<UpdateInfo>` |
 | `updater_download` | 下载更新包 | 进度事件流 |
 | `updater_apply` | 生成 bat 脚本并重启 | `()` |
 
@@ -174,7 +174,7 @@ src/
 ├── stores/
 │   └── tools.ts                 # Pinia store
 ├── lib/
-│   ├── api.ts                   # svnlink HTTP API 客户端
+│   ├── api.ts                   # upgrade-component HTTP API 客户端
 │   ├── types.ts                 # 类型定义
 │   └── sync.ts                  # 同步调度器（5h 定时）
 ├── styles/
@@ -204,7 +204,7 @@ src/
 ### 工具列表数据流
 
 ```
-svnlink API ──fetch──→ lib/api.ts ──→ lib/sync.ts ──→ invoke('db_upsert_tool') ──→ SQLite
+upgrade-component API ──fetch──→ lib/api.ts ──→ lib/sync.ts ──→ invoke('db_upsert_tool') ──→ SQLite
                                                                           ↓
 Vue 组件 ←── Pinia store ←── invoke('db_query_tools') ←──────────────── SQLite
 ```
@@ -233,7 +233,7 @@ Vue 组件 ←── Pinia store ←── invoke('db_query_tools') ←───
 复刻现有 Wails 3 的 Go 逻辑，不使用 tauri-plugin-updater：
 
 1. **启动时**：`cleanup` 清理残留的 `.old` / `.new` 文件
-2. **检查更新**：从 svnlink API 获取最新版本号，与当前版本对比
+2. **检查更新**：从 upgrade-component API 获取最新版本号，与当前版本对比
 3. **下载**：下载新版本到 `<exe_path>.new`，通过 Tauri event 推送进度
 4. **应用更新**：生成 Windows bat 脚本（等待进程退出 → 重命名 → 替换 → 重启），然后退出当前进程
 

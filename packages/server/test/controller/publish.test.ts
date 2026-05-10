@@ -16,7 +16,7 @@ describe('aPI Controller', () => {
   describe('pOST /api/publish', () => {
     it.skip('publish/svn', async () => {
       const response = await createHttpRequest(app).post('/api/publish/svn').send({
-        url: 'http://10.10.11.23/svn/SW_CI/!svn/ver/18232/Project_Build_Service/scannerbib/scannerbib_0.0.0_build_66/scannerbib-0.0.0-0.x86_64.rpm',
+        url: 'http://svn.example.com/svn/project/!svn/ver/1/releases/tool-0.0.0-1.x86_64.rpm',
         sequence: '0.0.0',
         name: 'scannerbib',
         ext: 'rpm',

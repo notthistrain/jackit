@@ -20,7 +20,7 @@ async function handleLogout() {
       <div class="flex items-center gap-6">
         <a href="/" class="flex items-center gap-2 font-semibold text-lg">
           <Package class="w-5 h-5" />
-          SVNLink
+          upgrade-component
         </a>
         <nav class="flex items-center gap-4">
           <a

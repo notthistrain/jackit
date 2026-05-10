@@ -1,4 +1,4 @@
-import type { export export InstallProgress, SyncResult, Tool } from '@/lib/types'
+import type { InstallProgress, SyncResult, Tool } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
 import { createGlobalState } from '@vueuse/core'
 import { computed, ref } from 'vue'

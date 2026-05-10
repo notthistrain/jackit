@@ -29,7 +29,7 @@ export class RequestLogMiddleware implements IMiddleware<Context, NextFunction> 
       }
       catch (error) {
         const duration = Date.now() - startTime
-        this.logger.error('[异常] %s %s duration=%dms error=%s', method, path, duration, error.message)
+        this.logger.error('[异常] %s %s duration=%dms error=%s', method, path, duration, (error as Error).message)
         throw error
       }
     }

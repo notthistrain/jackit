@@ -1,0 +1,40 @@
+# Upgrade Component Server 配置文件
+# 复制此文件为 config.toml 并填入实际值
+
+[server]
+# 服务端口
+port = 7001
+
+[database]
+# SQLite 数据库文件路径
+path = "./data/upgrade-component.db"
+
+[rustfs]
+# S3 兼容存储 (RustFS/MinIO) 配置
+endpoint = "http://127.0.0.1:9090"
+access_key_id = ""
+secret_access_key = ""
+bucket = "upgrade-component"
+# 预签名 URL 过期时间（秒）
+sign_expire = 30000
+
+[upgradelink]
+# UpgradeLink API 地址
+endpoint = "http://upgradelink-api:8080"
+
+[svn]
+# SVN 服务凭证
+username = ""
+password = ""
+
+[jwt]
+# JWT 签名密钥（生产环境必须修改）
+secret = ""
+
+[admin]
+# 初始管理员密码（首次启动时创建 admin 用户使用，生产环境必须设置强密码）
+default_password = ""
+
+[cookie]
+# 是否启用安全 Cookie（HTTPS 环境下设为 true）
+secure = false

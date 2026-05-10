@@ -55,7 +55,7 @@ async function handleLogin() {
             <Package class="w-6 h-6 text-primary" />
           </div>
         </div>
-        <CardTitle class="text-2xl">SVNLink</CardTitle>
+        <CardTitle class="text-2xl">upgrade-component</CardTitle>
         <CardDescription>软件版本管理系统</CardDescription>
       </CardHeader>
       <CardContent>

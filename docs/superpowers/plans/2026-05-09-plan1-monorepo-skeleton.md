@@ -2,9 +2,9 @@
 
 > **面向 AI 代理的工作者：** 必需子技能：使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实现此计划。步骤使用复选框（`- [ ]`）语法来跟踪进度。
 
-**目标：** 建立根目录 pnpm monorepo，迁移 svnlink 子包，初始化 Tauri 2 toolbox 骨架
+**目标：** 建立根目录 pnpm monorepo，迁移 upgrade-component 子包，初始化 Tauri 2 toolbox 骨架
 
-**架构：** 根目录 `pnpm-workspace.yaml` 管理 `packages/*` 下三个子包。svnlink 的 server 和 admin 从 `svnlink/packages/` 提升；toolbox 新建 Tauri 2 + Astro + Vue 骨架。
+**架构：** 根目录 `pnpm-workspace.yaml` 管理 `packages/*` 下三个子包。upgrade-component 的 server 和 admin 从 `upgrade-component/packages/` 提升；toolbox 新建 Tauri 2 + Astro + Vue 骨架。
 
 **技术栈：** pnpm 10 workspaces、Tauri 2 (Rust 1.93)、Astro 6 + Vue 3
 
@@ -16,8 +16,8 @@
 |------|------|------|
 | 创建 | `pnpm-workspace.yaml` | workspace 声明 |
 | 创建 | `package.json` | 根 workspace 脚本 |
-| 移动 | `svnlink/packages/server/` → `packages/server/` | Midway.js 服务端（原样） |
-| 移动 | `svnlink/packages/admin/` → `packages/admin/` | Astro 管理后台（原样） |
+| 移动 | `upgrade-component/packages/server/` → `packages/server/` | Midway.js 服务端（原样） |
+| 移动 | `upgrade-component/packages/admin/` → `packages/admin/` | Astro 管理后台（原样） |
 | 创建 | `packages/toolbox/package.json` | toolbox 前端依赖 |
 | 创建 | `packages/toolbox/astro.config.mjs` | Astro MPA 配置 |
 | 创建 | `packages/toolbox/tsconfig.json` | TypeScript 配置 |
@@ -31,7 +31,7 @@
 | 创建 | `packages/toolbox/src-tauri/src/main.rs` | Rust 入口 |
 | 创建 | `packages/toolbox/src-tauri/src/lib.rs` | command 注册 |
 | 创建 | `packages/toolbox/src-tauri/build.rs` | Tauri 构建脚本 |
-| 删除 | `svnlink/` | 迁移完成后清理 |
+| 删除 | `upgrade-component/` | 迁移完成后清理 |
 
 ---
 
@@ -52,7 +52,7 @@ onlyBuiltDependencies:
 
 - [ ] **步骤 2：创建根 package.json**
 
-合并原 `svnlink/package.json` 的脚本，增加 toolbox 脚本：
+合并原 `upgrade-component/package.json` 的脚本，增加 toolbox 脚本：
 
 ```json
 {
@@ -60,11 +60,11 @@ onlyBuiltDependencies:
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev:server": "pnpm --filter @svnlink/server dev",
-    "dev:admin": "pnpm --filter @svnlink/admin dev",
-    "dev:toolbox": "pnpm --filter @svnlink/toolbox dev",
+    "dev:server": "pnpm --filter @upgrade-component/server dev",
+    "dev:admin": "pnpm --filter @upgrade-component/admin dev",
+    "dev:toolbox": "pnpm --filter @upgrade-component/toolbox dev",
     "build": "pnpm -r build",
-    "test": "pnpm --filter @svnlink/server test",
+    "test": "pnpm --filter @upgrade-component/server test",
     "lint": "pnpm -r lint"
   }
 }
@@ -80,19 +80,19 @@ node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.
 
 ---
 
-### 任务 2：迁移 svnlink 子包
+### 任务 2：迁移 upgrade-component 子包
 
 **文件：**
-- 移动：`svnlink/packages/server/` → `packages/server/`
-- 移动：`svnlink/packages/admin/` → `packages/admin/`
+- 移动：`upgrade-component/packages/server/` → `packages/server/`
+- 移动：`upgrade-component/packages/admin/` → `packages/admin/`
 
 - [ ] **步骤 1：创建 packages 目录并移动**
 
 ```bash
 cd D:/Project/upgrade-component
 mkdir -p packages
-cp -r svnlink/packages/server packages/server
-cp -r svnlink/packages/admin packages/admin
+cp -r upgrade-component/packages/server packages/server
+cp -r upgrade-component/packages/admin packages/admin
 ```
 
 - [ ] **步骤 2：验证包名正确**
@@ -102,12 +102,12 @@ node -e "console.log(require('./packages/server/package.json').name)"
 node -e "console.log(require('./packages/admin/package.json').name)"
 ```
 
-预期：`@svnlink/server` 和 `@svnlink/admin`
+预期：`@upgrade-component/server` 和 `@upgrade-component/admin`
 
-- [ ] **步骤 3：删除旧 svnlink 目录**
+- [ ] **步骤 3：删除旧 upgrade-component 目录**
 
 ```bash
-rm -rf svnlink
+rm -rf upgrade-component
 ```
 
 - [ ] **步骤 4：验证 pnpm 识别 workspace**
@@ -116,7 +116,7 @@ rm -rf svnlink
 pnpm ls -r --depth -1
 ```
 
-预期：列出 `@svnlink/server` 和 `@svnlink/admin` 两个包
+预期：列出 `@upgrade-component/server` 和 `@upgrade-component/admin` 两个包
 
 ---
 
@@ -134,12 +134,12 @@ pnpm ls -r --depth -1
 
 ```toml
 [package]
-name = "svnlink-toolbox"
+name = "upgrade-component-toolbox"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "svnlink_toolbox_lib"
+name = "upgrade-component_toolbox_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -215,7 +215,7 @@ fn main() {
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    svnlink_toolbox_lib::run()
+    upgrade-component_toolbox_lib::run()
 }
 ```
 
@@ -264,7 +264,7 @@ cargo check
 
 ```json
 {
-  "name": "@svnlink/toolbox",
+  "name": "@upgrade-component/toolbox",
   "type": "module",
   "version": "0.1.0",
   "scripts": {
@@ -409,7 +409,7 @@ pnpm install
 pnpm ls -r --depth -1
 ```
 
-预期：列出 `@svnlink/server`、`@svnlink/admin`、`@svnlink/toolbox`
+预期：列出 `@upgrade-component/server`、`@upgrade-component/admin`、`@upgrade-component/toolbox`
 
 - [ ] **步骤 4：验证前端构建**
 
