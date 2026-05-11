@@ -30,7 +30,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen relative">
+  <div class="flex items-center justify-center min-h-screen relative overflow-hidden">
     <!-- 光晕装饰 -->
     <div class="absolute" style="top:-60px; right:-40px; width:300px; height:300px; background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%); border-radius:50%;" />
     <div class="absolute" style="bottom:-80px; left:-60px; width:250px; height:250px; background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%); border-radius:50%;" />
