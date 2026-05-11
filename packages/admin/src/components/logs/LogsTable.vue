@@ -3,6 +3,7 @@ import type { OperationLog } from '@/types'
 import { onMounted, ref, watch } from 'vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useApi } from '@/composables/useApi'
 import { formatDate } from '@/lib/utils'
 
@@ -123,8 +124,17 @@ onMounted(fetchData)
             <TableCell style="color:#64748b; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
               {{ formatDate(log.createdAt) }}
             </TableCell>
-            <TableCell style="max-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="log.detail">
-              <span style="color:#94a3b8; font-size:12px;">{{ log.detail }}</span>
+            <TableCell style="max-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <span style="color:#94a3b8; font-size:12px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ log.detail }}</span>
+                  </TooltipTrigger>
+                  <TooltipContent style="max-width:400px; white-space:pre-wrap; word-break:break-all;">
+                    {{ log.detail }}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </TableCell>
             <TableCell>
               <span :class="getActionTagClass(log.action)" style="font-size:10px; padding:2px 8px; border-radius:4px; display:inline-block;">
@@ -132,7 +142,16 @@ onMounted(fetchData)
               </span>
             </TableCell>
             <TableCell style="color:#94a3b8; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-              {{ log.target }}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ log.target }}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {{ log.target }}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </TableCell>
           </TableRow>
         </TableBody>
