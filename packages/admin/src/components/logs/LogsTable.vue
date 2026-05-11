@@ -2,7 +2,6 @@
 import type { OperationLog } from '@/types'
 import { onMounted, ref, watch } from 'vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApi } from '@/composables/useApi'
 import { formatDate } from '@/lib/utils'
 
@@ -92,45 +91,45 @@ onMounted(fetchData)
 
     <!-- 表格卡片 -->
     <div class="glass-card p-4">
-      <Table>
-        <TableHeader>
-          <TableRow style="background: rgba(255,255,255,0.04);">
-            <TableHead style="color:#64748b; font-size:11px;">时间</TableHead>
-            <TableHead style="color:#64748b; font-size:11px;">操作内容</TableHead>
-            <TableHead style="color:#64748b; font-size:11px;">类型</TableHead>
-            <TableHead style="color:#64748b; font-size:11px;">操作对象</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-if="loading">
-            <TableCell colspan="4" style="color:#64748b; text-align:center; padding:32px;">加载中...</TableCell>
-          </TableRow>
-          <TableRow v-else-if="logs.length === 0">
-            <TableCell colspan="4" style="color:#64748b; text-align:center; padding:32px;">暂无日志记录</TableCell>
-          </TableRow>
-          <TableRow
+      <table style="width:100%; table-layout:fixed; border-collapse:collapse;">
+        <thead>
+          <tr style="background: rgba(255,255,255,0.04);">
+            <th style="color:#64748b; font-size:11px; text-align:left; padding:10px 12px; width:150px;">时间</th>
+            <th style="color:#64748b; font-size:11px; text-align:left; padding:10px 12px;">操作内容</th>
+            <th style="color:#64748b; font-size:11px; text-align:left; padding:10px 12px; width:80px;">类型</th>
+            <th style="color:#64748b; font-size:11px; text-align:left; padding:10px 12px; width:120px;">操作对象</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="loading">
+            <td colspan="4" style="color:#64748b; text-align:center; padding:32px;">加载中...</td>
+          </tr>
+          <tr v-else-if="logs.length === 0">
+            <td colspan="4" style="color:#64748b; text-align:center; padding:32px;">暂无日志记录</td>
+          </tr>
+          <tr
             v-for="log in logs"
             :key="log.id"
             style="border-bottom: 1px solid rgba(255,255,255,0.04);"
             class="hover:bg-white/[0.03]"
           >
-            <TableCell style="color:#64748b; font-size:11px; white-space:nowrap;">
+            <td style="color:#64748b; font-size:11px; white-space:nowrap; padding:10px 12px;">
               {{ formatDate(log.createdAt) }}
-            </TableCell>
-            <TableCell>
-              <span style="color:#94a3b8; font-size:12px;">{{ log.detail }}</span>
-            </TableCell>
-            <TableCell>
+            </td>
+            <td style="padding:10px 12px; max-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <span style="color:#94a3b8; font-size:12px;" :title="log.detail">{{ log.detail }}</span>
+            </td>
+            <td style="padding:10px 12px;">
               <span :class="getActionTagClass(log.action)" style="font-size:10px; padding:2px 8px; border-radius:4px; display:inline-block;">
                 {{ getActionLabel(log.action) }}
               </span>
-            </TableCell>
-            <TableCell style="color:#94a3b8; font-size:11px; white-space:nowrap;">
+            </td>
+            <td style="color:#94a3b8; font-size:11px; white-space:nowrap; padding:10px 12px;">
               {{ log.target }}
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <!-- 分页 -->
       <div v-if="total > pageSize" class="flex items-center justify-between mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.04);">
