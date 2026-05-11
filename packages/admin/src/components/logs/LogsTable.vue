@@ -130,7 +130,7 @@ onMounted(fetchData)
                   <TooltipTrigger as-child>
                     <span style="color:#94a3b8; font-size:12px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ log.detail }}</span>
                   </TooltipTrigger>
-                  <TooltipContent style="max-width:400px; white-space:pre-wrap; word-break:break-all;">
+                  <TooltipContent style="max-width:400px; max-height:200px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">
                     {{ log.detail }}
                   </TooltipContent>
                 </Tooltip>
