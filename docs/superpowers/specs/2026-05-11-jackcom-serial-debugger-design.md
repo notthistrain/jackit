@@ -130,15 +130,32 @@ src-tauri/src/
 │   └── config.rs               # SerialConfig 类型定义
 │
 ├── protocol/                   # 协议处理（Detector ⧧ Parser 分离）
-│   ├── mod.rs                  # ProtocolDetector / ProtocolParser traits
-│   ├── detector.rs             # 自动检测编排器（带状态，逐字节喂入）
-│   ├── frame.rs                # Frame 模型分层（RawFrame / ParsedFrame / DisplayFrame）
-│   └── parsers/
-│       ├── mod.rs              # Parser 注册表
-│       ├── raw.rs              # HEX/ASCII 原始展示
-│       ├── modbus.rs           # Modbus RTU 解析
-│       ├── at_cmd.rs           # AT 命令解析
-│       └── json_frame.rs      # JSON 帧解析
+│   ├── mod.rs                  # ProtocolDetector / ProtocolParser trait 定义
+│   │                           # + ProtocolType / ParsedData / ParseError 类型
+│   │                           # + Detection enum
+│   ├── detector.rs             # AutoDetector 编排器
+│   │                           # 职责：管理多个 ProtocolDetector 实例
+│   │                           # 逐字节喂入，维护检测状态机
+│   │                           # 一旦检测到协议，锁定并委托给对应 Parser
+│   │                           # 支持 reset() 和手动指定协议
+│   ├── frame.rs                # Frame 三层模型定义
+│   │                           # RawFrame: 原始字节 + 时间戳 + 方向
+│   │                           # ParsedFrame: RawFrame + 协议 + 解析结果
+│   │                           # DisplayFrame: 前端展示最小子集（Serde 序列化）
+│   │                           # Direction / ProtocolType enum
+│   └── parsers/                # 各协议的具体实现
+│       ├── mod.rs              # Parser 注册表：HashMap<ProtocolType, Box<dyn ProtocolParser>>
+│       │                       # all_parsers() 工厂函数
+│       ├── raw.rs              # 原始数据解析器：HEX 格式化 + ASCII 解码
+│       │                       # RawDetector + RawParser
+│       ├── modbus.rs           # Modbus RTU：帧检测(CRC校验) + 寄存器解析
+│       │                       # ModbusDetector + ModbusParser
+│       │                       # ModbusFunction / ModbusFrame 类型
+│       ├── at_cmd.rs           # AT 命令：命令/响应识别 + 参数解析
+│       │                       # ATDetector + ATParser
+│       │                       # ATCommand / ATResponse 类型
+│       └── json_frame.rs       # JSON 帧：花括号匹配 + 格式化
+│                               # JSONDetector + JSONParser
 │
 ├── storage/                    # 异步数据持久化
 │   ├── mod.rs                  # 数据库操作（sqlx + SQLite）
@@ -200,11 +217,16 @@ struct DisplayFrame {
 
 ```rust
 /// 端口事件：从 Port Task 发出的所有消息
+/// 所有变体都携带 port_id，确保前端能按端口过滤
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type")]
 enum PortEvent {
-    Data(RawFrame),
-    PortOpened(String),
-    PortClosed(String, CloseReason),
-    PortError(String, SerialError),
+    Data { port_id: String, frames: Vec<RawFrame> },
+    Opened { port_id: String, config: SerialConfig },
+    Closed { port_id: String, reason: CloseReason },
+    Error { port_id: String, error: String },
+    Change { arrived: Vec<String>, removed: Vec<String> },
+    Stats { port_id: String, rx: u64, tx: u64, fps: u32 },
 }
 
 /// Broker：多消费者发布/订阅
@@ -292,23 +314,7 @@ enum AppError {
 
 ### Cargo 核心依赖
 
-```toml
-[dependencies]
-tauri = { version = "2", features = ["devtools"] }
-tokio = { version = "1", features = ["full"] }
-tokio-serial = "5"
-serialport = "4"
-sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
-bytes = "1"
-dashmap = "6"
-thiserror = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1", features = ["v4"] }
-log = "0.4"
-tauri-plugin-log = "2"
-```
+见上方 Monorepo 集成章节中的完整 Cargo.toml。
 
 ## 前端架构
 
@@ -358,10 +364,9 @@ packages/jackcom/
 │       └── vscode-theme.css         # VS Code 色板变量
 │
 ├── components.json             # shadcn/ui 配置
-├── tailwind.config.ts
 ├── astro.config.mjs
 ├── tsconfig.json
-├── vite.config.ts
+├── vitest.config.ts
 └── package.json
 ```
 
@@ -384,15 +389,58 @@ packages/jackcom/
 
 ### Tauri Event 类型
 
+Rust 侧 PortEvent 通过 `#[serde(tag = "type")]` 序列化，前端 EventMap 必须与之对齐：
+
 ```typescript
+// lib/tauri-events.ts
+// 与 Rust PortEvent #[serde(tag="type")] 一一对应
+
+interface PortDataPayload {
+  port_id: string;
+  frames: DisplayFrame[];
+}
+
+interface PortOpenedPayload {
+  port_id: string;
+  config: SerialConfig;
+}
+
+interface PortClosedPayload {
+  port_id: string;
+  reason: string;  // "disconnected" | "error" | "removed"
+}
+
+interface PortErrorPayload {
+  port_id: string;
+  error: string;
+}
+
+interface PortChangePayload {
+  arrived: string[];
+  removed: string[];
+}
+
+interface PortStatsPayload {
+  port_id: string;
+  rx: number;
+  tx: number;
+  fps: number;
+}
+
+// 事件名 → payload 映射
 type EventMap = {
-  'port:data':     { portId: string; frames: DisplayFrame[] };
-  'port:opened':   { portId: string; config: SerialConfig };
-  'port:closed':   { portId: string; reason: string };
-  'port:error':    { portId: string; error: string };
-  'port:change':   { arrived: string[]; removed: string[] };
-  'stats:update':  { portId: string; rx: number; tx: number; fps: number };
+  'port:data':    PortDataPayload;
+  'port:opened':  PortOpenedPayload;
+  'port:closed':  PortClosedPayload;
+  'port:error':   PortErrorPayload;
+  'port:change':  PortChangePayload;
+  'port:stats':   PortStatsPayload;
 };
+
+// 类型安全的 listen 封装
+function on<K extends keyof EventMap>(event: K, handler: (payload: EventMap[K]) => void) {
+  return listen<EventMap[K]>(event, (e) => handler(e.payload));
+}
 ```
 
 ### 前端数据批处理
@@ -442,8 +490,22 @@ type EventMap = {
 
 ```json
 {
+  "name": "@upgrade-component/jackcom",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
   "dependencies": {
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-log": "^2",
     "react": "^19",
     "react-dom": "^19",
     "zustand": "^5",
@@ -453,6 +515,56 @@ type EventMap = {
     "class-variance-authority": "^0.7",
     "clsx": "^2",
     "tailwind-merge": "^2"
+  },
+  "devDependencies": {
+    "@astrojs/react": "^4",
+    "@tailwindcss/vite": "^4",
+    "@tauri-apps/cli": "^2",
+    "@testing-library/react": "^16",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "astro": "^5",
+    "jsdom": "^26",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}
+```
+
+### Astro 配置（参考 toolbox 模式）
+
+```javascript
+// astro.config.mjs
+import react from '@astrojs/react'
+import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from 'astro/config'
+
+export default defineConfig({
+  integrations: [react()],
+  vite: {
+    plugins: [tailwindcss()],
+    resolve: {
+      alias: {
+        '@': new URL('./src', import.meta.url).pathname,
+      },
+    },
+  },
+  output: 'static',
+})
+```
+
+```json
+// tsconfig.json
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   }
 }
 ```
@@ -476,11 +588,115 @@ type EventMap = {
 
 ### Tauri v2 配置
 
-- productName: JackCom
-- identifier: com.jackcom.serial-debugger
-- 主窗口: 1280x800, centered, decorations enabled
-- CSP: default-src 'self'; style-src 'self' 'unsafe-inline'
-- 权限: core:default, core:window:allow-create, core:window:allow-close, core:event:default, dialog:allow-save
+#### tauri.conf.json
+
+```jsonc
+{
+  "productName": "JackCom",
+  "version": "1.0.0",
+  "identifier": "com.jackcom.serial-debugger",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:4321",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "url": "/main",
+        "title": "JackCom — Serial Debugger",
+        "width": 1280,
+        "height": 800,
+        "center": true,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "log": {
+      "level": "info"
+    }
+  }
+}
+```
+
+#### capabilities/default.json
+
+```jsonc
+{
+  "identifier": "default",
+  "description": "Capability for all JackCom windows",
+  "windows": ["main", "waveform-*", "decoder-*", "history"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-create",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-size",
+    "core:window:allow-set-position",
+    "core:event:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "log:default"
+  ]
+}
+```
+
+#### Cargo.toml（参考 toolbox 的 crate-type 和 build-dependencies）
+
+```toml
+[package]
+name = "upgrade-component-jackcom"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+name = "upgrade_component_jackcom_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-log = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-serial = "5"
+serialport = "4"
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
+bytes = "1"
+dashmap = "6"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+log = "0.4"
+dirs = "5"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util", "macros"] }
+```
 
 ## TDD 策略
 
