@@ -360,7 +360,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-log = "2"
 tokio = { version = "1", features = ["full"] }
-tokio-serial = "5"
 serialport = "4"
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 bytes = "1"

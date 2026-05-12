@@ -7,7 +7,7 @@
 
 JackCom 是一个基于 Tauri v2 的桌面串口调试工具，作为 monorepo 中 `packages/jackcom` 子项目独立开发。通过 toolbox 工具市场分发，完全离线运行。
 
-技术栈: Tauri v2 + Astro 5 + React 19 + shadcn/ui + TailwindCSS + Rust (tokio-serial)
+技术栈: Tauri v2 + Astro 5 + React 19 + shadcn/ui + TailwindCSS + Rust (serialport)
 
 ## 产品定位
 
@@ -172,7 +172,7 @@ src-tauri/src/
 ### 核心数据流
 
 ```
-tokio-serial(read) → Port Task(per port)
+serialport(blocking, OS thread) → Port Task(per port)
   → Detector(逐字节检测,带状态) → Parser(已知协议后完整解析)
   → Broker(发布/订阅)
     ├→ Storage(sqlx SQLite) — 全量写入，无限制
@@ -265,17 +265,22 @@ trait ProtocolParser: Send {
 
 ```rust
 struct SerialManager {
-    ports: DashMap<String, PortHandle>,
+    ports: DashMap<String, PortEntry>,
     broker: Broker,
     watcher: PortWatcher,
-    cancel_tokens: DashMap<String, CancellationToken>,
     db: SqlitePool,
 }
 
-struct PortHandle {
+struct PortEntry {
+    port: LowLatencyPort,
+}
+
+/// 低延迟串口工作器：OS 线程阻塞读写 + Notify 即时通知
+struct LowLatencyPort {
     task: JoinHandle<()>,
     cancel: CancellationToken,
     config: SerialConfig,
+    write_tx: std::sync::mpsc::Sender<Vec<u8>>,
 }
 ```
 
@@ -681,7 +686,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-log = "2"
 tokio = { version = "1", features = ["full"] }
-tokio-serial = "5"
 serialport = "4"
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 bytes = "1"
@@ -709,7 +713,7 @@ tokio = { version = "1", features = ["test-util", "macros"] }
 | P1 | channel/broker | 发布 PortEvent，验证订阅者收到 |
 | P1 | channel/backpressure | 模拟高频消息，验证降采样 |
 | P1 | storage/ | SQLite :memory: 测试 CRUD + 分页 |
-| P2 | serial/manager | mock SerialStream，测生命周期 |
+| P2 | serial/manager | mock LowLatencyPort，测生命周期 |
 | P2 | serial/watcher | mock 端口列表变化，验证事件 |
 | P3 | commands/* | mock AppState，验证 IPC 响应 |
 
