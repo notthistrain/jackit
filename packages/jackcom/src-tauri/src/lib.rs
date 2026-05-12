@@ -1,4 +1,6 @@
 mod error;
+mod protocol;
+mod serial;
 
 use error::AppError;
 
