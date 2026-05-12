@@ -1,0 +1,28 @@
+:root {
+  /* 主强调色 */
+  --color-accent: #007ACC;
+  --color-accent-hover: #1E8AD2;
+
+  /* 数据类型色 */
+  --color-rx: #4EC9B0;
+  --color-tx: #569CD6;
+  --color-timestamp: #6A9955;
+  --color-string: #CE9178;
+  --color-control: #C586C0;
+
+  /* 背景色 */
+  --color-editor-bg: #1E1E1E;
+  --color-sidebar-bg: #252526;
+  --color-menu-bg: #2D2D2D;
+  --color-titlebar-bg: #323233;
+  --color-border: #3C3C3C;
+
+  /* 文字色 */
+  --color-text: #D4D4D4;
+  --color-text-secondary: #858585;
+
+  /* 状态色 */
+  --color-online: #4EC9B0;
+  --color-error: #F44747;
+  --color-warning: #F0C040;
+}

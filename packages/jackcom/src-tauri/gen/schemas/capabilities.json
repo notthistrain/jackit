@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Capability for all JackCom windows","local":true,"windows":["main","waveform-*","decoder-*","history"],"permissions":["core:default","core:window:allow-create","core:window:allow-close","core:window:allow-set-focus","core:window:allow-set-size","core:window:allow-set-position","core:event:default","log:default"]}}
