@@ -4,6 +4,68 @@ use tokio::sync::mpsc;
 
 use super::PortEvent;
 use super::backpressure::BackpressureStrategy;
+use crate::protocol::frame::ParsedFrame;
+use crate::serial::config::{CloseReason, SerialConfig};
+
+/// Broker 句柄：轻量级事件发布器
+///
+/// 包装 mpsc::Sender<PortEvent>，提供便捷的事件发布方法。
+/// 可克隆，多个端口 task 可共享。
+#[derive(Clone)]
+pub struct BrokerHandle {
+    tx: mpsc::Sender<PortEvent>,
+}
+
+impl BrokerHandle {
+    /// 从 source 通道创建句柄
+    pub fn new(tx: mpsc::Sender<PortEvent>) -> Self {
+        Self { tx }
+    }
+
+    /// 创建用于测试的句柄（事件被丢弃）
+    #[cfg(test)]
+    pub fn new_test() -> Self {
+        let (tx, _rx) = mpsc::channel(1);
+        Self { tx }
+    }
+
+    /// 发布数据帧事件
+    pub fn publish_data(&self, port_id: &str, frames: Vec<ParsedFrame>) {
+        let _ = self.tx.try_send(PortEvent::Data {
+            port_id: port_id.to_string(),
+            frames,
+        });
+    }
+
+    /// 发布端口打开事件
+    pub fn publish_port_opened(&self, port_id: &str, config: &SerialConfig) {
+        let _ = self.tx.try_send(PortEvent::Opened {
+            port_id: port_id.to_string(),
+            config: config.clone(),
+        });
+    }
+
+    /// 发布端口关闭事件
+    pub fn publish_port_closed(&self, port_id: &str, reason: CloseReason) {
+        let _ = self.tx.try_send(PortEvent::Closed {
+            port_id: port_id.to_string(),
+            reason,
+        });
+    }
+
+    /// 发布端口错误事件
+    pub fn publish_error(&self, port_id: &str, error: &str) {
+        let _ = self.tx.try_send(PortEvent::Error {
+            port_id: port_id.to_string(),
+            error: error.to_string(),
+        });
+    }
+
+    /// 发布端口列表变更事件
+    pub fn publish_change(&self, arrived: Vec<String>, removed: Vec<String>) {
+        let _ = self.tx.try_send(PortEvent::Change { arrived, removed });
+    }
+}
 
 /// 订阅者信息
 struct Subscriber {

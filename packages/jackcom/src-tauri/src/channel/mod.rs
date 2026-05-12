@@ -1,6 +1,8 @@
 pub mod broker;
 pub mod backpressure;
 
+pub use broker::BrokerHandle;
+
 use serde::Serialize;
 
 use crate::protocol::frame::ParsedFrame;
