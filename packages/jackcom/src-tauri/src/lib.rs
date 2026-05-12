@@ -1,7 +1,7 @@
 pub mod channel;
 mod commands;
 mod error;
-mod protocol;
+pub mod protocol;
 mod serial;
 mod state;
 
