@@ -732,7 +732,7 @@ mod tests {
     async fn test_appstate_db_init() {
         use crate::state::AppState;
 
-        let state = AppState::new();
+        let state = AppState::new_test();
         assert!(state.db.read().await.is_none());
 
         // 初始化内存数据库并注入
