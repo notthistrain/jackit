@@ -112,6 +112,174 @@ pub async fn insert_frame(
     Ok(result.last_insert_rowid())
 }
 
+/// 帧查询过滤条件
+#[derive(Debug, Clone, Default)]
+pub struct FrameQuery {
+    pub session_id: Option<i64>,
+    pub direction: Option<Direction>,
+    pub protocol: Option<ProtocolType>,
+    pub since: Option<DateTime<Utc>>,
+    pub until: Option<DateTime<Utc>>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+impl FrameQuery {
+    /// 创建默认查询（最新 50 条）
+    pub fn new() -> Self {
+        Self {
+            limit: 50,
+            offset: 0,
+            ..Default::default()
+        }
+    }
+
+    pub fn session(mut self, id: i64) -> Self {
+        self.session_id = Some(id);
+        self
+    }
+
+    pub fn direction(mut self, dir: Direction) -> Self {
+        self.direction = Some(dir);
+        self
+    }
+
+    pub fn protocol(mut self, proto: ProtocolType) -> Self {
+        self.protocol = Some(proto);
+        self
+    }
+
+    pub fn since(mut self, dt: DateTime<Utc>) -> Self {
+        self.since = Some(dt);
+        self
+    }
+
+    pub fn until(mut self, dt: DateTime<Utc>) -> Self {
+        self.until = Some(dt);
+        self
+    }
+
+    pub fn limit(mut self, n: i64) -> Self {
+        self.limit = n;
+        self
+    }
+
+    pub fn offset(mut self, n: i64) -> Self {
+        self.offset = n;
+        self
+    }
+}
+
+/// 查询返回的帧记录行
+#[derive(Debug, Clone)]
+pub struct FrameRow {
+    pub id: i64,
+    pub session_id: i64,
+    pub timestamp: String,
+    pub direction: Direction,
+    pub raw_data: Vec<u8>,
+    pub protocol: ProtocolType,
+    pub formatted: String,
+    pub summary: String,
+}
+
+/// 分页查询结果
+#[derive(Debug, Clone)]
+pub struct FramePage {
+    pub rows: Vec<FrameRow>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// 分页查询帧数据
+pub async fn query_frames(
+    pool: &SqlitePool,
+    query: FrameQuery,
+) -> Result<FramePage, sqlx::Error> {
+    let mut where_clauses = Vec::new();
+    let count_sql = String::from("SELECT COUNT(*) FROM frames");
+    let select_sql = String::from(
+        "SELECT id, session_id, timestamp, direction, raw_data, protocol, formatted, summary FROM frames"
+    );
+
+    if let Some(sid) = query.session_id {
+        where_clauses.push(format!("session_id = {}", sid));
+    }
+    if let Some(ref dir) = query.direction {
+        let dir_str = match dir {
+            Direction::Tx => "tx",
+            Direction::Rx => "rx",
+        };
+        where_clauses.push(format!("direction = '{}'", dir_str));
+    }
+    if let Some(ref proto) = query.protocol {
+        let proto_str = match proto {
+            ProtocolType::Raw => "raw",
+            ProtocolType::Modbus => "modbus",
+            ProtocolType::AT => "at",
+            ProtocolType::Json => "json",
+        };
+        where_clauses.push(format!("protocol = '{}'", proto_str));
+    }
+    if let Some(ref since) = query.since {
+        where_clauses.push(format!("timestamp >= '{}'", since.to_rfc3339()));
+    }
+    if let Some(ref until) = query.until {
+        where_clauses.push(format!("timestamp <= '{}'", until.to_rfc3339()));
+    }
+
+    let where_sql = if where_clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", where_clauses.join(" AND "))
+    };
+
+    // 查询总数
+    let (total,): (i64,) = sqlx::query_as(&format!("{}{}", count_sql, where_sql))
+        .fetch_one(pool)
+        .await?;
+
+    // 查询数据
+    let data_sql = format!(
+        "{}{} ORDER BY timestamp ASC LIMIT {} OFFSET {}",
+        select_sql, where_sql, query.limit, query.offset
+    );
+
+    let rows: Vec<(i64, i64, String, String, Vec<u8>, String, String, String)> =
+        sqlx::query_as(&data_sql).fetch_all(pool).await?;
+
+    let frame_rows = rows.into_iter().map(|row| {
+        let direction = match row.3.as_str() {
+            "tx" => Direction::Tx,
+            _ => Direction::Rx,
+        };
+        let protocol = match row.5.as_str() {
+            "modbus" => ProtocolType::Modbus,
+            "at" => ProtocolType::AT,
+            "json" => ProtocolType::Json,
+            _ => ProtocolType::Raw,
+        };
+        FrameRow {
+            id: row.0,
+            session_id: row.1,
+            timestamp: row.2,
+            direction,
+            raw_data: row.4,
+            protocol,
+            formatted: row.6,
+            summary: row.7,
+        }
+    }).collect();
+
+    Ok(FramePage {
+        rows: frame_rows,
+        total,
+        limit: query.limit,
+        offset: query.offset,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,6 +399,127 @@ mod tests {
 
         assert_eq!(row.0, "rx");
         assert_eq!(row.1, "raw");
+
+        pool.close().await;
+    }
+
+    async fn setup_test_data(pool: &SqlitePool) -> i64 {
+        let sid = create_session(pool, "COM3", 115200, "{}").await.unwrap();
+        let now = Utc::now();
+
+        // 插入 5 帧：3 TX + 2 RX，不同协议
+        insert_frame(pool, sid, &now, Direction::Tx, &[0x01], ProtocolType::Modbus, "M1", "modbus tx 1").await.unwrap();
+        insert_frame(pool, sid, &now, Direction::Rx, &[0x02], ProtocolType::Modbus, "M2", "modbus rx 1").await.unwrap();
+        insert_frame(pool, sid, &now, Direction::Tx, &[0x03], ProtocolType::Raw, "R1", "raw tx 1").await.unwrap();
+        insert_frame(pool, sid, &now, Direction::Tx, &[0x04], ProtocolType::AT, "A1", "at tx 1").await.unwrap();
+        insert_frame(pool, sid, &now, Direction::Rx, &[0x05], ProtocolType::Raw, "R2", "raw rx 1").await.unwrap();
+
+        sid
+    }
+
+    #[tokio::test]
+    async fn test_query_all_frames() {
+        let pool = init_db_in_memory().await.unwrap();
+        let sid = setup_test_data(&pool).await;
+
+        let page = query_frames(&pool, FrameQuery::new().session(sid).limit(10))
+            .await
+            .unwrap();
+
+        assert_eq!(page.total, 5);
+        assert_eq!(page.rows.len(), 5);
+        assert_eq!(page.limit, 10);
+        assert_eq!(page.offset, 0);
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_query_frames_by_direction() {
+        let pool = init_db_in_memory().await.unwrap();
+        let sid = setup_test_data(&pool).await;
+
+        let page = query_frames(&pool, FrameQuery::new().session(sid).direction(Direction::Tx))
+            .await
+            .unwrap();
+
+        assert_eq!(page.total, 3);
+        assert!(page.rows.iter().all(|r| r.direction == Direction::Tx));
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_query_frames_by_protocol() {
+        let pool = init_db_in_memory().await.unwrap();
+        let sid = setup_test_data(&pool).await;
+
+        let page = query_frames(&pool, FrameQuery::new().session(sid).protocol(ProtocolType::Modbus))
+            .await
+            .unwrap();
+
+        assert_eq!(page.total, 2);
+        assert!(page.rows.iter().all(|r| r.protocol == ProtocolType::Modbus));
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_query_frames_pagination() {
+        let pool = init_db_in_memory().await.unwrap();
+        let sid = setup_test_data(&pool).await;
+
+        // 第一页
+        let page1 = query_frames(&pool, FrameQuery::new().session(sid).limit(2).offset(0))
+            .await
+            .unwrap();
+        assert_eq!(page1.rows.len(), 2);
+        assert_eq!(page1.total, 5);
+
+        // 第二页
+        let page2 = query_frames(&pool, FrameQuery::new().session(sid).limit(2).offset(2))
+            .await
+            .unwrap();
+        assert_eq!(page2.rows.len(), 2);
+
+        // 第三页
+        let page3 = query_frames(&pool, FrameQuery::new().session(sid).limit(2).offset(4))
+            .await
+            .unwrap();
+        assert_eq!(page3.rows.len(), 1);
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_query_frames_empty_result() {
+        let pool = init_db_in_memory().await.unwrap();
+        let sid = setup_test_data(&pool).await;
+
+        let page = query_frames(&pool, FrameQuery::new().session(sid).protocol(ProtocolType::Json))
+            .await
+            .unwrap();
+
+        assert_eq!(page.total, 0);
+        assert!(page.rows.is_empty());
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_query_frames_by_time_range() {
+        let pool = init_db_in_memory().await.unwrap();
+        let sid = setup_test_data(&pool).await;
+
+        // 使用过去的时间范围，不应匹配任何帧
+        let past = Utc::now() - chrono::Duration::hours(1);
+        let far_past = Utc::now() - chrono::Duration::hours(2);
+        let page = query_frames(&pool, FrameQuery::new().session(sid).since(far_past).until(past))
+            .await
+            .unwrap();
+
+        assert_eq!(page.total, 0);
+        assert!(page.rows.is_empty());
 
         pool.close().await;
     }
