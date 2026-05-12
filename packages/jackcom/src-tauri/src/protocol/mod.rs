@@ -75,3 +75,5 @@ pub trait ProtocolParser: Send {
     fn parse(&self, data: &[u8]) -> Result<ParsedData, ParseError>;
     fn format(&self, parsed: &ParsedData) -> String;
 }
+
+pub mod parsers;

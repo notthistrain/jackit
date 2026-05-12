@@ -2,7 +2,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use super::ProtocolType;
+use super::{ParsedData, ProtocolType};
 
 /// 数据方向
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,6 +26,7 @@ pub struct RawFrame {
 pub struct ParsedFrame {
     pub raw: RawFrame,
     pub protocol: ProtocolType,
+    pub parsed: ParsedData,
     pub formatted: String,
 }
 
