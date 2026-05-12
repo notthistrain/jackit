@@ -12,17 +12,23 @@ pub enum Direction {
     Rx,
 }
 
+/// 将 Bytes 序列化为 Vec<u8>（JSON 数组）
+fn serialize_bytes_as_vec<S: serde::Serializer>(data: &Bytes, s: S) -> Result<S::Ok, S::Error> {
+    data.to_vec().serialize(s)
+}
+
 /// 原始帧：串口读到的最小单位
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RawFrame {
     pub port_id: String,
     pub timestamp: DateTime<Utc>,
+    #[serde(serialize_with = "serialize_bytes_as_vec")]
     pub data: Bytes,
     pub direction: Direction,
 }
 
 /// 解析帧：经 Parser 处理后的结构化数据
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ParsedFrame {
     pub raw: RawFrame,
     pub protocol: ProtocolType,
