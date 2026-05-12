@@ -6,8 +6,12 @@
     "dev:server": "pnpm --filter @upgrade-component/server dev",
     "dev:admin": "pnpm --filter @upgrade-component/admin dev",
     "dev:toolbox": "pnpm --filter @upgrade-component/toolbox dev",
+    "dev:jackcom": "pnpm --filter @upgrade-component/jackcom dev",
     "build": "pnpm -r build",
+    "build:jackcom": "pnpm --filter @upgrade-component/jackcom build",
     "test": "pnpm --filter @upgrade-component/server test",
+    "test:jackcom": "pnpm --filter @upgrade-component/jackcom test",
+    "test:jackcom:rust": "cd packages/jackcom/src-tauri && cargo test",
     "lint": "pnpm -r lint"
   },
   "packageManager": "pnpm@10.30.3",
