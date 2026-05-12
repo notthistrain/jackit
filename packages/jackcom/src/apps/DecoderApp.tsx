@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { getPortFromUrl } from '@/lib/window'
 import { useDecoderStore } from '@/stores/decoder-store'
 import { useDataFeed } from '@/hooks/useDataFeed'
+import type { DisplayFrame } from '@/lib/tauri-events'
 
 export default function DecoderApp() {
   const { portId, setPortId, pinnedFrame, pinFrame } = useDecoderStore()
@@ -15,6 +16,18 @@ export default function DecoderApp() {
   // 使用最新帧作为当前帧
   const latestFrame = frames.length > 0 ? frames[frames.length - 1] : null
   const displayFrame = pinnedFrame ?? latestFrame
+
+  const handleCopyFrame = useCallback(() => {
+    if (!displayFrame) return
+    const text = [
+      `Protocol: ${displayFrame.protocol}`,
+      `Direction: ${displayFrame.direction}`,
+      `Time: ${displayFrame.timestamp}`,
+      `RAW: ${displayFrame.raw_hex}`,
+      displayFrame.formatted ? `Parsed: ${displayFrame.formatted}` : null,
+    ].filter(Boolean).join('\n')
+    navigator.clipboard.writeText(text).catch(() => {})
+  }, [displayFrame])
 
   return (
     <div style={{
@@ -112,9 +125,12 @@ export default function DecoderApp() {
           {pinnedFrame ? 'Unpin' : 'Pin Current'}
         </button>
         <button
+          onClick={handleCopyFrame}
+          disabled={!displayFrame}
           style={{
             background: 'transparent', border: 'none',
             color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '10px',
+            opacity: displayFrame ? 1 : 0.4,
           }}
         >
           Copy Frame

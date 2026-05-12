@@ -33,14 +33,15 @@ fn make_data_event(port_id: &str, seq: u8) -> PortEvent {
 #[tokio::test]
 async fn drop_newest_does_not_block_under_high_frequency() {
     // subscriber 容量只有 10，发送 50 个事件
+    // 使用不同端口 ID 确保产生 50 个独立事件（不被批量合并）
     let (tx, rx) = mpsc::channel::<PortEvent>(256);
     let mut broker = Broker::new(rx, 10); // subscriber 容量 10
 
     let mut sub = broker.subscribe("main".to_string());
 
-    // 先发送 50 个事件到 source
+    // 先发送 50 个事件到 source（不同端口 ID）
     for i in 0..50u8 {
-        let event = make_data_event("COM3", i);
+        let event = make_data_event(&format!("COM{}", i), i);
         tx.send(event).await.unwrap();
     }
     drop(tx); // 关闭 source
@@ -69,17 +70,18 @@ async fn drop_newest_does_not_block_under_high_frequency() {
 
 #[tokio::test]
 async fn downsample_reduces_event_count() {
+    // 使用不同端口 ID 发送事件，避免批量合并将它们合并为一个事件
     let (tx, rx) = mpsc::channel::<PortEvent>(256);
-    let mut broker = Broker::new(rx, 256); // 大容量，不会触发通道满
+    let mut broker = Broker::new(rx, 256);
 
     let mut sub = broker.subscribe_with_strategy(
         "waveform".to_string(),
         BackpressureStrategy::Downsample { every_n: 10 },
     );
 
-    // 发送 100 个事件
+    // 发送 100 个事件，使用不同端口 ID 避免合并
     for i in 0..100u8 {
-        let event = make_data_event("COM3", i);
+        let event = make_data_event(&format!("COM{}", i), i);
         tx.send(event).await.unwrap();
     }
     drop(tx);
@@ -118,8 +120,9 @@ async fn multiple_subscribers_independent_strategies() {
         BackpressureStrategy::Downsample { every_n: 5 },
     );
 
+    // 使用不同端口 ID 避免批量合并
     for i in 0..50u8 {
-        let event = make_data_event("COM3", i);
+        let event = make_data_event(&format!("COM{}", i), i);
         tx.send(event).await.unwrap();
     }
     drop(tx);

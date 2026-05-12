@@ -31,39 +31,49 @@ impl BrokerHandle {
 
     /// 发布数据帧事件
     pub fn publish_data(&self, port_id: &str, frames: Vec<ParsedFrame>) {
-        let _ = self.tx.try_send(PortEvent::Data {
+        if let Err(e) = self.tx.try_send(PortEvent::Data {
             port_id: port_id.to_string(),
             frames,
-        });
+        }) {
+            log::warn!("Broker: 数据事件发布失败 (port={}): {}", port_id, e);
+        }
     }
 
     /// 发布端口打开事件
     pub fn publish_port_opened(&self, port_id: &str, config: &SerialConfig) {
-        let _ = self.tx.try_send(PortEvent::Opened {
+        if let Err(e) = self.tx.try_send(PortEvent::Opened {
             port_id: port_id.to_string(),
             config: config.clone(),
-        });
+        }) {
+            log::warn!("Broker: 端口打开事件发布失败 (port={}): {}", port_id, e);
+        }
     }
 
     /// 发布端口关闭事件
     pub fn publish_port_closed(&self, port_id: &str, reason: CloseReason) {
-        let _ = self.tx.try_send(PortEvent::Closed {
+        if let Err(e) = self.tx.try_send(PortEvent::Closed {
             port_id: port_id.to_string(),
             reason,
-        });
+        }) {
+            log::warn!("Broker: 端口关闭事件发布失败 (port={}): {}", port_id, e);
+        }
     }
 
     /// 发布端口错误事件
     pub fn publish_error(&self, port_id: &str, error: &str) {
-        let _ = self.tx.try_send(PortEvent::Error {
+        if let Err(e) = self.tx.try_send(PortEvent::Error {
             port_id: port_id.to_string(),
             error: error.to_string(),
-        });
+        }) {
+            log::warn!("Broker: 端口错误事件发布失败 (port={}): {}", port_id, e);
+        }
     }
 
     /// 发布端口列表变更事件
     pub fn publish_change(&self, arrived: Vec<String>, removed: Vec<String>) {
-        let _ = self.tx.try_send(PortEvent::Change { arrived, removed });
+        if let Err(e) = self.tx.try_send(PortEvent::Change { arrived, removed }) {
+            log::warn!("Broker: 端口变更事件发布失败: {}", e);
+        }
     }
 }
 
@@ -134,35 +144,70 @@ impl Broker {
     /// 运行 Broker 主循环
     ///
     /// 从 source 取事件，应用背压策略后广播到所有 subscriber。
-    /// 使用 batch_interval_ms 控制批量合并间隔（毫秒）。
+    /// 使用 batch_interval_ms 控制批量合并间隔：Data 事件会缓冲，
+    /// timer 到期时合并同端口的帧一起分发，减少前端重渲染次数。
     pub async fn run(mut self, batch_interval_ms: u64) {
         let mut interval = tokio::time::interval(
             std::time::Duration::from_millis(batch_interval_ms)
         );
         interval.tick().await; // 第一次立即完成
 
+        // 批量缓冲区：按 port_id 合并 Data 事件的帧
+        let mut pending_data: HashMap<String, Vec<ParsedFrame>> = HashMap::new();
+
         loop {
             tokio::select! {
                 event = self.source.recv() => {
                     match event {
-                        Some(e) => self.dispatch_event(e),
-                        None => break, // source 关闭，退出
+                        Some(e) => {
+                            match e {
+                                PortEvent::Data { port_id, frames } => {
+                                    // 缓冲 Data 事件，等待 timer 合并
+                                    pending_data
+                                        .entry(port_id)
+                                        .or_default()
+                                        .extend(frames);
+                                }
+                                _ => {
+                                    // 非数据事件立即分发
+                                    self.dispatch_event(e);
+                                }
+                            }
+                        }
+                        None => {
+                            // source 关闭前 flush 剩余缓冲
+                            self.flush_pending_data(&mut pending_data);
+                            break;
+                        }
                     }
                 }
                 _ = interval.tick() => {
-                    // 批量间隔已到，继续下一轮
-                    // 未来可在此处做批量合并优化
+                    // 批量间隔到期，flush 缓冲的 Data 事件
+                    self.flush_pending_data(&mut pending_data);
                 }
             }
         }
     }
 
-    /// 分发事件到所有订阅者（应用背压策略）
+    /// 将缓冲的 Data 事件按 port_id 合并分发
+    fn flush_pending_data(&mut self, pending: &mut HashMap<String, Vec<ParsedFrame>>) {
+        if pending.is_empty() {
+            return;
+        }
+        // 取出所有缓冲数据
+        let drained: Vec<(String, Vec<ParsedFrame>)> = pending.drain().collect();
+        for (port_id, frames) in drained {
+            self.dispatch_event(PortEvent::Data { port_id, frames });
+        }
+    }
+
+    /// 分发事件到所有订阅者（应用背压策略），清理已关闭的 subscriber
     fn dispatch_event(&mut self, event: PortEvent) {
-        for (_id, sub) in self.subscribers.iter_mut() {
+        let mut closed_ids: Vec<String> = Vec::new();
+
+        for (id, sub) in self.subscribers.iter_mut() {
             let should_send = match &sub.strategy {
                 BackpressureStrategy::DropNewest => {
-                    // 直接尝试发送，失败则丢弃
                     true
                 }
                 BackpressureStrategy::Downsample { every_n } => {
@@ -175,36 +220,36 @@ impl Broker {
                     }
                 }
                 BackpressureStrategy::BufferLatest => {
-                    // 始终尝试发送，未来可扩展为只保留最新
                     true
                 }
             };
 
             if should_send {
-                // 尝试非阻塞发送
                 match sub.sender.try_send(event.clone()) {
                     Ok(()) => {}
                     Err(mpsc::error::TrySendError::Full(_)) => {
-                        // 背压：通道满，根据策略处理
                         match &sub.strategy {
-                            BackpressureStrategy::DropNewest => {
-                                // 丢弃当前帧
-                            }
+                            BackpressureStrategy::DropNewest => {}
                             BackpressureStrategy::Downsample { .. } => {
-                                // 重置计数器，等下一轮
                                 sub.sample_counter = 0;
                             }
                             BackpressureStrategy::BufferLatest => {
-                                // 丢弃最旧的，发送最新的
-                                // 尝试 drain 一次再发送
                                 let _ = sub.sender.try_send(event.clone());
                             }
                         }
                     }
                     Err(mpsc::error::TrySendError::Closed(_)) => {
-                        // subscriber 已关闭，标记移除
+                        closed_ids.push(id.clone());
                     }
                 }
+            }
+        }
+
+        // 清理已关闭的 subscriber
+        if !closed_ids.is_empty() {
+            log::debug!("Broker: 清理 {} 个已关闭的 subscriber", closed_ids.len());
+            for id in &closed_ids {
+                self.subscribers.remove(id);
             }
         }
     }

@@ -1,14 +1,7 @@
 import { bytesToAscii, formatTimestamp } from '@/lib/formatters'
+import type { DisplayFrame } from '@/lib/tauri-events'
 
-export interface DisplayFrame {
-  id: number
-  timestamp: string
-  direction: 'rx' | 'tx'
-  raw_hex: string
-  formatted: string
-  protocol: string
-  summary: string
-}
+export type { DisplayFrame }
 
 interface TerminalLineProps {
   frame: DisplayFrame

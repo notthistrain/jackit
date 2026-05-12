@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use chrono::TimeZone;
+use chrono::{DateTime, Utc, TimeZone};
 use tauri::State;
 
 use crate::error::AppError;
@@ -12,6 +12,41 @@ use crate::storage::{self, FrameQuery};
 use super::types::{
     ExportDataRequest, ExportDataResponse, ExportFormat, QueryHistoryRequest, QueryHistoryResponse,
 };
+
+/// 将数据库中的 timestamp 字符串解析为 DateTime<Utc>
+fn parse_timestamp(ts_str: &str) -> DateTime<Utc> {
+    // 先尝试 RFC3339 格式（前端写入的）
+    if let Ok(dt) = DateTime::parse_from_rfc3339(ts_str) {
+        return dt.to_utc();
+    }
+    // 再尝试 SQLite datetime 格式 "2025-01-01 12:00:00"
+    if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(ts_str, "%Y-%m-%d %H:%M:%S") {
+        return TimeZone::from_utc_datetime(&Utc, &naive);
+    }
+    // 最后尝试带毫秒的格式
+    if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(ts_str, "%Y-%m-%d %H:%M:%S%.f") {
+        return TimeZone::from_utc_datetime(&Utc, &naive);
+    }
+    // 兜底返回 Unix epoch
+    Utc::now()
+}
+
+/// FrameRow 转换辅助
+fn row_to_display_frame(row: &crate::storage::FrameRow) -> DisplayFrame {
+    let raw_hex: String = row.raw_data.iter()
+        .map(|b| format!("{:02X}", b))
+        .collect::<Vec<_>>()
+        .join(" ");
+    DisplayFrame {
+        id: row.id,
+        timestamp: parse_timestamp(&row.timestamp),
+        direction: row.direction,
+        raw_hex,
+        formatted: row.formatted.clone(),
+        protocol: row.protocol,
+        summary: row.summary.clone(),
+    }
+}
 
 /// 查询历史帧数据
 #[tauri::command]
@@ -45,22 +80,7 @@ pub async fn query_history(
         .await
         .map_err(|e| AppError::Database(format!("查询历史失败: {}", e)))?;
 
-    // FrameRow → DisplayFrame
-    let frames: Vec<DisplayFrame> = page.rows.iter().map(|row| {
-        let raw_hex: String = row.raw_data.iter()
-            .map(|b| format!("{:02X}", b))
-            .collect::<Vec<_>>()
-            .join(" ");
-        DisplayFrame {
-            id: row.id,
-            timestamp: chrono::Utc.timestamp_opt(0, 0).unwrap(), // placeholder, real parse from string
-            direction: row.direction,
-            raw_hex,
-            formatted: row.formatted.clone(),
-            protocol: row.protocol,
-            summary: row.summary.clone(),
-        }
-    }).collect();
+    let frames: Vec<DisplayFrame> = page.rows.iter().map(row_to_display_frame).collect();
 
     Ok(QueryHistoryResponse {
         frames,
@@ -99,21 +119,7 @@ pub async fn export_data(
             .map_err(|e| AppError::Database(format!("创建导出目录失败: {}", e)))?;
     }
 
-    let frames: Vec<DisplayFrame> = page.rows.iter().map(|row| {
-        let raw_hex: String = row.raw_data.iter()
-            .map(|b| format!("{:02X}", b))
-            .collect::<Vec<_>>()
-            .join(" ");
-        DisplayFrame {
-            id: row.id,
-            timestamp: chrono::Utc.timestamp_opt(0, 0).unwrap(),
-            direction: row.direction,
-            raw_hex,
-            formatted: row.formatted.clone(),
-            protocol: row.protocol,
-            summary: row.summary.clone(),
-        }
-    }).collect();
+    let frames: Vec<DisplayFrame> = page.rows.iter().map(row_to_display_frame).collect();
 
     let content = match request.format {
         ExportFormat::Csv => {
@@ -143,6 +149,16 @@ pub async fn export_data(
     })
 }
 
+/// 将字段用双引号包裹（RFC 4180 CSV 格式）
+/// 内部双引号转义为两个双引号
+fn csv_escape(s: &str) -> String {
+    if s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r') {
+        format!("\"{}\"", s.replace('"', "\"\""))
+    } else {
+        s.to_string()
+    }
+}
+
 /// 将 DisplayFrame 格式化为 CSV 行
 pub fn format_frame_csv(frame: &DisplayFrame) -> String {
     format!(
@@ -152,10 +168,10 @@ pub fn format_frame_csv(frame: &DisplayFrame) -> String {
             Direction::Tx => "Tx",
             Direction::Rx => "Rx",
         },
-        frame.raw_hex,
-        frame.formatted.replace(',', "\\,"),
+        csv_escape(&frame.raw_hex),
+        csv_escape(&frame.formatted),
         format!("{:?}", frame.protocol),
-        frame.summary.replace(',', "\\,"),
+        csv_escape(&frame.summary),
     )
 }
 

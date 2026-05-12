@@ -75,20 +75,13 @@ pub async fn open_port(
     // 调用 SerialManager 打开端口（同步方法）
     state
         .serial_manager
-        .open_port(config)
+        .open_port(config.clone())
         .map_err(|e| AppError::Serial(format!("打开串口失败: {}", e)))?;
 
     // 记录到 connections map
     state
         .connections
-        .insert(request.port_name.clone(), SerialConfig {
-            port_name: request.port_name.clone(),
-            baud_rate: request.baud_rate,
-            data_bits: request.data_bits,
-            stop_bits: request.stop_bits,
-            parity: request.parity,
-            flow_control: request.flow_control,
-        });
+        .insert(request.port_name.clone(), config);
 
     Ok(OpenPortResponse {
         port_name: request.port_name,

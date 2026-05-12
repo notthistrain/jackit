@@ -30,7 +30,7 @@ impl std::fmt::Display for SubscriberId {
 
 /// 串口事件：Broker 和前端之间的统一消息格式
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum PortEvent {
     /// 收到数据帧（批量，可能包含多个 ParsedFrame）
     Data {
@@ -103,7 +103,7 @@ mod tests {
             frames: vec![frame],
         };
         let json = serde_json::to_string(&event).unwrap();
-        assert!(json.contains(r#""type":"Data""#));
+        assert!(json.contains(r#""type":"data""#));
         assert!(json.contains("COM3"));
     }
 
@@ -114,7 +114,7 @@ mod tests {
             reason: CloseReason::Disconnected,
         };
         let json = serde_json::to_string(&event).unwrap();
-        assert!(json.contains(r#""type":"Closed""#));
+        assert!(json.contains(r#""type":"closed""#));
         assert!(json.contains("disconnected"));
     }
 
@@ -125,7 +125,7 @@ mod tests {
             removed: vec!["COM5".to_string()],
         };
         let json = serde_json::to_string(&event).unwrap();
-        assert!(json.contains(r#""type":"Change""#));
+        assert!(json.contains(r#""type":"change""#));
         assert!(json.contains("COM4"));
         assert!(json.contains("COM5"));
     }
@@ -139,7 +139,7 @@ mod tests {
             fps: 60,
         };
         let json = serde_json::to_string(&event).unwrap();
-        assert!(json.contains(r#""type":"Stats""#));
+        assert!(json.contains(r#""type":"stats""#));
         assert!(json.contains("1024"));
         assert!(json.contains("60"));
     }

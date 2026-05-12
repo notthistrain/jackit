@@ -14,7 +14,44 @@ use tauri::{Emitter, Manager};
 
 use channel::broker::{Broker, BrokerHandle};
 use channel::PortEvent;
+use protocol::frame::{bytes_to_hex, DisplayFrame, ParsedFrame};
 use serial::manager::SerialManager;
+
+/// 将 ParsedFrame 转换为前端 DisplayFrame
+fn parsed_to_display(frame: &ParsedFrame, id: i64) -> DisplayFrame {
+    DisplayFrame {
+        id,
+        timestamp: frame.raw.timestamp,
+        direction: frame.raw.direction,
+        raw_hex: bytes_to_hex(&frame.raw.data),
+        formatted: frame.formatted.clone(),
+        protocol: frame.protocol,
+        summary: format_parsed_summary(&frame.parsed),
+    }
+}
+
+/// 根据 ParsedData 生成摘要
+fn format_parsed_summary(parsed: &protocol::ParsedData) -> String {
+    use protocol::ParsedData;
+    match parsed {
+        ParsedData::Raw { hex, .. } => format!("Raw {} bytes", hex.split_whitespace().count()),
+        ParsedData::Modbus(m) => format!("Slave {} Func {}", m.slave, m.function),
+        ParsedData::AT(a) => {
+            if a.is_response {
+                format!("AT Response: {}", a.command)
+            } else {
+                match &a.params {
+                    Some(p) => format!("AT+{}={}", a.command, p),
+                    None => format!("AT+{}", a.command),
+                }
+            }
+        }
+        ParsedData::Json(v) => match v {
+            serde_json::Value::Object(m) => format!("JSON {} keys", m.len()),
+            _ => "JSON".to_string(),
+        },
+    }
+}
 
 #[tauri::command]
 fn ping() -> Result<&'static str, error::AppError> {
@@ -85,21 +122,86 @@ pub fn run() {
 /// 将 Broker 订阅事件桥接到 Tauri Event Bus
 ///
 /// 从 subscriber receiver 读取 PortEvent，
-/// 根据变体类型映射到对应的 Tauri event name 并 emit 到前端。
+/// 对 Data 事件做 ParsedFrame→DisplayFrame 转换，
+/// 其他事件直接透传。
 async fn run_tauri_bridge(
     mut rx: tokio::sync::mpsc::Receiver<PortEvent>,
     app_handle: tauri::AppHandle,
 ) {
+    use serde::Serialize;
+
+    /// 前端可序列化的事件 payload（只包含 DisplayFrame）
+    #[derive(Serialize)]
+    #[serde(tag = "type")]
+    enum BridgeEvent {
+        Data {
+            port_id: String,
+            frames: Vec<DisplayFrame>,
+        },
+        Opened {
+            port_id: String,
+            config: serial::config::SerialConfig,
+        },
+        Closed {
+            port_id: String,
+            reason: serial::config::CloseReason,
+        },
+        Error {
+            port_id: String,
+            error: String,
+        },
+        Change {
+            arrived: Vec<String>,
+            removed: Vec<String>,
+        },
+        Stats {
+            port_id: String,
+            rx: u64,
+            tx: u64,
+            fps: u32,
+        },
+    }
+
+    let mut frame_id: i64 = 0;
     while let Some(event) = rx.recv().await {
-        let event_name = match &event {
-            PortEvent::Data { .. } => "port:data",
-            PortEvent::Opened { .. } => "port:opened",
-            PortEvent::Closed { .. } => "port:closed",
-            PortEvent::Error { .. } => "port:error",
-            PortEvent::Change { .. } => "port:change",
-            PortEvent::Stats { .. } => "port:stats",
+        let (event_name, bridge_event) = match &event {
+            PortEvent::Data { port_id, frames } => {
+                let display_frames: Vec<DisplayFrame> = frames
+                    .iter()
+                    .map(|f| {
+                        frame_id = frame_id.wrapping_add(1);
+                        parsed_to_display(f, frame_id)
+                    })
+                    .collect();
+                ("port:data", serde_json::to_value(&BridgeEvent::Data {
+                    port_id: port_id.clone(),
+                    frames: display_frames,
+                }).ok())
+            }
+            PortEvent::Opened { .. } => {
+                let val = serde_json::to_value(&event).ok();
+                ("port:opened", val)
+            }
+            PortEvent::Closed { .. } => {
+                let val = serde_json::to_value(&event).ok();
+                ("port:closed", val)
+            }
+            PortEvent::Error { .. } => {
+                let val = serde_json::to_value(&event).ok();
+                ("port:error", val)
+            }
+            PortEvent::Change { .. } => {
+                let val = serde_json::to_value(&event).ok();
+                ("port:change", val)
+            }
+            PortEvent::Stats { .. } => {
+                let val = serde_json::to_value(&event).ok();
+                ("port:stats", val)
+            }
         };
-        let _ = app_handle.emit(event_name, &event);
+        if let Some(payload) = bridge_event {
+            let _ = app_handle.emit(event_name, payload);
+        }
     }
     log::info!("Tauri event bridge stopped");
 }

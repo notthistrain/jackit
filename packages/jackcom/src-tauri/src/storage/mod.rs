@@ -15,6 +15,10 @@ pub async fn init_db() -> Result<SqlitePool, sqlx::Error> {
     let db_path = get_db_path();
     let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
     let pool = SqlitePool::connect(&db_url).await?;
+    // 启用外键约束（SQLite 默认关闭）
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(&pool)
+        .await?;
     run_migrations(&pool).await?;
     Ok(pool)
 }
@@ -22,6 +26,9 @@ pub async fn init_db() -> Result<SqlitePool, sqlx::Error> {
 /// 使用内存数据库（用于测试）
 pub async fn init_db_in_memory() -> Result<SqlitePool, sqlx::Error> {
     let pool = SqlitePool::connect("sqlite::memory:").await?;
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(&pool)
+        .await?;
     run_migrations(&pool).await?;
     Ok(pool)
 }
@@ -192,62 +199,87 @@ pub struct FramePage {
     pub offset: i64,
 }
 
-/// 分页查询帧数据
+/// 分页查询帧数据（参数化查询）
 pub async fn query_frames(
     pool: &SqlitePool,
     query: FrameQuery,
 ) -> Result<FramePage, sqlx::Error> {
-    let mut where_clauses = Vec::new();
-    let count_sql = String::from("SELECT COUNT(*) FROM frames");
-    let select_sql = String::from(
-        "SELECT id, session_id, timestamp, direction, raw_data, protocol, formatted, summary FROM frames"
-    );
+    // 动态构建 SQL 和参数
+    let mut where_parts: Vec<String> = Vec::new();
+    let mut param_idx = 1u32; // SQLite 参数从 1 开始
 
-    if let Some(sid) = query.session_id {
-        where_clauses.push(format!("session_id = {}", sid));
+    // 条件参数绑定（记录参数值用于两轮查询）
+    let p_session_id = query.session_id;
+    let p_direction: Option<String> = query.direction.map(|d| match d {
+        Direction::Tx => "tx".to_string(),
+        Direction::Rx => "rx".to_string(),
+    });
+    let p_protocol: Option<String> = query.protocol.map(|p| match p {
+        ProtocolType::Raw => "raw".to_string(),
+        ProtocolType::Modbus => "modbus".to_string(),
+        ProtocolType::AT => "at".to_string(),
+        ProtocolType::Json => "json".to_string(),
+    });
+    let p_since: Option<String> = query.since.map(|dt| dt.to_rfc3339());
+    let p_until: Option<String> = query.until.map(|dt| dt.to_rfc3339());
+
+    if p_session_id.is_some() {
+        where_parts.push(format!("session_id = ?{}", param_idx));
+        param_idx += 1;
     }
-    if let Some(ref dir) = query.direction {
-        let dir_str = match dir {
-            Direction::Tx => "tx",
-            Direction::Rx => "rx",
-        };
-        where_clauses.push(format!("direction = '{}'", dir_str));
+    if p_direction.is_some() {
+        where_parts.push(format!("direction = ?{}", param_idx));
+        param_idx += 1;
     }
-    if let Some(ref proto) = query.protocol {
-        let proto_str = match proto {
-            ProtocolType::Raw => "raw",
-            ProtocolType::Modbus => "modbus",
-            ProtocolType::AT => "at",
-            ProtocolType::Json => "json",
-        };
-        where_clauses.push(format!("protocol = '{}'", proto_str));
+    if p_protocol.is_some() {
+        where_parts.push(format!("protocol = ?{}", param_idx));
+        param_idx += 1;
     }
-    if let Some(ref since) = query.since {
-        where_clauses.push(format!("timestamp >= '{}'", since.to_rfc3339()));
+    if p_since.is_some() {
+        where_parts.push(format!("timestamp >= ?{}", param_idx));
+        param_idx += 1;
     }
-    if let Some(ref until) = query.until {
-        where_clauses.push(format!("timestamp <= '{}'", until.to_rfc3339()));
+    if p_until.is_some() {
+        where_parts.push(format!("timestamp <= ?{}", param_idx));
+        param_idx += 1;
     }
 
-    let where_sql = if where_clauses.is_empty() {
+    let where_sql = if where_parts.is_empty() {
         String::new()
     } else {
-        format!(" WHERE {}", where_clauses.join(" AND "))
+        format!(" WHERE {}", where_parts.join(" AND "))
     };
 
     // 查询总数
-    let (total,): (i64,) = sqlx::query_as(&format!("{}{}", count_sql, where_sql))
-        .fetch_one(pool)
-        .await?;
+    let count_sql = format!("SELECT COUNT(*) FROM frames{}", where_sql);
+    let count_query = sqlx::query_scalar::<_, i64>(&count_sql);
+    // 动态绑定参数（需要逐步 bind）
+    let mut count_query = count_query;
+    let mut bind_idx = 1u32;
+    if let Some(sid) = p_session_id { count_query = count_query.bind(sid); bind_idx += 1; }
+    if let Some(ref dir) = p_direction { count_query = count_query.bind(dir.clone()); bind_idx += 1; }
+    if let Some(ref proto) = p_protocol { count_query = count_query.bind(proto.clone()); bind_idx += 1; }
+    if let Some(ref since) = p_since { count_query = count_query.bind(since.clone()); bind_idx += 1; }
+    if let Some(ref until) = p_until { count_query = count_query.bind(until.clone()); bind_idx += 1; }
+
+    let total: i64 = count_query.fetch_one(pool).await?;
 
     // 查询数据
     let data_sql = format!(
-        "{}{} ORDER BY timestamp ASC LIMIT {} OFFSET {}",
-        select_sql, where_sql, query.limit, query.offset
+        "SELECT id, session_id, timestamp, direction, raw_data, protocol, formatted, summary FROM frames{} ORDER BY timestamp ASC LIMIT ?{} OFFSET ?{}",
+        where_sql, bind_idx, bind_idx + 1
     );
+    let data_query = sqlx::query_as::<_, (i64, i64, String, String, Vec<u8>, String, String, String)>(&data_sql);
+    let mut data_query = data_query;
+    if let Some(sid) = p_session_id { data_query = data_query.bind(sid); }
+    if let Some(ref dir) = p_direction { data_query = data_query.bind(dir.clone()); }
+    if let Some(ref proto) = p_protocol { data_query = data_query.bind(proto.clone()); }
+    if let Some(ref since) = p_since { data_query = data_query.bind(since.clone()); }
+    if let Some(ref until) = p_until { data_query = data_query.bind(until.clone()); }
+    data_query = data_query.bind(query.limit);
+    data_query = data_query.bind(query.offset);
 
-    let rows: Vec<(i64, i64, String, String, Vec<u8>, String, String, String)> =
-        sqlx::query_as(&data_sql).fetch_all(pool).await?;
+    let rows = data_query.fetch_all(pool).await?;
 
     let frame_rows = rows.into_iter().map(|row| {
         let direction = match row.3.as_str() {
@@ -337,21 +369,11 @@ pub async fn get_session(
     }))
 }
 
-/// 删除会话及其所有帧（级联删除）
+/// 删除会话（帧通过 ON DELETE CASCADE 自动删除）
 pub async fn delete_session(
     pool: &SqlitePool,
     session_id: i64,
 ) -> Result<(), sqlx::Error> {
-    // SQLite 需要开启外键约束才能级联删除
-    sqlx::query("PRAGMA foreign_keys = ON")
-        .execute(pool)
-        .await?;
-
-    sqlx::query("DELETE FROM frames WHERE session_id = ?")
-        .bind(session_id)
-        .execute(pool)
-        .await?;
-
     sqlx::query("DELETE FROM sessions WHERE id = ?")
         .bind(session_id)
         .execute(pool)
