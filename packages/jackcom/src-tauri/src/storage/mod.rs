@@ -727,4 +727,25 @@ mod tests {
 
         pool.close().await;
     }
+
+    #[tokio::test]
+    async fn test_appstate_db_init() {
+        use crate::state::AppState;
+
+        let state = AppState::new();
+        assert!(state.db.read().await.is_none());
+
+        // 初始化内存数据库并注入
+        let pool = init_db_in_memory().await.unwrap();
+        *state.db.write().await = Some(pool);
+
+        // 验证 db 已设置
+        let db_guard = state.db.read().await;
+        assert!(db_guard.is_some());
+
+        // 使用 db 插入数据
+        let pool = db_guard.as_ref().unwrap();
+        let sid = create_session(pool, "COM_TEST", 57600, "{}").await.unwrap();
+        assert!(sid > 0);
+    }
 }
