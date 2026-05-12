@@ -4,6 +4,7 @@ mod error;
 pub mod protocol;
 mod serial;
 mod state;
+mod storage;
 
 use state::AppState;
 
