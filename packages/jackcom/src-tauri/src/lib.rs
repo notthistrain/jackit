@@ -55,7 +55,22 @@ pub fn run() {
             Ok(())
         })
         .manage(AppState::new(serial_manager, broker_handle))
-        .invoke_handler(tauri::generate_handler![ping])
+        .invoke_handler(tauri::generate_handler![
+            ping,
+            // serial commands
+            commands::serial::enumerate_ports,
+            commands::serial::open_port,
+            commands::serial::close_port,
+            commands::serial::close_all,
+            commands::serial::send_data,
+            // data commands
+            commands::data::query_history,
+            commands::data::export_data,
+            // config commands
+            commands::config::get_config,
+            commands::config::save_config,
+            commands::config::list_recent_sessions,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
