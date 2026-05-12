@@ -76,4 +76,6 @@ pub trait ProtocolParser: Send {
     fn format(&self, parsed: &ParsedData) -> String;
 }
 
+pub mod frame;
 pub mod parsers;
+pub mod detector;
