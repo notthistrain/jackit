@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { TerminalView } from '@/components/terminal/TerminalView'
 import { SendBar } from '@/components/terminal/SendBar'
 import { useMainStore } from '@/lib/store'
-import type { DisplayFrame } from '@/components/terminal/TerminalView'
+import { useDataFeed } from '@/hooks/useDataFeed'
+import { useSerialPort } from '@/hooks/useSerialPort'
+import { bytesToHex } from '@/lib/formatters'
 
 type PanelType = 'terminal' | 'table' | 'modbus' | 'atcmd'
 
@@ -16,23 +18,19 @@ const PANELS: { id: PanelType; label: string }[] = [
 ]
 
 export default function MainApp() {
-  const { activePanel, setActivePanel } = useMainStore()
-  const [frames, setFrames] = useState<DisplayFrame[]>([])
+  const { activePanel, setActivePanel, activePortId } = useMainStore()
+  const { frames } = useDataFeed({ portId: activePortId })
+  const { send } = useSerialPort()
 
-  const handleSend = useCallback((data: number[]) => {
-    // TODO: 通过 Tauri invoke 发送数据（Plan 8 集成）
-    // 当前仅本地模拟 TX 回显
-    const frame: DisplayFrame = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      direction: 'tx',
-      raw_hex: data.map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' '),
-      formatted: '',
-      protocol: 'raw',
-      summary: '',
+  const handleSend = useCallback(async (data: number[]) => {
+    if (!activePortId) return
+    try {
+      const hexData = bytesToHex(data)
+      await send(activePortId, hexData)
+    } catch (err) {
+      console.error('Send failed:', err)
     }
-    setFrames((prev) => [...prev, frame])
-  }, [])
+  }, [activePortId, send])
 
   return (
     <AppLayout
@@ -80,7 +78,7 @@ export default function MainApp() {
           )}
         </div>
       }
-      bottomPanel={<SendBar onSend={handleSend} />}
+      bottomPanel={<SendBar onSend={handleSend} disabled={!activePortId} />}
     />
   )
 }
