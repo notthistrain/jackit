@@ -280,6 +280,86 @@ pub async fn query_frames(
     })
 }
 
+/// 会话记录行
+#[derive(Debug, Clone)]
+pub struct SessionRow {
+    pub id: i64,
+    pub port_name: String,
+    pub baud_rate: u32,
+    pub config_json: String,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+}
+
+/// 列出会话（按时间降序，分页）
+pub async fn list_sessions(
+    pool: &SqlitePool,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<SessionRow>, sqlx::Error> {
+    let rows: Vec<(i64, String, i64, String, String, Option<String>)> = sqlx::query_as(
+        "SELECT id, port_name, baud_rate, config_json, started_at, ended_at FROM sessions ORDER BY started_at DESC LIMIT ? OFFSET ?"
+    )
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows.into_iter().map(|row| SessionRow {
+        id: row.0,
+        port_name: row.1,
+        baud_rate: row.2 as u32,
+        config_json: row.3,
+        started_at: row.4,
+        ended_at: row.5,
+    }).collect())
+}
+
+/// 获取单个会话
+pub async fn get_session(
+    pool: &SqlitePool,
+    session_id: i64,
+) -> Result<Option<SessionRow>, sqlx::Error> {
+    let result: Option<(i64, String, i64, String, String, Option<String>)> = sqlx::query_as(
+        "SELECT id, port_name, baud_rate, config_json, started_at, ended_at FROM sessions WHERE id = ?"
+    )
+    .bind(session_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(result.map(|row| SessionRow {
+        id: row.0,
+        port_name: row.1,
+        baud_rate: row.2 as u32,
+        config_json: row.3,
+        started_at: row.4,
+        ended_at: row.5,
+    }))
+}
+
+/// 删除会话及其所有帧（级联删除）
+pub async fn delete_session(
+    pool: &SqlitePool,
+    session_id: i64,
+) -> Result<(), sqlx::Error> {
+    // SQLite 需要开启外键约束才能级联删除
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(pool)
+        .await?;
+
+    sqlx::query("DELETE FROM frames WHERE session_id = ?")
+        .bind(session_id)
+        .execute(pool)
+        .await?;
+
+    sqlx::query("DELETE FROM sessions WHERE id = ?")
+        .bind(session_id)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -520,6 +600,130 @@ mod tests {
 
         assert_eq!(page.total, 0);
         assert!(page.rows.is_empty());
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_create_and_end_session() {
+        let pool = init_db_in_memory().await.unwrap();
+
+        let sid = create_session(&pool, "COM3", 115200, r#"{"data_bits":"eight"}"#)
+            .await
+            .unwrap();
+
+        assert!(sid > 0);
+
+        // 结束会话
+        end_session(&pool, sid).await.unwrap();
+
+        // 验证 ended_at 已设置
+        let row: (Option<String>,) = sqlx::query_as(
+            "SELECT ended_at FROM sessions WHERE id = ?"
+        )
+        .bind(sid)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        assert!(row.0.is_some(), "ended_at 应该已被设置");
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_list_sessions() {
+        let pool = init_db_in_memory().await.unwrap();
+
+        create_session(&pool, "COM1", 9600, "{}").await.unwrap();
+        create_session(&pool, "COM2", 115200, "{}").await.unwrap();
+        create_session(&pool, "COM3", 57600, "{}").await.unwrap();
+
+        let sessions = list_sessions(&pool, 10, 0).await.unwrap();
+
+        assert_eq!(sessions.len(), 3);
+        // 验证三个端口名都在结果中（排序由 started_at 决定）
+        let names: Vec<&str> = sessions.iter().map(|s| s.port_name.as_str()).collect();
+        assert!(names.contains(&"COM1"));
+        assert!(names.contains(&"COM2"));
+        assert!(names.contains(&"COM3"));
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_list_sessions_pagination() {
+        let pool = init_db_in_memory().await.unwrap();
+
+        for i in 0..5 {
+            create_session(&pool, &format!("COM{}", i), 9600, "{}").await.unwrap();
+        }
+
+        let page1 = list_sessions(&pool, 2, 0).await.unwrap();
+        assert_eq!(page1.len(), 2);
+
+        let page2 = list_sessions(&pool, 2, 2).await.unwrap();
+        assert_eq!(page2.len(), 2);
+
+        let page3 = list_sessions(&pool, 2, 4).await.unwrap();
+        assert_eq!(page3.len(), 1);
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_get_session() {
+        let pool = init_db_in_memory().await.unwrap();
+
+        let sid = create_session(&pool, "COM7", 230400, r#"{"parity":"even"}"#)
+            .await
+            .unwrap();
+
+        let session = get_session(&pool, sid).await.unwrap().unwrap();
+
+        assert_eq!(session.port_name, "COM7");
+        assert_eq!(session.baud_rate, 230400);
+        assert_eq!(session.config_json, r#"{"parity":"even"}"#);
+        assert!(session.ended_at.is_none());
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_get_session_not_found() {
+        let pool = init_db_in_memory().await.unwrap();
+
+        let result = get_session(&pool, 99999).await.unwrap();
+        assert!(result.is_none());
+
+        pool.close().await;
+    }
+
+    #[tokio::test]
+    async fn test_delete_session_cascades_frames() {
+        let pool = init_db_in_memory().await.unwrap();
+
+        let sid = create_session(&pool, "COM1", 9600, "{}").await.unwrap();
+        let now = Utc::now();
+        insert_frame(&pool, sid, &now, Direction::Tx, &[0x01], ProtocolType::Raw, "", "").await.unwrap();
+        insert_frame(&pool, sid, &now, Direction::Rx, &[0x02], ProtocolType::Raw, "", "").await.unwrap();
+
+        // 删除 session
+        delete_session(&pool, sid).await.unwrap();
+
+        // frames 应该被级联删除
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM frames")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+
+        // session 本身也应不存在
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM sessions")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
 
         pool.close().await;
     }
