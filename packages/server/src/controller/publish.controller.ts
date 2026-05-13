@@ -72,6 +72,10 @@ export class PublishController {
       return ResDTO.fail('Missing required fields: name, version, downloadUrl')
     }
 
+    if (!downloadUrl.startsWith('http://') && !downloadUrl.startsWith('https://')) {
+      return ResDTO.fail('downloadUrl must be a valid HTTP(S) URL')
+    }
+
     await this.softwareService.saveVersion({
       name,
       sequence: version,

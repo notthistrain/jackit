@@ -1,4 +1,6 @@
 import type { Context, NextFunction } from '@midwayjs/koa'
+import { Buffer } from 'node:buffer'
+import { timingSafeEqual } from 'node:crypto'
 import { Config, Middleware } from '@midwayjs/core'
 
 @Middleware()
@@ -8,6 +10,12 @@ export class PublishAuthMiddleware {
 
   resolve() {
     return async (ctx: Context, next: NextFunction) => {
+      if (!this.publishToken) {
+        ctx.status = 503
+        ctx.body = { success: false, message: 'Publish token not configured' }
+        return
+      }
+
       const authHeader = ctx.get('Authorization')
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         ctx.status = 401
@@ -16,7 +24,7 @@ export class PublishAuthMiddleware {
       }
 
       const token = authHeader.slice(7)
-      if (token !== this.publishToken) {
+      if (!this.safeCompare(token, this.publishToken)) {
         ctx.status = 401
         ctx.body = { success: false, message: 'Invalid publish token' }
         return
@@ -24,5 +32,14 @@ export class PublishAuthMiddleware {
 
       return await next()
     }
+  }
+
+  private safeCompare(a: string, b: string): boolean {
+    const bufA = Buffer.from(a)
+    const bufB = Buffer.from(b)
+    if (bufA.length !== bufB.length) {
+      return false
+    }
+    return timingSafeEqual(bufA, bufB)
   }
 }
