@@ -3,9 +3,9 @@
   "type": "module",
   "version": "1.0.0",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,16 +26,16 @@
     "tailwind-merge": "catalog:"
   },
   "devDependencies": {
-    "@astrojs/react": "^5",
     "@tailwindcss/vite": "catalog:",
     "@tauri-apps/cli": "catalog:",
     "@testing-library/react": "^16",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "astro": "catalog:",
+    "@vitejs/plugin-react": "^4",
     "jsdom": "^26",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
+    "vite": "^6",
     "vitest": "^3"
   }
 }
