@@ -1,10 +1,4 @@
-import '@/styles/globals.css'
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
 import WaveformApp from '@/apps/WaveformApp'
+import { bootstrap } from '@/lib/bootstrap'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <WaveformApp />
-  </StrictMode>
-)
+bootstrap(WaveformApp)

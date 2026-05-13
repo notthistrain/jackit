@@ -1,10 +1,4 @@
-import '@/styles/globals.css'
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
 import DecoderApp from '@/apps/DecoderApp'
+import { bootstrap } from '@/lib/bootstrap'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <DecoderApp />
-  </StrictMode>
-)
+bootstrap(DecoderApp)

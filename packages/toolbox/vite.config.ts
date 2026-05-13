@@ -33,8 +33,9 @@ export default defineConfig({
         assetFileNames: 'assets/[name]/[hash][extname]',
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('@tauri-apps')) return 'vendor-tauri'
-            if (id.includes('vue')) return 'vendor-vue'
+            if (id.includes('/@tauri-apps/')) return 'vendor-tauri'
+            if (id.includes('vue'))
+              return 'vendor-vue'
             return 'vendor'
           }
         },
