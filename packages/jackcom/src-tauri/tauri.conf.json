@@ -4,7 +4,7 @@
   "identifier": "com.jackcom.serial-debugger",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:4321",
+    "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
@@ -12,12 +12,12 @@
     "windows": [
       {
         "label": "main",
-        "url": "/main",
+        "url": "/main/",
         "title": "JackCom — Serial Debugger",
         "width": 1280,
         "height": 800,
         "center": true,
-        "decorations": true
+        "decorations": false
       }
     ],
     "security": {
@@ -40,8 +40,6 @@
     }
   },
   "plugins": {
-    "log": {
-      "level": "info"
-    }
+    "log": null
   }
 }

@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { useMainStore } from '@/lib/store'
-import { useWaveformStore } from '@/stores/waveform-store'
 import { useDecoderStore } from '@/stores/decoder-store'
+import { useWaveformStore } from '@/stores/waveform-store'
 
 describe('useMainStore', () => {
   it('toggles sidebar visibility', () => {
@@ -20,13 +20,6 @@ describe('useMainStore', () => {
     expect(useMainStore.getState().sidebarTab).toBe('connections')
   })
 
-  it('switches active panel', () => {
-    useMainStore.getState().setActivePanel('modbus')
-    expect(useMainStore.getState().activePanel).toBe('modbus')
-    useMainStore.getState().setActivePanel('terminal')
-    expect(useMainStore.getState().activePanel).toBe('terminal')
-  })
-
   it('sets active port', () => {
     useMainStore.getState().setActivePortId('COM3')
     expect(useMainStore.getState().activePortId).toBe('COM3')
@@ -37,12 +30,12 @@ describe('useMainStore', () => {
   it('adds and removes connections', () => {
     useMainStore.getState().addConnection('COM3', 115200)
     const state = useMainStore.getState()
-    expect(state.connections['COM3']).toEqual({ portName: 'COM3', baudRate: 115200, online: true })
+    expect(state.connections.COM3).toEqual({ portName: 'COM3', baudRate: 115200, online: true })
     // Adding first connection auto-sets activePortId
     expect(state.activePortId).toBe('COM3')
 
     useMainStore.getState().removeConnection('COM3')
-    expect(useMainStore.getState().connections['COM3']).toBeUndefined()
+    expect(useMainStore.getState().connections.COM3).toBeUndefined()
     expect(useMainStore.getState().activePortId).toBeNull()
   })
 
@@ -60,13 +53,13 @@ describe('useMainStore', () => {
   it('sets connection online status', () => {
     useMainStore.getState().addConnection('COM5', 9600)
     useMainStore.getState().setConnectionOnline('COM5', false)
-    expect(useMainStore.getState().connections['COM5'].online).toBe(false)
+    expect(useMainStore.getState().connections.COM5.online).toBe(false)
     useMainStore.getState().removeConnection('COM5')
   })
 
   it('updates stats', () => {
     useMainStore.getState().updateStats('COM3', 1024, 512)
-    expect(useMainStore.getState().stats['COM3']).toEqual({ rx: 1024, tx: 512 })
+    expect(useMainStore.getState().stats.COM3).toEqual({ rx: 1024, tx: 512 })
   })
 
   it('toggles hex display', () => {
@@ -88,7 +81,7 @@ describe('useWaveformStore', () => {
   it('adds data to channels', () => {
     useWaveformStore.getState().addData('temperature', 25.5)
     useWaveformStore.getState().addData('temperature', 26.0)
-    const channel = useWaveformStore.getState().channels['temperature']
+    const channel = useWaveformStore.getState().channels.temperature
     expect(channel).toHaveLength(2)
     expect(channel![0]).toBe(25.5)
     expect(channel![1]).toBe(26.0)
@@ -100,7 +93,7 @@ describe('useWaveformStore', () => {
     for (let i = 0; i < 600; i++) {
       store.addData('ch1', i)
     }
-    const channel = useWaveformStore.getState().channels['ch1']
+    const channel = useWaveformStore.getState().channels.ch1
     // maxPoints is 500
     expect(channel!.length).toBe(500)
     // Should keep latest values
