@@ -26,7 +26,7 @@
   "identifier": "com.xxx.toolbox",
   "description": "桌面工具集",
   "version": "1.2.0",
-  "downloadUrl": "https://github.com/xxx/toolbox/releases/download/v1.2.0/toolbox.exe",
+  "downloadUrl": "https://github.com/{owner}/{repo}/releases/download/v1.2.0/toolbox.exe",
   "changelog": "修复了xxx",
   "force": false
 }
@@ -144,17 +144,21 @@ monorepo 的 workflow 统一放在 `.github/workflows/` 目录下。当前已有
 
 ### Publish 步骤模板
 
-以下为 release workflow 中调用 server publish 的步骤模板，在各子项目的 release workflow 中，GitHub Release 创建并上传 asset 之后插入：
+以下为 release workflow 中调用 server publish 的步骤模板。必须在 GitHub Release 创建并上传 asset 之后执行。
+
+下载 URL 不能手动拼接（GitHub Release Asset 的实际 URL 是带签名的长链接），需要通过 `gh` CLI 从 Release 中获取：
 
 ```yaml
 - name: Publish to Upgrade Server
   if: ${{ secrets.SERVER_URL != '' }}
   env:
     SOFTWARE_NAME: toolbox          # 各子项目替换为对应名称
-    ASSET_NAME: toolbox.exe         # 各子项目替换为对应产物文件名
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   run: |
     VERSION=$(jq -r .version packages/${SOFTWARE_NAME}/package.json)
-    DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${{ env.ASSET_NAME }}"
+    TAG="v${VERSION}"
+    # 从 GitHub Release 获取 asset 的下载 URL
+    DOWNLOAD_URL=$(gh release view "${TAG}" --json assets --jq '.assets[0].url')
 
     curl -X POST "${{ secrets.SERVER_URL }}/api/publish/github" \
       -H "Authorization: Bearer ${{ secrets.PUBLISH_TOKEN }}" \
@@ -167,10 +171,11 @@ monorepo 的 workflow 统一放在 `.github/workflows/` 目录下。当前已有
 ```
 
 注意：
-- `SOFTWARE_NAME` 和 `ASSET_NAME` 为各子项目的环境变量，在 workflow 中按实际情况设置
+- `SOFTWARE_NAME` 为各子项目的环境变量，在 workflow 中按实际情况设置
 - `VERSION` 从子项目的 `package.json` 获取
+- `DOWNLOAD_URL` 通过 `gh release view` 从 GitHub API 获取，而非手动拼接。对于公开仓库，`.assets[0].url` 返回的 URL 格式为 `https://github.com/{owner}/{repo}/releases/download/{tag}/{filename}`，每次访问时 GitHub 会重定向到带签名的临时 URL
 - `SERVER_URL` 未配置时整个步骤跳过（`if` 条件），不影响构建流程
-- 该步骤必须在 GitHub Release 创建并上传 asset 之后执行
+- 该步骤必须在 `gh release create` + `gh release upload` 之后执行
 
 ## 测试要点
 
