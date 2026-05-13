@@ -19,4 +19,7 @@ export default {
       } as DataSourceOptions,
     },
   },
+  publish: {
+    token: 'test-publish-token',
+  },
 } as MidwayConfig
