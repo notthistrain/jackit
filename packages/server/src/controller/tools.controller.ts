@@ -61,9 +61,9 @@ export class ToolsController {
       this.logger.warn('No s3Key for version: %d', id)
       return ResDTO.fail(`No download file for version '${id}'`)
     }
-    const signedUrl = await this.s3Service.getSignedUrl(version.key)
-    this.logger.info('Generated signed url for version: %d', id)
-    return ResDTO.ok({ url: signedUrl })
+    const url = await this.getDownloadUrl(version.key)
+    this.logger.info('Generated download url for version: %d', id)
+    return ResDTO.ok({ url })
   }
 
   @Get('/download-latest/:name')
@@ -84,13 +84,24 @@ export class ToolsController {
       return ResDTO.fail(`No download file for '${name}'`)
     }
     const filename = `${software.name}.${software.ext || 'exe'}`
-    const signedUrl = await this.s3Service.getSignedUrl(latestVersion.key, undefined, filename)
-    this.logger.info('Generated signed url for %s version %s', name, latestVersion.sequence)
+    const url = await this.getDownloadUrl(latestVersion.key, filename)
+    this.logger.info('Generated download url for %s version %s', name, latestVersion.sequence)
     return ResDTO.ok({
-      url: signedUrl,
+      url,
       version: latestVersion.sequence,
       size: latestVersion.size,
       displayName: software.displayName || software.name,
     })
+  }
+
+  private isExternalUrl(key: string): boolean {
+    return key.startsWith('http://') || key.startsWith('https://')
+  }
+
+  private async getDownloadUrl(key: string, filename?: string): Promise<string> {
+    if (this.isExternalUrl(key)) {
+      return key
+    }
+    return await this.s3Service.getSignedUrl(key, undefined, filename)
   }
 }
