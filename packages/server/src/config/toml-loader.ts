@@ -12,7 +12,6 @@ export interface TomlConfig {
     bucket?: string
     sign_expire?: number
   }
-  upgradelink?: { endpoint?: string }
   svn?: { username?: string; password?: string }
   jwt?: { secret?: string }
   admin?: { default_password?: string }

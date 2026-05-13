@@ -89,9 +89,6 @@ export default {
     useSSL: false,
     signExpire: toml.rustfs?.sign_expire || Number(process.env.SIGN_EXPIRE) || 30000,
   },
-  upgradelink: {
-    endpoint: toml.upgradelink?.endpoint || process.env.UPGRADELINK_ENDPOINT || 'http://upgradelink-api:8080',
-  },
   svn: {
     username: toml.svn?.username ?? process.env.SVN_USERNAME ?? '',
     password: toml.svn?.password ?? process.env.SVN_PASSWORD ?? '',

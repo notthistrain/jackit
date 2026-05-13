@@ -29,6 +29,7 @@ packages/server/config.toml
 # OS
 .DS_Store
 Thumbs.db
+.pnpm-store
 
 # updater temp files
 *.old

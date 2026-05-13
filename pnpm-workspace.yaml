@@ -2,3 +2,26 @@ packages:
   - 'packages/*'
 onlyBuiltDependencies:
   - better-sqlite3
+catalog:
+  # CSS 工具
+  class-variance-authority: "^0.7.1"
+  clsx: "^2.1.1"
+  tailwind-merge: "^3.5.0"
+  tailwindcss: "^4.2.1"
+  "@tailwindcss/vite": "^4.2.1"
+  tw-animate-css: "^1.4.0"
+  # Vue 生态
+  vue: "^3.5.32"
+  "@vueuse/core": "^14.2.1"
+  lucide-vue-next: "^1.0.0"
+  reka-ui: "^2.9.6"
+  vue-sonner: "^2.0.9"
+  "@astrojs/vue": "^6.0.1"
+  # Astro
+  astro: "^6.1.6"
+  # Tauri
+  "@tauri-apps/api": "^2"
+  "@tauri-apps/plugin-log": "^2"
+  "@tauri-apps/cli": "^2"
+  # TypeScript
+  typescript: "^5.9.3"

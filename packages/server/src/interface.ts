@@ -21,10 +21,6 @@ export interface IStreamable {
   filename: string
 }
 
-export interface IUpgradelinkConfig {
-  endpoint: string
-}
-
 export interface ISvnConfig {
   username: string
   password: string

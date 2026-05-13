@@ -18,10 +18,6 @@ bucket = "upgrade-component"
 # 预签名 URL 过期时间（秒）
 sign_expire = 30000
 
-[upgradelink]
-# UpgradeLink API 地址
-endpoint = "http://upgradelink-api:8080"
-
 [svn]
 # SVN 服务凭证
 username = ""
