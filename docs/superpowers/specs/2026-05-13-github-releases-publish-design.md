@@ -45,14 +45,14 @@
 
 **响应**：
 
-```json
-{
-  "success": true,
-  "data": {
-    "software": { "id": 1, "name": "toolbox" },
-    "version": { "id": 10, "sequence": "1.2.0" }
-  }
-}
+```typescript
+return ResDTO.ok({
+    key,
+    sequence,
+    name,
+    ext,
+    size: contentLength,
+})
 ```
 
 ### 重构路由
@@ -119,7 +119,7 @@ token = "your-secret-token"  # CI/CD 调用 publish/github 接口的认证 token
 
 ### Secrets 管理
 
-在 GitHub Organization 级别设置以下 secrets，所有子项目仓库共享：
+在 GitHub Organization 级别设置以下 secrets，monorepo 下所有子项目共享：
 
 ```bash
 gh secret set SERVER_URL --org <org> --visibility all
@@ -128,18 +128,32 @@ gh secret set PUBLISH_TOKEN --org <org> --visibility all
 
 | Secret | 用途 |
 |--------|------|
-| SERVER_URL | server 地址，如 `https://upgrade.example.com` |
+| SERVER_URL | server 地址，如 `https://upgrade.example.com`。未配置时跳过发布步骤，不影响构建。 |
 | PUBLISH_TOKEN | 发布认证 token，与 server 配置文件中的 `[publish].token` 一致 |
 
-### Workflow 片段
+### Workflow 文件
 
-各子项目的 release workflow 中加入：
+monorepo 的 workflow 统一放在 `.github/workflows/` 目录下。当前已有 `build-server.yml`（server Docker 镜像构建），需要为各子项目新建 release workflow：
+
+| 文件 | 子项目 | 说明 |
+|------|--------|------|
+| `.github/workflows/release-toolbox.yml` | toolbox | 构建桌面端 + 创建 GitHub Release + 调用 server publish |
+| `.github/workflows/release-jackcom.yml` | jackcom | 构建桌面端 + 创建 GitHub Release + 调用 server publish |
+
+每个 workflow 的触发条件为：当对应子项目的 `package.json` 中 `version` 字段对应的 tag 被推送时触发，或手动 `workflow_dispatch`。
+
+### Publish 步骤模板
+
+以下为 release workflow 中调用 server publish 的步骤模板，在各子项目的 release workflow 中，GitHub Release 创建并上传 asset 之后插入：
 
 ```yaml
 - name: Publish to Upgrade Server
   if: ${{ secrets.SERVER_URL != '' }}
+  env:
+    SOFTWARE_NAME: toolbox          # 各子项目替换为对应名称
+    ASSET_NAME: toolbox.exe         # 各子项目替换为对应产物文件名
   run: |
-    VERSION=$(jq -r .version package.json)
+    VERSION=$(jq -r .version packages/${SOFTWARE_NAME}/package.json)
     DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${{ env.ASSET_NAME }}"
 
     curl -X POST "${{ secrets.SERVER_URL }}/api/publish/github" \
@@ -152,9 +166,11 @@ gh secret set PUBLISH_TOKEN --org <org> --visibility all
       }"
 ```
 
-- `SERVER_URL` 未配置时跳过（`if` 条件），不影响构建流程
-- 版本号从 `package.json` 获取
-- 下载 URL 按规则拼接
+注意：
+- `SOFTWARE_NAME` 和 `ASSET_NAME` 为各子项目的环境变量，在 workflow 中按实际情况设置
+- `VERSION` 从子项目的 `package.json` 获取
+- `SERVER_URL` 未配置时整个步骤跳过（`if` 条件），不影响构建流程
+- 该步骤必须在 GitHub Release 创建并上传 asset 之后执行
 
 ## 测试要点
 
