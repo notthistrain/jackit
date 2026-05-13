@@ -34,13 +34,24 @@
 - 修改：`packages/server/src/config/config.default.ts`
 - 修改：`packages/server/config.example.toml`
 
-- [ ] **步骤 1：在 `interface.ts` 新增 `IPublishConfig`**
+- [ ] **步骤 1：在 `interface.ts` 新增 `IPublishConfig` 和 `PublishBaseDTO`**
 
 在 `packages/server/src/interface.ts` 末尾追加：
 
 ```typescript
 export interface IPublishConfig {
   token: string
+}
+
+/** 所有发布接口的公共 body 字段 */
+export interface PublishBaseDTO {
+  name: string
+  version: string
+  display?: string
+  identifier?: string
+  description?: string
+  changelog?: string
+  force?: boolean
 }
 ```
 
@@ -156,9 +167,18 @@ import type { ILogger } from '@midwayjs/core'
 import type { IMidwayKoaContext } from '@midwayjs/koa'
 import type { S3Service } from '../service/s3.service'
 import type { SoftwareService } from '../service/software.service'
+import type { PublishBaseDTO } from '../interface'
 import { Controller, Inject, Logger, Post } from '@midwayjs/core'
 import { PublishAuthMiddleware } from '../middleware/publish-auth.middleware'
 import { ResDTO } from '../dto/tools.dto'
+
+interface S3PublishDTO extends PublishBaseDTO {
+  ext: string
+}
+
+interface GithubPublishDTO extends PublishBaseDTO {
+  downloadUrl: string
+}
 
 @Controller('/publish')
 export class PublishController {
@@ -176,18 +196,7 @@ export class PublishController {
 
   @Post('/s3')
   async s3() {
-    const body = this.ctx.request.body as {
-      name: string
-      version: string
-      ext: string
-      display?: string
-      identifier?: string
-      description?: string
-      changelog?: string
-      force?: boolean
-    }
-
-    const { name, version, ext, display, identifier, description, changelog, force } = body
+    const { name, version, ext, display, identifier, description, changelog, force } = this.ctx.request.body as S3PublishDTO
     this.logger.info('publish from s3: name=%s, version=%s', name, version)
 
     if (!name || !version || !ext) {
@@ -221,18 +230,7 @@ export class PublishController {
 
   @Post('/github', { middleware: [PublishAuthMiddleware] })
   async github() {
-    const body = this.ctx.request.body as {
-      name: string
-      version: string
-      downloadUrl: string
-      display?: string
-      identifier?: string
-      description?: string
-      changelog?: string
-      force?: boolean
-    }
-
-    const { name, version, downloadUrl, display, identifier, description, changelog, force } = body
+    const { name, version, downloadUrl, display, identifier, description, changelog, force } = this.ctx.request.body as GithubPublishDTO
     this.logger.info('publish from github: name=%s, version=%s', name, version)
 
     if (!name || !version || !downloadUrl) {
@@ -302,10 +300,16 @@ import type { IMidwayKoaContext } from '@midwayjs/koa'
 import type { S3Service } from '../service/s3.service'
 import type { SoftwareService } from '../service/software.service'
 import type { SvnService } from '../service/svn.service'
+import type { PublishBaseDTO } from '../interface'
 import { createReadStream, statSync } from 'node:fs'
 import { UploadMiddleware } from '@midwayjs/busboy'
 import { Controller, Files, Inject, Logger, Post } from '@midwayjs/core'
 import { ResDTO } from '../dto/tools.dto'
+
+interface SvnPublishDTO extends PublishBaseDTO {
+  url: string
+  ext: string
+}
 
 @Controller('/publish/internal')
 export class InternalPublishController {
@@ -326,19 +330,7 @@ export class InternalPublishController {
 
   @Post('/svn')
   async svn() {
-    const body = this.ctx.request.body as {
-      name: string
-      version: string
-      url: string
-      ext: string
-      display?: string
-      identifier?: string
-      description?: string
-      changelog?: string
-      force?: boolean
-    }
-
-    const { name, version, url, ext, display, identifier, description, changelog, force } = body
+    const { name, version, url, ext, display, identifier, description, changelog, force } = this.ctx.request.body as SvnPublishDTO
     this.logger.info('publish from svn: name=%s, version=%s', name, version)
 
     if (!name || !version || !url || !ext) {
@@ -390,17 +382,7 @@ export class InternalPublishController {
     )
 
     // 从 body 表单字段读取元数据（不再使用 InfoToml）
-    const body = this.ctx.request.body as {
-      name?: string
-      version?: string
-      ext?: string
-      display?: string
-      identifier?: string
-      description?: string
-      changelog?: string
-      force?: string
-    }
-
+    const body = this.ctx.request.body as PublishBaseDTO & { ext?: string, force?: string }
     const { name, version, ext = 'exe', display, identifier, description, changelog } = body
     const force = body.force === 'true'
 
