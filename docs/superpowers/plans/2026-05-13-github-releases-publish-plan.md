@@ -4,7 +4,7 @@
 
 **目标：** 在 server 模块新增 GitHub Releases Assets 发布来源，拆分内网发布接口到独立 controller，废弃 InfoToml 统一从 body 读取元数据，并让下载逻辑兼容外部直链 URL。
 
-**架构：** 新增 `PublishAuthMiddleware` 以接口级中间件方式注册到 `/api/publish/github`；将 svn/file/s3 拆分到 `InternalPublishController`（路由 `/api/publish/internal/*`），统一从 body 读取元数据；`ToolsController` 下载时通过 URL 前缀判断是走 S3 签名还是直接返回外部 URL。
+**架构：** 新增 `PublishAuthMiddleware` 以接口级中间件方式注册到 `/api/publish/github`；将 svn/file 拆分到 `InternalPublishController`（路由 `/api/publish/internal/*`），统一从 body 读取元数据；`PublishController` 保留 s3 和 github（同级路由）；`ToolsController` 下载时通过 URL 前缀判断是走 S3 签名还是直接返回外部 URL。
 
 **技术栈：** Midway.js + TypeORM + SQLite
 
@@ -19,8 +19,8 @@
 | `packages/server/config.example.toml` | 修改 | 新增 `[publish]` 示例 |
 | `packages/server/src/interface.ts` | 修改 | 新增 `IPublishConfig` 接口 |
 | `packages/server/src/middleware/publish-auth.middleware.ts` | 创建 | token 认证，接口级中间件 |
-| `packages/server/src/controller/publish.controller.ts` | 修改 | 移除 svn/file/s3，只保留 github（接口级注册中间件） |
-| `packages/server/src/controller/internal-publish.controller.ts` | 创建 | 承载 svn + s3 + file 发布逻辑，统一 body 格式 |
+| `packages/server/src/controller/publish.controller.ts` | 修改 | 移除 svn/file，保留 s3 + github（接口级注册中间件） |
+| `packages/server/src/controller/internal-publish.controller.ts` | 创建 | 承载 svn + file 发布逻辑，统一 body 格式 |
 | `packages/server/src/controller/tools.controller.ts` | 修改 | 下载逻辑增加 URL 前缀判断 |
 | `packages/server/test/controller/publish.test.ts` | 修改 | 新增 github 测试 + internal 路由测试 |
 
@@ -142,18 +142,19 @@ git commit -m "feat(server): 新增 PublishAuthMiddleware（接口级中间件�
 
 ---
 
-### 任务 3：重写 PublishController（只保留 github）
+### 任务 3：重写 PublishController（保留 s3 + 新增 github）
 
 **文件：**
 - 修改：`packages/server/src/controller/publish.controller.ts`
 
-将 `publish.controller.ts` 完整重写为只包含 github 接口，并在接口级注册 `PublishAuthMiddleware`。
+将 `publish.controller.ts` 重写为只包含 s3 和 github 接口，移除 svn/file。github 接口在接口级注册 `PublishAuthMiddleware`。s3 接口字段名统一为 `version`（替代原来的 `sequence`）。
 
 - [ ] **步骤 1：重写 `publish.controller.ts`**
 
 ```typescript
 import type { ILogger } from '@midwayjs/core'
 import type { IMidwayKoaContext } from '@midwayjs/koa'
+import type { S3Service } from '../service/s3.service'
 import type { SoftwareService } from '../service/software.service'
 import { Controller, Inject, Logger, Post } from '@midwayjs/core'
 import { PublishAuthMiddleware } from '../middleware/publish-auth.middleware'
@@ -165,10 +166,58 @@ export class PublishController {
   ctx: IMidwayKoaContext
 
   @Inject()
+  s3Service: S3Service
+
+  @Inject()
   softwareService: SoftwareService
 
   @Logger()
   logger: ILogger
+
+  @Post('/s3')
+  async s3() {
+    const body = this.ctx.request.body as {
+      name: string
+      version: string
+      ext: string
+      display?: string
+      identifier?: string
+      description?: string
+      changelog?: string
+      force?: boolean
+    }
+
+    const { name, version, ext, display, identifier, description, changelog, force } = body
+    this.logger.info('publish from s3: name=%s, version=%s', name, version)
+
+    if (!name || !version || !ext) {
+      return ResDTO.fail('Missing required fields: name, version, ext')
+    }
+
+    const key = `${name}/${name}-${version}.${ext}`
+    const size = await this.s3Service.getFileSize(key)
+
+    await this.softwareService.saveVersion({
+      name,
+      sequence: version,
+      key,
+      ext,
+      size,
+      displayName: display,
+      identifier,
+      description,
+      force: force ?? false,
+      changelog,
+    })
+
+    return ResDTO.ok({
+      key,
+      sequence: version,
+      name,
+      ext,
+      size,
+    })
+  }
 
   @Post('/github', { middleware: [PublishAuthMiddleware] })
   async github() {
@@ -221,7 +270,7 @@ export class PublishController {
 
 ```bash
 git add packages/server/src/controller/publish.controller.ts
-git commit -m "refactor(server): PublishController 只保留 github 接口，接口级注册认证中间件"
+git commit -m "refactor(server): PublishController 保留 s3 + 新增 github，接口级注册认证中间件"
 ```
 
 ---
@@ -242,7 +291,6 @@ git commit -m "refactor(server): PublishController 只保留 github 接口，接
 
 各接口特有字段：
 - svn：`url`（SVN 源地址）、`ext`（文件扩展名）
-- s3：`ext`（文件扩展名）
 - file：`ext`（文件扩展名），文件通过 multipart 上传
 
 - [ ] **步骤 1：创建 `internal-publish.controller.ts`**
@@ -324,51 +372,6 @@ export class InternalPublishController {
       name,
       ext,
       size: contentLength,
-    })
-  }
-
-  @Post('/s3')
-  async s3() {
-    const body = this.ctx.request.body as {
-      name: string
-      version: string
-      ext: string
-      display?: string
-      identifier?: string
-      description?: string
-      changelog?: string
-      force?: boolean
-    }
-
-    const { name, version, ext, display, identifier, description, changelog, force } = body
-    this.logger.info('publish from s3: name=%s, version=%s', name, version)
-
-    if (!name || !version || !ext) {
-      return ResDTO.fail('Missing required fields: name, version, ext')
-    }
-
-    const key = `${name}/${name}-${version}.${ext}`
-    const size = await this.s3Service.getFileSize(key)
-
-    await this.softwareService.saveVersion({
-      name,
-      sequence: version,
-      key,
-      ext,
-      size,
-      displayName: display,
-      identifier,
-      description,
-      force: force ?? false,
-      changelog,
-    })
-
-    return ResDTO.ok({
-      key,
-      sequence: version,
-      name,
-      ext,
-      size,
     })
   }
 
@@ -467,7 +470,7 @@ export class InternalPublishController {
 
 ```bash
 git add packages/server/src/controller/internal-publish.controller.ts
-git commit -m "feat(server): 新增 InternalPublishController，统一 body 格式，废弃 InfoToml"
+git commit -m "feat(server): 新增 InternalPublishController（svn + file），统一 body 格式，废弃 InfoToml"
 ```
 
 ---
@@ -624,9 +627,9 @@ describe('Publish Controller', () => {
     }, 30000)
   })
 
-  describe('POST /api/publish/internal/s3', () => {
+  describe('POST /api/publish/s3', () => {
     it('should handle missing file gracefully', async () => {
-      const response = await createHttpRequest(app).post('/api/publish/internal/s3').send({
+      const response = await createHttpRequest(app).post('/api/publish/s3').send({
         name: 'nonexistent',
         version: '0.0.0',
         ext: 'bat',
