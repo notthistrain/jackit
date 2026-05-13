@@ -102,6 +102,9 @@ export default {
   cookie: {
     secure: toml.cookie?.secure ?? (process.env.COOKIE_SECURE === 'true' || false),
   },
+  publish: {
+    token: toml.publish?.token ?? process.env.PUBLISH_TOKEN ?? '',
+  },
   permission: {
     super: [
       { path: '*', method: '*' },

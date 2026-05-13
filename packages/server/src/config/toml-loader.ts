@@ -16,6 +16,7 @@ export interface TomlConfig {
   jwt?: { secret?: string }
   admin?: { default_password?: string }
   cookie?: { secure?: boolean }
+  publish?: { token?: string }
 }
 
 const CONFIG_FILENAME = 'config.toml'

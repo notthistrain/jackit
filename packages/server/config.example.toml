@@ -34,3 +34,7 @@ default_password = ""
 [cookie]
 # 是否启用安全 Cookie（HTTPS 环境下设为 true）
 secure = false
+
+[publish]
+# GitHub Releases 发布认证 token（CI/CD 调用 /api/publish/github 接口时使用）
+token = ""

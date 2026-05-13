@@ -25,3 +25,18 @@ export interface ISvnConfig {
   username: string
   password: string
 }
+
+export interface IPublishConfig {
+  token: string
+}
+
+/** 所有发布接口的公共 body 字段 */
+export interface PublishBaseDTO {
+  name: string
+  version: string
+  display?: string
+  identifier?: string
+  description?: string
+  changelog?: string
+  force?: boolean
+}
