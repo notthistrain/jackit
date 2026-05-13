@@ -7,22 +7,22 @@ export function WindowControls() {
   useEffect(() => {
     const currentWin = getCurrentWindow()
     const unlisten = currentWin.onResized(() => {
-      currentWin.isMaximized().then(setMaximized)
+      currentWin.isMaximized().then(setMaximized).catch(() => {})
     })
-    currentWin.isMaximized().then(setMaximized)
-    return () => { unlisten.then(fn => fn()) }
+    currentWin.isMaximized().then(setMaximized).catch(() => {})
+    return () => { unlisten.then(fn => fn()).catch(() => {}) }
   }, [])
 
   const handleMinimize = useCallback(() => {
-    getCurrentWindow().minimize()
+    getCurrentWindow().minimize().catch(() => {})
   }, [])
 
   const handleToggleMaximize = useCallback(() => {
-    getCurrentWindow().toggleMaximize()
+    getCurrentWindow().toggleMaximize().catch(() => {})
   }, [])
 
   const handleClose = useCallback(() => {
-    getCurrentWindow().close()
+    getCurrentWindow().close().catch(() => {})
   }, [])
 
   return (

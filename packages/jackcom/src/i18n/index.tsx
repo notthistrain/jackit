@@ -52,7 +52,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     let text = messages[locale]?.[key] ?? key
     if (params) {
       for (const [k, v] of Object.entries(params)) {
-        text = text.replace(`{${k}}`, v)
+        text = text.replaceAll(`{${k}}`, v)
       }
     }
     return text
@@ -71,7 +71,7 @@ export function useT(): I18nContextValue {
   return ctx
 }
 
-// 测试用：注入 messages（import.meta.glob 在 vitest 中可能不可用）
+/** @internal 测试专用：注入 messages（import.meta.glob 在 vitest 中可能不可用） */
 export function __injectMessages(msgs: Record<string, Record<string, string>>) {
   Object.assign(messages, msgs)
 }

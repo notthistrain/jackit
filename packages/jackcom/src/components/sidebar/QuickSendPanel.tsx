@@ -31,7 +31,7 @@ export function QuickSendPanel() {
     if (!activePortId)
       return
     try {
-      await send(activePortId, hexData)
+      await send(activePortId, hexData.replace(/\s+/g, ''))
     }
     catch (err) {
       console.error('Quick send failed:', err)

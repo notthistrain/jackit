@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
+import { useSerialPort } from '@/hooks/useSerialPort'
 import { openDecoderWindow, openHistoryWindow, openWaveformWindow } from '@/lib/window'
 import { MenuDropdown } from '@/components/menu/MenuDropdown'
 import { MenuItem } from '@/components/menu/MenuItem'
@@ -19,29 +21,30 @@ interface MenuDef {
 
 export function TitleBar() {
   const { t } = useT()
-  const { activePortId, toggleSidebar, toggleHexDisplay } = useMainStore()
+  const { activePortId, toggleSidebar, toggleHexDisplay, setSidebarTab } = useMainStore()
+  const { close, closeAll } = useSerialPort()
 
   const menus: MenuDef[] = [
     {
       id: 'file',
       items: [
-        { labelKey: 'menu.file.newConnection', shortcut: 'Ctrl+N' },
+        { labelKey: 'menu.file.newConnection', shortcut: 'Ctrl+N', disabled: true },
         { labelKey: 'menu.file.openHistory', shortcut: 'Ctrl+O', onClick: () => openHistoryWindow() },
-        { labelKey: 'menu.file.export' },
+        { labelKey: 'menu.file.export', disabled: true },
         { type: 'separator' },
-        { labelKey: 'menu.file.exit', shortcut: 'Ctrl+Q', onClick: () => window.close() },
+        { labelKey: 'menu.file.exit', shortcut: 'Ctrl+Q', onClick: () => getCurrentWindow().close() },
       ],
     },
     {
       id: 'connection',
       items: [
-        { labelKey: 'menu.connection.connect' },
-        { labelKey: 'menu.connection.disconnect', disabled: !activePortId },
+        { labelKey: 'menu.connection.connect', disabled: true },
+        { labelKey: 'menu.connection.disconnect', disabled: !activePortId, onClick: () => activePortId && close(activePortId).catch(() => {}) },
         { type: 'separator' },
-        { labelKey: 'menu.connection.portSettings' },
+        { labelKey: 'menu.connection.portSettings', disabled: true },
         { type: 'separator' },
-        { labelKey: 'menu.connection.close', shortcut: 'Ctrl+W', disabled: !activePortId },
-        { labelKey: 'menu.connection.closeAll' },
+        { labelKey: 'menu.connection.close', shortcut: 'Ctrl+W', disabled: !activePortId, onClick: () => activePortId && close(activePortId).catch(() => {}) },
+        { labelKey: 'menu.connection.closeAll', onClick: () => closeAll().catch(() => {}) },
       ],
     },
     {
@@ -58,9 +61,9 @@ export function TitleBar() {
     {
       id: 'tools',
       items: [
-        { labelKey: 'menu.tools.quickSend' },
-        { labelKey: 'menu.tools.clearTerminal', shortcut: 'Ctrl+L' },
-        { labelKey: 'menu.tools.export' },
+        { labelKey: 'menu.tools.quickSend', onClick: () => { setSidebarTab('snippets'); if (!useMainStore.getState().sidebarVisible) toggleSidebar() } },
+        { labelKey: 'menu.tools.clearTerminal', shortcut: 'Ctrl+L', disabled: true },
+        { labelKey: 'menu.tools.export', disabled: true },
       ],
     },
     {
@@ -75,9 +78,9 @@ export function TitleBar() {
     {
       id: 'help',
       items: [
-        { labelKey: 'menu.help.about' },
-        { labelKey: 'menu.help.documentation' },
-        { labelKey: 'menu.help.checkUpdates' },
+        { labelKey: 'menu.help.about', disabled: true },
+        { labelKey: 'menu.help.documentation', disabled: true },
+        { labelKey: 'menu.help.checkUpdates', disabled: true },
       ],
     },
   ]

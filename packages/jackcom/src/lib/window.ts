@@ -47,7 +47,7 @@ export async function createOrFocusChildWindow(opts: CreateChildWindowOptions): 
 export async function openWaveformWindow(portName: string): Promise<WebviewWindow> {
   return createOrFocusChildWindow({
     label: `waveform-${portName}`,
-    url: `/waveform?port=${encodeURIComponent(portName)}`,
+    url: `/waveform/?port=${encodeURIComponent(portName)}`,
     title: `Waveform — ${portName}`,
     width: 900,
     height: 500,
@@ -61,7 +61,7 @@ export async function openWaveformWindow(portName: string): Promise<WebviewWindo
 export async function openDecoderWindow(portName: string): Promise<WebviewWindow> {
   return createOrFocusChildWindow({
     label: `decoder-${portName}`,
-    url: `/decoder?port=${encodeURIComponent(portName)}`,
+    url: `/decoder/?port=${encodeURIComponent(portName)}`,
     title: `Protocol Decoder — ${portName}`,
     width: 700,
     height: 500,
@@ -74,7 +74,7 @@ export async function openDecoderWindow(portName: string): Promise<WebviewWindow
 export async function openHistoryWindow(): Promise<WebviewWindow> {
   return createOrFocusChildWindow({
     label: 'history',
-    url: '/history',
+    url: '/history/',
     title: 'JackCom — History',
     width: 1000,
     height: 600,
