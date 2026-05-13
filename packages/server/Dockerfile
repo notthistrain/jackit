@@ -8,7 +8,7 @@
 FROM node:18-alpine AS deps
 
 RUN apk add --no-cache python3 make g++
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 WORKDIR /build
 

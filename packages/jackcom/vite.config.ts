@@ -4,17 +4,18 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
-const root = resolve(__dirname, 'src/pages')
+const root = resolve(import.meta.dirname, 'src/pages')
 
 export default defineConfig({
   root,
+  base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { '@': resolve(__dirname, 'src') },
+    alias: { '@': resolve(import.meta.dirname, 'src') },
   },
 
   build: {
-    outDir: resolve(__dirname, 'dist'),
+    outDir: resolve(import.meta.dirname, 'dist'),
     emptyOutDir: true,
     target: 'esnext',
     sourcemap: false,

@@ -4,17 +4,18 @@ import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
-const root = resolve(__dirname, 'src/pages')
+const root = resolve(import.meta.dirname, 'src/pages')
 
 export default defineConfig({
   root,
+  base: './',
   plugins: [vue(), tailwindcss()],
   resolve: {
-    alias: { '@': resolve(__dirname, 'src') },
+    alias: { '@': resolve(import.meta.dirname, 'src') },
   },
 
   build: {
-    outDir: resolve(__dirname, 'dist'),
+    outDir: resolve(import.meta.dirname, 'dist'),
     emptyOutDir: true,
     target: 'esnext',
     sourcemap: false,
@@ -34,7 +35,14 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('/@tauri-apps/')) return 'vendor-tauri'
-            if (id.includes('vue'))
+            if (id.includes('/vue/')
+              || id.includes('/@vue/')
+              || id.includes('/vue-demi/')
+              || id.includes('/@vueuse/')
+              || id.includes('/reka-ui/')
+              || id.includes('/@floating-ui/')
+              || id.includes('/vue-sonner/')
+              || id.includes('/lucide-vue-next/'))
               return 'vendor-vue'
             return 'vendor'
           }

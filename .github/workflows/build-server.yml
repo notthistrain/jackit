@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'packages/server/**'
+      - 'packages/admin/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'package.json'
