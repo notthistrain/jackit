@@ -25,6 +25,7 @@ catalog:
   "@tauri-apps/cli": "^2"
   # Vite
   vite: "^6"
+  vitest: "^3"
   "@vitejs/plugin-react": "^4"
   "@vitejs/plugin-vue": "^5"
   # TypeScript
