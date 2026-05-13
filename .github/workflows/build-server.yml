@@ -41,13 +41,13 @@ jobs:
 
       # TODO: fix Midway tests in CI environment, then re-enable
       # - name: Run server tests
-      #   run: pnpm --filter @upgrade-component/server test
+      #   run: pnpm --filter @upgrade/server test
 
       - name: Build server
-        run: pnpm --filter @upgrade-component/server build
+        run: pnpm --filter @upgrade/server build
 
       - name: Build admin frontend
-        run: pnpm --filter @upgrade-component/admin build
+        run: pnpm --filter @upgrade/admin build
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3

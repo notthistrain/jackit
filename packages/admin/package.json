@@ -1,5 +1,5 @@
 {
-  "name": "@upgrade-component/admin",
+  "name": "@upgrade/admin",
   "type": "module",
   "version": "0.0.1",
   "engines": {

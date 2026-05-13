@@ -1,5 +1,5 @@
 {
-  "name": "@upgrade-component/server",
+  "name": "@upgrade/server",
   "version": "1.0.0",
   "private": true,
   "description": "对接s3的server",

@@ -18,7 +18,7 @@ COPY packages/server/package.json packages/server/pnpm-workspace.yaml ./packages
 COPY packages/admin/package.json ./packages/admin/
 
 # Export standalone node_modules via pnpm deploy (includes install + compile)
-RUN pnpm deploy --prod --filter @upgrade-component/server /deploy
+RUN pnpm deploy --prod --filter @upgrade/server /deploy
 
 # Stage 2: Runtime
 FROM node:18-alpine

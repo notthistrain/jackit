@@ -17,11 +17,11 @@ cd "${REPO_ROOT}"
 
 # 1. 编译 server TypeScript
 echo "1. 编译 Server..."
-pnpm --filter @upgrade-component/server build
+pnpm --filter @upgrade/server build
 
 # 2. 构建 admin 前端
 echo "2. 构建 Admin 前端..."
-pnpm --filter @upgrade-component/admin build
+pnpm --filter @upgrade/admin build
 
 # 3. 构建 Docker 镜像
 echo "3. 构建 Docker 镜像..."
