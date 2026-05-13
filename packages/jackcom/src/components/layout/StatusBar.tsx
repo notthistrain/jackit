@@ -1,7 +1,9 @@
-import { useMainStore } from '@/lib/store'
+import { useT } from '@/i18n'
 import { formatBytes } from '@/lib/formatters'
+import { useMainStore } from '@/lib/store'
 
 export function StatusBar() {
+  const { t } = useT()
   const { connections, activePortId, stats } = useMainStore()
   const activeConn = activePortId ? connections[activePortId] : null
   const portStats = activePortId ? stats[activePortId] : null
@@ -14,14 +16,21 @@ export function StatusBar() {
       gap: '16px',
       fontSize: '11px',
       color: '#fff',
-    }}>
-      <span>⚡ JackCom</span>
+    }}
+    >
+      <span>⚡ {t('statusbar.app')}</span>
       {activeConn && (
         <>
           <span>{activeConn.portName}</span>
           {portStats && (
             <span style={{ marginLeft: 'auto' }}>
-              RX: {formatBytes(portStats.rx)} | TX: {formatBytes(portStats.tx)}
+              RX:
+              {' '}
+              {formatBytes(portStats.rx)}
+              {' '}
+              | TX:
+              {' '}
+              {formatBytes(portStats.tx)}
             </span>
           )}
         </>

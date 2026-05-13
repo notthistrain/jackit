@@ -1,6 +1,9 @@
+import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
+import { openDecoderWindow, openWaveformWindow } from '@/lib/window'
 
 export function Toolbar() {
+  const { t } = useT()
   const { connections, activePortId, toggleSidebar } = useMainStore()
   const activeConn = activePortId ? connections[activePortId] : null
   const isOnline = activeConn?.online ?? false
@@ -14,8 +17,10 @@ export function Toolbar() {
       alignItems: 'center',
       gap: '8px',
       fontSize: '12px',
-    }}>
+    }}
+    >
       <button
+        title={isOnline ? t('toolbar.disconnect') : t('toolbar.connect')}
         style={{
           background: isOnline ? 'var(--color-accent)' : 'var(--color-border)',
           color: '#fff',
@@ -27,16 +32,22 @@ export function Toolbar() {
           fontSize: '11px',
         }}
       >
-        {isOnline ? '\u25B6 Connected' : '\u26A1 Connect'}
+        {isOnline ? `\u25B6 ${t('toolbar.connect')}` : `\u26A1 ${t('toolbar.connect')}`}
       </button>
       {activeConn && (
         <span style={{ color: 'var(--color-text-secondary)', fontSize: '11px' }}>
-          {activeConn.portName} · {activeConn.baudRate.toLocaleString()} · 8N1
+          {activeConn.portName}
+          {' '}
+          ·
+          {activeConn.baudRate.toLocaleString()}
+          {' '}
+          · 8N1
         </span>
       )}
       <span style={{ color: 'var(--color-border)', margin: '0 4px' }}>|</span>
       <button
         onClick={toggleSidebar}
+        title={t('toolbar.toggleSidebar')}
         style={{
           background: 'transparent',
           border: 'none',
@@ -48,22 +59,42 @@ export function Toolbar() {
       >
         ☰
       </button>
-      <button style={{
-        background: 'transparent', border: 'none',
-        color: 'var(--color-accent)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px',
-      }}>
-        📊 Wave
+      <button
+        onClick={() => activePortId && openWaveformWindow(activePortId)}
+        disabled={!activePortId}
+        title={t('toolbar.wave')}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: activePortId ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+          cursor: activePortId ? 'pointer' : 'not-allowed',
+          fontSize: '11px',
+          padding: '2px 6px',
+          opacity: activePortId ? 1 : 0.5,
+        }}
+      >
+        📊 {t('toolbar.wave')}
       </button>
-      <button style={{
-        background: 'transparent', border: 'none',
-        color: 'var(--color-accent)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px',
-      }}>
-        🔬 Decode
+      <button
+        onClick={() => activePortId && openDecoderWindow(activePortId)}
+        disabled={!activePortId}
+        title={t('toolbar.decode')}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: activePortId ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+          cursor: activePortId ? 'pointer' : 'not-allowed',
+          fontSize: '11px',
+          padding: '2px 6px',
+          opacity: activePortId ? 1 : 0.5,
+        }}
+      >
+        🔬 {t('toolbar.decode')}
       </button>
       <span style={{ marginLeft: 'auto' }}>
         {isOnline && (
           <span style={{ color: 'var(--color-online)', fontSize: '11px', fontWeight: 600 }}>
-            ● Online
+            ● {t('toolbar.online')}
           </span>
         )}
       </span>

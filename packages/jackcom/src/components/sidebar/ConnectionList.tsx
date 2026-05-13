@@ -1,22 +1,22 @@
+import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
 
 export function ConnectionList() {
+  const { t } = useT()
   const { connections, activePortId, setActivePortId } = useMainStore()
   const connList = Object.values(connections)
 
   if (connList.length === 0) {
     return (
       <div style={{ padding: '12px 8px', color: 'var(--color-text-secondary)', fontSize: '11px' }}>
-        No connections yet.
-        <br />
-        Use the toolbar to connect.
+        {t('sidebar.noConnections')}
       </div>
     )
   }
 
   return (
     <div style={{ padding: '4px' }}>
-      {connList.map((conn) => (
+      {connList.map(conn => (
         <div
           key={conn.portName}
           onClick={() => setActivePortId(conn.portName)}
@@ -37,7 +37,8 @@ export function ConnectionList() {
             <span style={{
               color: conn.online ? 'var(--color-online)' : 'var(--color-text-secondary)',
               fontSize: '8px',
-            }}>
+            }}
+            >
               {conn.online ? '●' : '○'}
             </span>
             <span style={{ fontWeight: 600, fontSize: '12px' }}>{conn.portName}</span>

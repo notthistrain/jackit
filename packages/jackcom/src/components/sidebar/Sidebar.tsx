@@ -1,10 +1,14 @@
 import { useMainStore } from '@/lib/store'
+import { useT } from '@/i18n'
 import { ConnectionList } from './ConnectionList'
+import { QuickSendPanel } from './QuickSendPanel'
 
 export function Sidebar() {
   const { sidebarVisible, sidebarTab } = useMainStore()
+  const { t } = useT()
 
-  if (!sidebarVisible) return null
+  if (!sidebarVisible)
+    return null
 
   return (
     <div style={{
@@ -14,7 +18,8 @@ export function Sidebar() {
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-    }}>
+    }}
+    >
       <div style={{
         padding: '8px 10px',
         fontSize: '11px',
@@ -22,16 +27,13 @@ export function Sidebar() {
         color: 'var(--color-text-secondary)',
         letterSpacing: '0.5px',
         borderBottom: '1px solid var(--color-border)',
-      }}>
-        {sidebarTab === 'connections' ? 'CONNECTIONS' : 'QUICK SEND'}
+      }}
+      >
+        {sidebarTab === 'connections' ? t('sidebar.connections') : t('sidebar.quickSend')}
       </div>
       <div style={{ flex: 1, overflow: 'auto' }}>
         {sidebarTab === 'connections' && <ConnectionList />}
-        {sidebarTab === 'snippets' && (
-          <div style={{ padding: '8px', color: 'var(--color-text-secondary)', fontSize: '11px' }}>
-            Quick send snippets will appear here
-          </div>
-        )}
+        {sidebarTab === 'snippets' && <QuickSendPanel />}
       </div>
     </div>
   )

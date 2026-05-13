@@ -1,12 +1,14 @@
 import { useMainStore } from '@/lib/store'
+import { useT } from '@/i18n'
 
 const ICONS = [
-  { id: 'connections' as const, icon: '🔌', title: 'Connections' },
-  { id: 'snippets' as const, icon: '📝', title: 'Quick Send' },
+  { id: 'connections' as const, icon: '🔌', titleKey: 'sidebar.connections' },
+  { id: 'snippets' as const, icon: '📝', titleKey: 'sidebar.quickSend' },
 ] as const
 
 export function ActivityBar() {
   const { sidebarTab, setSidebarTab, sidebarVisible, toggleSidebar } = useMainStore()
+  const { t } = useT()
 
   return (
     <div style={{
@@ -18,17 +20,20 @@ export function ActivityBar() {
       alignItems: 'center',
       paddingTop: '4px',
       gap: '2px',
-    }}>
-      {ICONS.map(({ id, icon, title }) => (
+    }}
+    >
+      {ICONS.map(({ id, icon, titleKey }) => (
         <div
           key={id}
-          title={title}
+          title={t(titleKey)}
           onClick={() => {
             if (sidebarTab === id && sidebarVisible) {
               toggleSidebar()
-            } else {
+            }
+            else {
               setSidebarTab(id)
-              if (!sidebarVisible) toggleSidebar()
+              if (!sidebarVisible)
+                toggleSidebar()
             }
           }}
           style={{
