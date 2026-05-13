@@ -25,7 +25,7 @@
 
 ## 项目结构
 
-```markdown
+```text
 jackit/
 ├── packages/
 │   ├── server/      # 后端服务 — 软件分发、版本管理、认证权限
