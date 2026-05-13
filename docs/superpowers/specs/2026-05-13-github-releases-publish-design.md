@@ -140,7 +140,7 @@ monorepo 的 workflow 统一放在 `.github/workflows/` 目录下。当前已有
 | `.github/workflows/release-toolbox.yml` | toolbox | 构建桌面端 + 创建 GitHub Release + 调用 server publish |
 | `.github/workflows/release-jackcom.yml` | jackcom | 构建桌面端 + 创建 GitHub Release + 调用 server publish |
 
-每个 workflow 的触发条件为：当对应子项目的 `package.json` 中 `version` 字段对应的 tag 被推送时触发，或手动 `workflow_dispatch`。
+每个 workflow 的触发条件为：当对应子项目的 tag 被推送时触发（tag 格式为 `{子项目名}-v{版本号}`，如 `toolbox-v1.2.0`），或手动 `workflow_dispatch`。monorepo 内多个子项目共用一个仓库，tag 需要带子项目名前缀以避免冲突。
 
 ### Publish 步骤模板
 
@@ -157,7 +157,7 @@ monorepo 的 workflow 统一放在 `.github/workflows/` 目录下。当前已有
     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   run: |
     VERSION=$(jq -r .version packages/${SOFTWARE_NAME}/package.json)
-    TAG="v${VERSION}"
+    TAG="${SOFTWARE_NAME}-v${VERSION}"
     # 按 asset 文件名精确匹配，获取 browser_download_url（不是 .url）
     DOWNLOAD_URL=$(gh release view "${TAG}" --json assets \
       --jq ".assets[] | select(.name == \"${{ env.ASSET_NAME }}\") | .browser_download_url")
