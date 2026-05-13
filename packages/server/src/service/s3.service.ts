@@ -1,6 +1,8 @@
+/* eslint-disable unused-imports/no-unused-vars */
+/* eslint-disable node/prefer-global/buffer */
+import type { ILogger } from '@midwayjs/core'
 import type { Readable } from 'node:stream'
 import type { IRustfsConfig } from '../interface'
-import type { ILogger } from '@midwayjs/core'
 import {
   CreateBucketCommand,
   GetObjectCommand,

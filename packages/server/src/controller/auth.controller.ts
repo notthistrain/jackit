@@ -1,8 +1,8 @@
 import type { ILogger } from '@midwayjs/core'
 import type { IMidwayKoaContext } from '@midwayjs/koa'
+import type { AuthService } from '../service/auth.service'
 import { Config, Controller, Inject, Logger, Post } from '@midwayjs/core'
 import { Rule, RuleType } from '@midwayjs/validate'
-import { AuthService } from '../service/auth.service'
 
 class LoginDTO {
   @Rule(RuleType.string().required())

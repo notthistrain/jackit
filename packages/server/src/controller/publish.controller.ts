@@ -1,11 +1,11 @@
 import type { ILogger } from '@midwayjs/core'
 import type { IMidwayKoaContext } from '@midwayjs/koa'
+import type { PublishBaseDTO } from '../interface'
 import type { S3Service } from '../service/s3.service'
 import type { SoftwareService } from '../service/software.service'
-import type { PublishBaseDTO } from '../interface'
 import { Controller, Inject, Logger, Post } from '@midwayjs/core'
-import { PublishAuthMiddleware } from '../middleware/publish-auth.middleware'
 import { ResDTO } from '../dto/tools.dto'
+import { PublishAuthMiddleware } from '../middleware/publish-auth.middleware'
 
 interface S3PublishDTO extends PublishBaseDTO {
   ext: string

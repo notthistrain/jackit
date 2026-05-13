@@ -1,6 +1,7 @@
-import { Middleware, IMiddleware, Logger } from '@midwayjs/core'
-import { NextFunction, Context } from '@midwayjs/koa'
+import type { IMiddleware } from '@midwayjs/core'
+import type { Context, NextFunction } from '@midwayjs/koa'
 import type { ILogger } from '@midwayjs/logger'
+import { Logger, Middleware } from '@midwayjs/core'
 
 @Middleware()
 export class RequestLogMiddleware implements IMiddleware<Context, NextFunction> {

@@ -1,8 +1,9 @@
 import type { Application, Framework } from '@midwayjs/koa'
+import { Buffer } from 'node:buffer'
 import { inspect } from 'node:util'
 import { close, createApp, createHttpRequest } from '@midwayjs/mock'
 
-describe('Publish Controller', () => {
+describe('publish Controller', () => {
   let app: Application
 
   beforeAll(async () => {
@@ -13,7 +14,7 @@ describe('Publish Controller', () => {
     await close(app)
   })
 
-  describe('POST /api/publish/github', () => {
+  describe('pOST /api/publish/github', () => {
     it('should reject request without Authorization header', async () => {
       const response = await createHttpRequest(app)
         .post('/api/publish/github')
@@ -56,7 +57,7 @@ describe('Publish Controller', () => {
     })
   })
 
-  describe('POST /api/publish/internal/svn', () => {
+  describe('pOST /api/publish/internal/svn', () => {
     it.skip('should publish from svn', async () => {
       const response = await createHttpRequest(app).post('/api/publish/internal/svn').send({
         name: 'scannerbib',
@@ -72,7 +73,7 @@ describe('Publish Controller', () => {
     }, 30000)
   })
 
-  describe('POST /api/publish/s3', () => {
+  describe('pOST /api/publish/s3', () => {
     it('should handle missing file gracefully', async () => {
       const response = await createHttpRequest(app).post('/api/publish/s3').send({
         name: 'nonexistent',
@@ -84,7 +85,7 @@ describe('Publish Controller', () => {
     }, 30000)
   })
 
-  describe('POST /api/publish/internal/file', () => {
+  describe('pOST /api/publish/internal/file', () => {
     // S3Service injection causes ECONNREFUSED in test env without S3
     it.skip('should require pkg file', async () => {
       const response = await createHttpRequest(app)

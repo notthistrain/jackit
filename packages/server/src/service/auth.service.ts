@@ -1,8 +1,8 @@
-import type { Repository } from 'typeorm'
 import type { ILogger } from '@midwayjs/core'
+import type { JwtService } from '@midwayjs/jwt'
+import type { Repository } from 'typeorm'
 import { Config, Inject, Logger, Singleton } from '@midwayjs/core'
 import { InjectEntityModel } from '@midwayjs/typeorm'
-import { JwtService } from '@midwayjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import { User } from '../entity'
 import { Role } from '../entity/role.entity'
@@ -115,7 +115,8 @@ export class AuthService {
         username: user.username,
         role: roleName,
       }
-    } catch (error) {
+    }
+    catch (error) {
       this.logger.warn('Token refresh failed: %s', (error as Error).message)
       return null
     }

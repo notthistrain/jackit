@@ -1,10 +1,10 @@
-import type { Repository } from 'typeorm'
 import type { ILogger } from '@midwayjs/core'
+import type { Repository } from 'typeorm'
 import { Config, Logger, Singleton } from '@midwayjs/core'
 import { InjectEntityModel } from '@midwayjs/typeorm'
+import * as bcrypt from 'bcryptjs'
 import { Role } from '../entity/role.entity'
 import { User } from '../entity/user.entity'
-import * as bcrypt from 'bcryptjs'
 
 @Singleton()
 export class RoleService {
@@ -78,7 +78,8 @@ export class RoleService {
         existingUser.roleId = superRole.id
         await this.userModel.save(existingUser)
         this.logger.info('Admin user linked to super role')
-      } else {
+      }
+      else {
         this.logger.info('Admin user already exists with super role')
       }
       return
@@ -108,7 +109,8 @@ export class RoleService {
         existingUser.roleId = guestRole.id
         await this.userModel.save(existingUser)
         this.logger.info('Guest user linked to guest role')
-      } else {
+      }
+      else {
         this.logger.info('Guest user already exists with guest role')
       }
       return

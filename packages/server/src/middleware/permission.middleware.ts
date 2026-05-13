@@ -1,8 +1,8 @@
+import type { Context, NextFunction } from '@midwayjs/koa'
 import type { ILogger } from '@midwayjs/logger'
+import type { JwtPayload } from '../service/auth.service'
+import type { PermissionService } from '../service/permission.service'
 import { Inject, Logger, Middleware } from '@midwayjs/core'
-import { NextFunction, Context } from '@midwayjs/koa'
-import { JwtPayload } from '../service/auth.service'
-import { PermissionService } from '../service/permission.service'
 
 @Middleware()
 export class PermissionMiddleware {

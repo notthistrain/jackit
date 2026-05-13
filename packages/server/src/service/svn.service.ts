@@ -53,6 +53,7 @@ export class SvnService {
   }
 
   getAuthHeader(): string {
+    // eslint-disable-next-line node/prefer-global/buffer
     const credentials = Buffer.from(`${this.svnConfig.username}:${this.svnConfig.password}`).toString('base64')
     return `Basic ${credentials}`
   }

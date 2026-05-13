@@ -1,8 +1,9 @@
 import type { Application, Framework } from '@midwayjs/koa'
+import type { PermissionRule } from '../../src/service/permission.service'
 import { close, createApp } from '@midwayjs/mock'
-import { PermissionService, PermissionRule } from '../../src/service/permission.service'
+import { PermissionService } from '../../src/service/permission.service'
 
-describe('PermissionService', () => {
+describe('permissionService', () => {
   let app: Application
   let permissionService: PermissionService
 

@@ -1,9 +1,9 @@
-import { join } from 'node:path'
-import { existsSync, createReadStream } from 'node:fs'
+import type { Context, NextFunction } from '@midwayjs/koa'
 import type { ILogger } from '@midwayjs/logger'
+import type { AuthService, JwtPayload } from '../service/auth.service'
+import { createReadStream, existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { Inject, Logger, Middleware } from '@midwayjs/core'
-import { NextFunction, Context } from '@midwayjs/koa'
-import { AuthService, JwtPayload } from '../service/auth.service'
 
 const adminDistPath = join(__dirname, '../../admin')
 

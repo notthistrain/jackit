@@ -1,3 +1,5 @@
+import type { ILogger } from '@midwayjs/core'
+import type { IMidwayKoaContext } from '@midwayjs/koa'
 import type {
   CreateSoftwareDTO,
   CreateVersionDTO,
@@ -8,8 +10,6 @@ import type {
   UpdateVersionDTO,
 } from '../dto/admin.dto'
 import type { AdminService } from '../service/admin.service'
-import type { ILogger } from '@midwayjs/core'
-import type { IMidwayKoaContext } from '@midwayjs/koa'
 import { Controller, Del, Get, Inject, Logger, Param, Post, Put, Query } from '@midwayjs/core'
 import { Validate } from '@midwayjs/validate'
 

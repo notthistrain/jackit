@@ -1,7 +1,7 @@
 import type { Application, Framework } from '@midwayjs/koa'
 import { close, createApp, createHttpRequest } from '@midwayjs/mock'
 
-describe('Auth E2E Tests', () => {
+describe('auth E2E Tests', () => {
   let app: Application
 
   beforeAll(async () => {
@@ -24,7 +24,7 @@ describe('Auth E2E Tests', () => {
     return loginResponse.body.data.accessToken
   }
 
-  describe('Authentication Flow', () => {
+  describe('authentication Flow', () => {
     it('should complete full login flow', async () => {
       const loginResponse = await createHttpRequest(app)
         .post('/api/auth/login')
@@ -67,7 +67,7 @@ describe('Auth E2E Tests', () => {
     })
   })
 
-  describe('Whitelist Endpoints', () => {
+  describe('whitelist Endpoints', () => {
     it('should allow access to publish endpoints without auth', async () => {
       const response = await createHttpRequest(app)
         .post('/api/publish/s3')
@@ -99,7 +99,7 @@ describe('Auth E2E Tests', () => {
     })
   })
 
-  describe('Token Refresh Flow', () => {
+  describe('token Refresh Flow', () => {
     it('should refresh token using refresh token cookie', async () => {
       const loginResponse = await createHttpRequest(app)
         .post('/api/auth/login')
@@ -120,7 +120,7 @@ describe('Auth E2E Tests', () => {
     })
   })
 
-  describe('Logout Flow', () => {
+  describe('logout Flow', () => {
     it('should logout and clear refresh token cookie', async () => {
       const response = await createHttpRequest(app)
         .post('/api/auth/logout')

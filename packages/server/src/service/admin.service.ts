@@ -125,7 +125,8 @@ export class AdminService {
     const setting = await this.getSettingByKey(key)
     if (setting) {
       await this.settingModel.update({ key }, { value })
-    } else {
+    }
+    else {
       await this.settingModel.save({ key, value })
     }
     return await this.getSettingByKey(key)

@@ -37,7 +37,7 @@ export class PermissionService {
 
     if (rulePath.endsWith('/*')) {
       const prefix = rulePath.slice(0, -2)
-      return cleanPath.startsWith(prefix + '/')
+      return cleanPath.startsWith(`${prefix}/`)
     }
 
     return cleanPath === rulePath

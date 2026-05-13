@@ -2,7 +2,7 @@ import type { Application, Framework } from '@midwayjs/koa'
 import { close, createApp } from '@midwayjs/mock'
 import { RoleService } from '../../src/service/role.service'
 
-describe('RoleService', () => {
+describe('roleService', () => {
   let app: Application
   let roleService: RoleService
 

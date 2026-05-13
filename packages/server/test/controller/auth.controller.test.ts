@@ -1,7 +1,7 @@
 import type { Application, Framework } from '@midwayjs/koa'
 import { close, createApp, createHttpRequest } from '@midwayjs/mock'
 
-describe('AuthController', () => {
+describe('authController', () => {
   let app: Application
 
   beforeAll(async () => {
@@ -12,7 +12,7 @@ describe('AuthController', () => {
     await close(app)
   })
 
-  describe('POST /api/auth/login', () => {
+  describe('pOST /api/auth/login', () => {
     it('should login successfully with correct credentials', async () => {
       const response = await createHttpRequest(app)
         .post('/api/auth/login')
@@ -57,7 +57,7 @@ describe('AuthController', () => {
     })
   })
 
-  describe('POST /api/auth/refresh', () => {
+  describe('pOST /api/auth/refresh', () => {
     it('should refresh token with valid refresh token', async () => {
       const loginResponse = await createHttpRequest(app)
         .post('/api/auth/login')
@@ -87,7 +87,7 @@ describe('AuthController', () => {
     })
   })
 
-  describe('POST /api/auth/logout', () => {
+  describe('pOST /api/auth/logout', () => {
     it('should logout successfully', async () => {
       const response = await createHttpRequest(app)
         .post('/api/auth/logout')

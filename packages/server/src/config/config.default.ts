@@ -1,6 +1,7 @@
 import type { MidwayConfig } from '@midwayjs/core'
 import type { IMidwayKoaConfigurationOptions } from '@midwayjs/koa'
 import type { DataSourceOptions } from 'typeorm'
+import process from 'node:process'
 import { loadTomlConfig } from './toml-loader'
 
 const toml = loadTomlConfig()

@@ -2,7 +2,7 @@ import type { Application, Framework } from '@midwayjs/koa'
 import { close, createApp } from '@midwayjs/mock'
 import { AuthService } from '../../src/service/auth.service'
 
-describe('AuthService', () => {
+describe('authService', () => {
   let app: Application
   let authService: AuthService
 
