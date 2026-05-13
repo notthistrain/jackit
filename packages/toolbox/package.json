@@ -24,11 +24,11 @@
   "devDependencies": {
     "@tailwindcss/vite": "catalog:",
     "@tauri-apps/cli": "catalog:",
-    "@vitejs/plugin-vue": "^5",
+    "@vitejs/plugin-vue": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
     "typescript": "catalog:",
-    "vite": "^6"
+    "vite": "catalog:"
   }
 }
