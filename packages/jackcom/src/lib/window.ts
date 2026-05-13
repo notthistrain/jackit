@@ -1,4 +1,4 @@
-import { WebviewWindow, type WindowOptions } from '@tauri-apps/api/webviewWindow'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
 interface CreateChildWindowOptions {
   label: string
@@ -15,13 +15,13 @@ interface CreateChildWindowOptions {
  */
 export async function createOrFocusChildWindow(opts: CreateChildWindowOptions): Promise<WebviewWindow> {
   // 检查窗口是否已存在
-  const existing = WebviewWindow.getByLabel(opts.label)
-  if (existing) {
-    await existing.setFocus()
+  const existing = await WebviewWindow.getByLabel(opts.label)
+  if (existing != null) {
+    await (existing as any).setFocus()
     return existing
   }
 
-  const winOpts: WindowOptions = {
+  const winOpts: Record<string, unknown> = {
     url: opts.url,
     title: opts.title,
     width: opts.width ?? 800,
@@ -85,7 +85,8 @@ export async function openHistoryWindow(): Promise<WebviewWindow> {
  * 从 URL query 参数获取 port 名
  */
 export function getPortFromUrl(): string | null {
-  if (typeof window === 'undefined') return null
+  if (typeof window === 'undefined')
+    return null
   const params = new URLSearchParams(window.location.search)
   return params.get('port')
 }
