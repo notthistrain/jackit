@@ -2,29 +2,36 @@ import { useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useHistoryStore, type SessionRow } from '@/stores/history-store'
 
+function toErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message
+  return String(e)
+}
+
 export function useHistory() {
   const store = useHistoryStore()
 
   const loadSessions = useCallback(async () => {
     try {
-      store.setLoading(true)
-      store.setError(null)
+      const s = useHistoryStore.getState()
+      s.setLoading(true)
+      s.setError(null)
       const res = await invoke<{ sessions: SessionRow[] }>('list_recent_sessions', {
         request: { limit: 20 },
       })
-      store.setSessions(res.sessions)
-    } catch (e: any) {
-      store.setError(String(e))
+      s.setSessions(res.sessions)
+    } catch (e: unknown) {
+      useHistoryStore.getState().setError(toErrorMessage(e))
     } finally {
-      store.setLoading(false)
+      useHistoryStore.getState().setLoading(false)
     }
-  }, [store])
+  }, [])
 
   const loadFrames = useCallback(async (sessionId: number) => {
     try {
-      store.setLoading(true)
-      store.setError(null)
-      const { directionFilter, protocolFilter, page, pageSize } = useHistoryStore.getState()
+      const s = useHistoryStore.getState()
+      s.setLoading(true)
+      s.setError(null)
+      const { directionFilter, protocolFilter, page, pageSize } = s
       const res = await invoke<{ frames: any[]; total: number }>('query_history', {
         request: {
           session_id: sessionId,
@@ -34,13 +41,13 @@ export function useHistory() {
           offset: page * pageSize,
         },
       })
-      store.setFrames(res.frames, res.total)
-    } catch (e: any) {
-      store.setError(String(e))
+      s.setFrames(res.frames, res.total)
+    } catch (e: unknown) {
+      useHistoryStore.getState().setError(toErrorMessage(e))
     } finally {
-      store.setLoading(false)
+      useHistoryStore.getState().setLoading(false)
     }
-  }, [store])
+  }, [])
 
   const exportCsv = useCallback(async (sessionId: number) => {
     try {

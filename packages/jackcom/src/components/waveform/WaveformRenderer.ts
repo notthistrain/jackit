@@ -15,6 +15,8 @@ export class WaveformRenderer {
   private channels: ChannelData[] = []
   private zoom = 1.0
   private offsetX = 0.0
+  private vertexBuffer: GPUBuffer | null = null
+  private vertexBufferSize = 0
   private animationId: number | null = null
   private canvas: HTMLCanvasElement | null = null
 
@@ -58,13 +60,16 @@ export class WaveformRenderer {
       }],
     })
 
+    // 创建 shader module（vertex 和 fragment 共用）
+    const shaderModule = this.device.createShaderModule({ code: WAVEFORM_SHADER })
+
     // 创建 render pipeline
     this.pipeline = this.device.createRenderPipeline({
       layout: this.device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayout],
       }),
       vertex: {
-        module: this.device.createShaderModule({ code: WAVEFORM_SHADER }),
+        module: shaderModule,
         entryPoint: 'line_vertex',
         buffers: [{
           arrayStride: 12, // 3 x f32
@@ -76,7 +81,7 @@ export class WaveformRenderer {
         }],
       },
       fragment: {
-        module: this.device.createShaderModule({ code: WAVEFORM_SHADER }),
+        module: shaderModule,
         entryPoint: 'line_fragment',
         targets: [{ format: this.format }],
       },
@@ -112,6 +117,14 @@ export class WaveformRenderer {
     this.offsetX = x
   }
 
+  getZoom(): number {
+    return this.zoom
+  }
+
+  getOffset(): number {
+    return this.offsetX
+  }
+
   render(): void {
     if (!this.device || !this.context || !this.pipeline || !this.uniformBuffer || !this.bindGroup || !this.canvas) return
 
@@ -138,13 +151,18 @@ export class WaveformRenderer {
       }
     }
 
-    // 创建/写入顶点 buffer
+    // 创建/复用顶点 buffer
     const vertexData = new Float32Array(vertices)
-    const vertexBuffer = this.device.createBuffer({
-      size: vertexData.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    })
-    this.device.queue.writeBuffer(vertexBuffer, 0, vertexData)
+    const neededSize = vertexData.byteLength
+    if (!this.vertexBuffer || this.vertexBufferSize < neededSize) {
+      this.vertexBuffer?.destroy()
+      this.vertexBuffer = this.device.createBuffer({
+        size: neededSize || 4, // 至少 4 bytes 避免 0 size
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      })
+      this.vertexBufferSize = neededSize || 4
+    }
+    this.device.queue.writeBuffer(this.vertexBuffer, 0, vertexData)
 
     // 渲染
     const textureView = this.context.getCurrentTexture().createView()
@@ -160,8 +178,8 @@ export class WaveformRenderer {
 
     passEncoder.setPipeline(this.pipeline)
     passEncoder.setBindGroup(0, this.bindGroup)
-    if (vertices.length > 0) {
-      passEncoder.setVertexBuffer(0, vertexBuffer)
+    if (vertices.length > 0 && this.vertexBuffer) {
+      passEncoder.setVertexBuffer(0, this.vertexBuffer)
       passEncoder.draw(vertices.length / 3)
     }
     passEncoder.end()
@@ -186,6 +204,9 @@ export class WaveformRenderer {
 
   destroy(): void {
     this.stopRenderLoop()
+    this.vertexBuffer?.destroy()
+    this.vertexBuffer = null
+    this.vertexBufferSize = 0
     this.device?.destroy()
     this.device = null
     this.context = null

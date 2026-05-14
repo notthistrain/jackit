@@ -1,3 +1,4 @@
+import { useT } from '@/i18n'
 import type { SessionRow } from '@/stores/history-store'
 
 interface SessionListProps {
@@ -7,6 +8,8 @@ interface SessionListProps {
 }
 
 export function SessionList({ sessions, selectedId, onSelect }: SessionListProps) {
+  const { t } = useT()
+
   if (sessions.length === 0) {
     return (
       <div style={{
@@ -19,7 +22,7 @@ export function SessionList({ sessions, selectedId, onSelect }: SessionListProps
         padding: '20px',
         textAlign: 'center',
       }}>
-        暂无会话记录
+        {t('history.noSessions')}
       </div>
     )
   }
@@ -34,7 +37,7 @@ export function SessionList({ sessions, selectedId, onSelect }: SessionListProps
             onClick={() => onSelect(session.id)}
             style={{
               padding: '6px 10px',
-              background: isSelected ? '#094771' : 'transparent',
+              background: isSelected ? 'var(--color-accent)' : 'transparent',
               cursor: 'pointer',
               borderBottom: '1px solid var(--color-border)',
             }}

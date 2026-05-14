@@ -10,7 +10,7 @@ const pillStyle = (active: boolean): React.CSSProperties => ({
   borderRadius: '2px',
   fontSize: '10px',
   cursor: 'pointer',
-  background: active ? '#094771' : 'transparent',
+  background: active ? 'var(--color-accent)' : 'transparent',
   color: active ? '#fff' : 'var(--color-text-secondary)',
   border: 'none',
 })

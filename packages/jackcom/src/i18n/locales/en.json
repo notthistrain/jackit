@@ -64,5 +64,14 @@
   "history.noSessions": "No sessions",
   "history.noFrames": "Select a session to view frames",
   "history.export": "Export CSV",
-  "history.loading": "Loading..."
+  "history.loading": "Loading...",
+  "connection.port": "Port",
+  "connection.baudRate": "Baud Rate",
+  "connection.dataBits": "Data Bits",
+  "connection.stopBits": "Stop Bits",
+  "connection.parity": "Parity",
+  "connection.flowControl": "Flow Ctrl",
+  "history.frames": "frames",
+  "history.showing": "Showing",
+  "history.filter": "Filter"
 }

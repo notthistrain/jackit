@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useT } from '@/i18n'
 import { useSerialConfig } from '@/hooks/useSerialConfig'
 import { useSerialPort } from '@/hooks/useSerialPort'
@@ -23,6 +23,13 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
   const { toggleConnectionDialog } = useMainStore()
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hoveredRecent, setHoveredRecent] = useState<number | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Auto-focus dialog for keyboard handling
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
 
   const handleConnect = useCallback(async () => {
     if (!config.portName) {
@@ -89,11 +96,13 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
           onClose()
         }
       }}
-      onKeyDown={handleKeyDown}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-label={t('connection.title')}
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
         style={{
           background: 'var(--color-menu-bg)',
           border: '1px solid var(--color-border)',
@@ -148,23 +157,17 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
                   key={`${rc.portName}-${rc.baudRate}-${i}`}
                   onClick={() => handleRecentSelect(rc)}
                   style={{
-                    background: 'transparent',
+                    background: hoveredRecent === i ? 'var(--color-accent)' : 'transparent',
                     border: '1px solid var(--color-border)',
                     borderRadius: '3px',
                     padding: '4px 8px',
                     fontSize: '11px',
-                    color: 'var(--color-text)',
+                    color: hoveredRecent === i ? '#fff' : 'var(--color-text)',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = 'var(--color-accent)'
-                    e.currentTarget.style.color = '#fff'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.color = 'var(--color-text)'
-                  }}
+                  onMouseEnter={() => setHoveredRecent(i)}
+                  onMouseLeave={() => setHoveredRecent(null)}
                 >
                   {rc.portName} @ {rc.baudRate.toLocaleString()} ({rc.dataBits}{rc.parity[0].toUpperCase()}{rc.stopBits})
                 </button>

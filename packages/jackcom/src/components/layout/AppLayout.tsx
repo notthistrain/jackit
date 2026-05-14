@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useMainStore } from '@/lib/store'
@@ -17,17 +17,10 @@ interface AppLayoutProps {
 
 export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps) {
   const { activePortId, toggleSidebar, toggleHexDisplay, incrementClearSequence, connectionDialogOpen, toggleConnectionDialog } = useMainStore()
-  const [dialogVisible, setDialogVisible] = useState(false)
 
-  const openConnectionDialog = () => {
-    toggleConnectionDialog(true)
-    setDialogVisible(true)
-  }
-
-  const closeConnectionDialog = () => {
+  const closeConnectionDialog = useCallback(() => {
     toggleConnectionDialog(false)
-    setDialogVisible(false)
-  }
+  }, [toggleConnectionDialog])
 
   useKeyboardShortcuts([
     { key: 'h', ctrl: true, handler: toggleHexDisplay },
@@ -46,8 +39,8 @@ export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps)
       color: 'var(--color-text)',
     }}
     >
-      <TitleBar onOpenConnectionDialog={openConnectionDialog} onClearTerminal={incrementClearSequence} />
-      <Toolbar onOpenConnectionDialog={openConnectionDialog} />
+      <TitleBar onOpenConnectionDialog={() => toggleConnectionDialog(true)} onClearTerminal={incrementClearSequence} />
+      <Toolbar onOpenConnectionDialog={() => toggleConnectionDialog(true)} />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <ActivityBar />
         {sidebar}
@@ -59,7 +52,7 @@ export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps)
         </div>
       </div>
       <StatusBar />
-      {connectionDialogOpen && dialogVisible && (
+      {connectionDialogOpen && (
         <ConnectionDialog onClose={closeConnectionDialog} />
       )}
     </div>

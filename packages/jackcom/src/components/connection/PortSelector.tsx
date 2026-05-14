@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSerialPort } from '@/hooks/useSerialPort'
 
 interface PortInfo {
@@ -19,6 +19,10 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
   const [ports, setPorts] = useState<PortInfo[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const valueRef = useRef(value)
+  valueRef.current = value
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -27,15 +31,15 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
       const list = await enumerate()
       setPorts(list)
       // Auto-select first port if no value set
-      if (!value && list.length > 0) {
-        onChange(list[0].name)
+      if (!valueRef.current && list.length > 0) {
+        onChangeRef.current(list[0].name)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }
-  }, [enumerate, value, onChange])
+  }, [enumerate])
 
   useEffect(() => {
     refresh()

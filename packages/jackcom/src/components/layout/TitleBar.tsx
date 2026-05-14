@@ -90,7 +90,7 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
       items: [
         { labelKey: 'menu.tools.quickSend', onClick: () => { setSidebarTab('snippets'); if (!useMainStore.getState().sidebarVisible) toggleSidebar() } },
         { labelKey: 'menu.tools.clearTerminal', shortcut: 'Ctrl+L', onClick: onClearTerminal },
-        { labelKey: 'menu.tools.export', onClick: () => activePortId && exportCurrentSession() },
+        { labelKey: 'menu.tools.export', disabled: !activePortId, onClick: () => activePortId && exportCurrentSession() },
       ],
     },
     {

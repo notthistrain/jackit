@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
+import { useT } from '@/i18n'
 import { useHistory } from '@/hooks/useHistory'
 import { SessionList } from '@/components/history/SessionList'
 import { FilterBar } from '@/components/history/FilterBar'
 import { FrameTable } from '@/components/history/FrameTable'
 
 export default function HistoryApp() {
+  const { t } = useT()
   const { store, loadSessions, loadFrames, exportCsv } = useHistory()
   const {
     sessions, selectedSessionId, frames, totalFrames,
@@ -56,7 +58,7 @@ export default function HistoryApp() {
           letterSpacing: '0.5px',
           borderBottom: '1px solid var(--color-border)',
         }}>
-          SESSIONS
+          {t('history.sessions')}
         </div>
         <SessionList
           sessions={sessions}
@@ -89,10 +91,10 @@ export default function HistoryApp() {
           fontSize: '10px',
           alignItems: 'center',
         }}>
-          <span>{totalFrames.toLocaleString()} frames</span>
+          <span>{totalFrames.toLocaleString()} {t('history.frames')}</span>
           {totalFrames > 0 && <>
             <span>|</span>
-            <span>Showing {startIdx}-{endIdx}</span>
+            <span>{t('history.showing')} {startIdx}-{endIdx}</span>
           </>}
           {selectedSessionId !== null && <>
             <span>|</span>
@@ -107,10 +109,10 @@ export default function HistoryApp() {
                 padding: 0,
               }}
             >
-              Export CSV
+              {t('history.export')}
             </button>
           </>}
-          {loading && <span style={{ color: 'var(--color-accent)' }}>Loading...</span>}
+          {loading && <span style={{ color: 'var(--color-accent)' }}>{t('history.loading')}</span>}
         </div>
       </div>
     </div>

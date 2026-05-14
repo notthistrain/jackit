@@ -1,3 +1,4 @@
+import { useT } from '@/i18n'
 import type { DisplayFrame } from '@/lib/tauri-events'
 import { FrameDetail } from './FrameDetail'
 
@@ -18,6 +19,8 @@ const protoColor = (proto: string) => {
 }
 
 export function FrameTable({ frames, expandedFrameId, onToggleExpand }: FrameTableProps) {
+  const { t } = useT()
+
   if (frames.length === 0) {
     return (
       <div style={{
@@ -28,7 +31,7 @@ export function FrameTable({ frames, expandedFrameId, onToggleExpand }: FrameTab
         color: 'var(--color-text-secondary)',
         fontSize: '11px',
       }}>
-        选择左侧会话以查看帧数据
+        {t('history.noFrames')}
       </div>
     )
   }

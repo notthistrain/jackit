@@ -57,7 +57,7 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
     e.preventDefault()
     const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1
     rendererRef.current.setZoom(
-      (rendererRef.current as any).zoom * zoomDelta
+      rendererRef.current.getZoom() * zoomDelta
     )
   }
 
@@ -76,7 +76,7 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
     lastX.current = e.clientX
     const offsetDelta = dx / canvasRef.current.width
     rendererRef.current.setOffset(
-      (rendererRef.current as any).offsetX - offsetDelta
+      rendererRef.current.getOffset() - offsetDelta
     )
   }
 

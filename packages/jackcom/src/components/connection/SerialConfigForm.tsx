@@ -86,7 +86,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
           flexShrink: 0,
         }}
         >
-          Port
+          {t('connection.port')}
         </label>
         <div style={{ flex: 1 }}>
           <PortSelector
@@ -98,7 +98,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
 
       {/* Baud rate */}
       <SelectField
-        label="Baud Rate"
+        label={t('connection.baudRate')}
         value={config.baudRate}
         options={BAUD_RATES}
         onChange={v => onChange({ baudRate: Number(v) })}
@@ -107,7 +107,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
 
       {/* Data bits */}
       <SelectField
-        label="Data Bits"
+        label={t('connection.dataBits')}
         value={config.dataBits}
         options={DATA_BITS}
         onChange={v => onChange({ dataBits: Number(v) })}
@@ -115,7 +115,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
 
       {/* Stop bits */}
       <SelectField
-        label="Stop Bits"
+        label={t('connection.stopBits')}
         value={config.stopBits}
         options={STOP_BITS}
         onChange={v => onChange({ stopBits: Number(v) })}
@@ -123,7 +123,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
 
       {/* Parity */}
       <SelectField
-        label={t('menu.connection.portSettings').split('(')[0].trim() || 'Parity'}
+        label={t('connection.parity')}
         value={config.parity}
         options={PARITY_OPTIONS}
         onChange={v => onChange({ parity: v })}
@@ -131,7 +131,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
 
       {/* Flow control */}
       <SelectField
-        label="Flow Ctrl"
+        label={t('connection.flowControl')}
         value={config.flowControl}
         options={FLOW_CONTROL_OPTIONS}
         onChange={v => onChange({ flowControl: v })}

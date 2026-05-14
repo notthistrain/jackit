@@ -1,5 +1,5 @@
 use rand::Rng;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 
 use crate::protocols;
 
@@ -97,5 +97,3 @@ pub fn run_at_scenario(port: &mut Box<dyn serialport::SerialPort>) -> io::Result
         }
     }
 }
-
-use std::io::Write;

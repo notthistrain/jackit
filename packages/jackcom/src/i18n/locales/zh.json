@@ -64,5 +64,14 @@
   "history.noSessions": "暂无会话记录",
   "history.noFrames": "选择左侧会话以查看帧数据",
   "history.export": "导出 CSV",
-  "history.loading": "加载中..."
+  "history.loading": "加载中...",
+  "connection.port": "端口",
+  "connection.baudRate": "波特率",
+  "connection.dataBits": "数据位",
+  "connection.stopBits": "停止位",
+  "connection.parity": "校验位",
+  "connection.flowControl": "流控",
+  "history.frames": "帧",
+  "history.showing": "显示",
+  "history.filter": "筛选"
 }
