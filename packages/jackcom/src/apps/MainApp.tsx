@@ -9,8 +9,8 @@ import { bytesToHex } from '@/lib/formatters'
 import { useMainStore } from '@/lib/store'
 
 export default function MainApp() {
-  const { activePortId } = useMainStore()
-  const { frames } = useDataFeed({ portId: activePortId })
+  const { activePortId, clearSequence } = useMainStore()
+  const { frames } = useDataFeed({ portId: activePortId, clearSequence })
   const { send } = useSerialPort()
 
   const handleSend = useCallback(async (data: number[]) => {

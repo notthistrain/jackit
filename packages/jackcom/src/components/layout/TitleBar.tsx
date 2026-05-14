@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { open } from '@tauri-apps/plugin-shell'
+import { save } from '@tauri-apps/plugin-dialog'
+import { invoke } from '@tauri-apps/api/core'
 import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
 import { useSerialPort } from '@/hooks/useSerialPort'
@@ -7,6 +10,11 @@ import { openDecoderWindow, openHistoryWindow, openWaveformWindow } from '@/lib/
 import { MenuDropdown } from '@/components/menu/MenuDropdown'
 import { MenuItem } from '@/components/menu/MenuItem'
 import { WindowControls } from './WindowControls'
+
+interface TitleBarProps {
+  onOpenConnectionDialog: () => void
+  onClearTerminal: () => void
+}
 
 interface MenuDef {
   id: string
@@ -19,18 +27,37 @@ interface MenuDef {
   }>
 }
 
-export function TitleBar() {
+export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarProps) {
   const { t } = useT()
-  const { activePortId, toggleSidebar, toggleHexDisplay, setSidebarTab } = useMainStore()
+  const { activePortId, toggleSidebar, toggleHexDisplay, setSidebarTab, toggleConnectionDialog } = useMainStore()
   const { close, closeAll } = useSerialPort()
+
+  const exportCurrentSession = async () => {
+    try {
+      const filePath = await save({
+        defaultPath: 'jackcom-export.csv',
+        filters: [
+          { name: 'CSV', extensions: ['csv'] },
+          { name: 'JSON', extensions: ['json'] },
+          { name: 'HEX', extensions: ['txt'] },
+        ],
+      })
+      if (!filePath) return
+      const ext = filePath.split('.').pop()?.toLowerCase()
+      const format = ext === 'json' ? 'json' : ext === 'txt' ? 'hex' : 'csv'
+      await invoke('export_data', { request: { session_id: null, format, file_path: filePath } })
+    } catch {
+      // 用户取消或导出失败
+    }
+  }
 
   const menus: MenuDef[] = [
     {
       id: 'file',
       items: [
-        { labelKey: 'menu.file.newConnection', shortcut: 'Ctrl+N', disabled: true },
+        { labelKey: 'menu.file.newConnection', shortcut: 'Ctrl+N', onClick: onOpenConnectionDialog },
         { labelKey: 'menu.file.openHistory', shortcut: 'Ctrl+O', onClick: () => openHistoryWindow() },
-        { labelKey: 'menu.file.export', disabled: true },
+        { labelKey: 'menu.file.export', onClick: () => activePortId && exportCurrentSession() },
         { type: 'separator' },
         { labelKey: 'menu.file.exit', shortcut: 'Ctrl+Q', onClick: () => getCurrentWindow().close() },
       ],
@@ -38,10 +65,10 @@ export function TitleBar() {
     {
       id: 'connection',
       items: [
-        { labelKey: 'menu.connection.connect', disabled: true },
+        { labelKey: 'menu.connection.connect', onClick: onOpenConnectionDialog },
         { labelKey: 'menu.connection.disconnect', disabled: !activePortId, onClick: () => activePortId && close(activePortId).catch(() => {}) },
         { type: 'separator' },
-        { labelKey: 'menu.connection.portSettings', disabled: true },
+        { labelKey: 'menu.connection.portSettings', onClick: () => toggleConnectionDialog(true) },
         { type: 'separator' },
         { labelKey: 'menu.connection.close', shortcut: 'Ctrl+W', disabled: !activePortId, onClick: () => activePortId && close(activePortId).catch(() => {}) },
         { labelKey: 'menu.connection.closeAll', onClick: () => closeAll().catch(() => {}) },
@@ -62,8 +89,8 @@ export function TitleBar() {
       id: 'tools',
       items: [
         { labelKey: 'menu.tools.quickSend', onClick: () => { setSidebarTab('snippets'); if (!useMainStore.getState().sidebarVisible) toggleSidebar() } },
-        { labelKey: 'menu.tools.clearTerminal', shortcut: 'Ctrl+L', disabled: true },
-        { labelKey: 'menu.tools.export', disabled: true },
+        { labelKey: 'menu.tools.clearTerminal', shortcut: 'Ctrl+L', onClick: onClearTerminal },
+        { labelKey: 'menu.tools.export', onClick: () => activePortId && exportCurrentSession() },
       ],
     },
     {
@@ -78,9 +105,7 @@ export function TitleBar() {
     {
       id: 'help',
       items: [
-        { labelKey: 'menu.help.about', disabled: true },
-        { labelKey: 'menu.help.documentation', disabled: true },
-        { labelKey: 'menu.help.checkUpdates', disabled: true },
+        { labelKey: 'menu.help.about', onClick: () => open('https://github.com/nicepkg/jackcom#readme') },
       ],
     },
   ]

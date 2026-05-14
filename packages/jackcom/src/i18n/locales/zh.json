@@ -53,5 +53,16 @@
   "statusbar.app": "JackCom",
   "common.cancel": "取消",
   "common.delete": "删除",
-  "common.confirm": "确认"
+  "common.confirm": "确认",
+  "connection.title": "连接到串口",
+  "connection.recent": "最近连接",
+  "connection.connect": "连接",
+  "connection.connecting": "连接中...",
+  "connection.noRecent": "暂无最近连接",
+  "history.title": "历史记录",
+  "history.sessions": "会话列表",
+  "history.noSessions": "暂无会话记录",
+  "history.noFrames": "选择左侧会话以查看帧数据",
+  "history.export": "导出 CSV",
+  "history.loading": "加载中..."
 }

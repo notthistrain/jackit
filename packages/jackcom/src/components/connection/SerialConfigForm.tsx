@@ -1,93 +1,141 @@
+import { useT } from '@/i18n'
 import type { SerialConfig } from '@/hooks/useSerialConfig'
+import { PortSelector } from './PortSelector'
 
 interface SerialConfigFormProps {
   config: SerialConfig
   onChange: (partial: Partial<SerialConfig>) => void
 }
 
-const baudRates = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
+const BAUD_RATES = [
+  9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600,
+]
 
-const selectStyle: React.CSSProperties = {
-  background: 'var(--color-sidebar-bg)',
-  border: '1px solid var(--color-border)',
-  borderRadius: '3px',
-  padding: '3px 6px',
-  color: 'var(--color-text)',
-  fontSize: '11px',
-  outline: 'none',
-  flex: 1,
-  textAlign: 'center' as const,
-}
+const DATA_BITS = [5, 6, 7, 8]
+const STOP_BITS = [1, 2]
+const PARITY_OPTIONS = ['none', 'odd', 'even']
+const FLOW_CONTROL_OPTIONS = ['none', 'hardware', 'software']
 
-const labelStyle: React.CSSProperties = {
-  width: '70px',
-  color: 'var(--color-text-secondary)',
-  textAlign: 'right' as const,
-  fontSize: '11px',
-}
-
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+  formatLabel,
+}: {
+  label: string
+  value: string | number
+  options: Array<string | number>
+  onChange: (val: string) => void
+  formatLabel?: (val: string | number) => string
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <label style={{
+        fontSize: '11px',
+        color: 'var(--color-text-secondary)',
+        width: '70px',
+        textAlign: 'right',
+        flexShrink: 0,
+      }}
+      >
+        {label}
+      </label>
+      <select
+        value={String(value)}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          flex: 1,
+          padding: '3px 6px',
+          fontSize: '12px',
+          background: 'var(--color-editor-bg)',
+          color: 'var(--color-text)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '3px',
+          outline: 'none',
+        }}
+      >
+        {options.map(opt => (
+          <option key={String(opt)} value={String(opt)}>
+            {formatLabel ? formatLabel(opt) : String(opt)}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
 }
 
 export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
+  const { t } = useT()
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={rowStyle}>
-        <label style={labelStyle}>Baud Rate</label>
-        <select
-          value={config.baudRate}
-          onChange={e => onChange({ baudRate: Number(e.target.value) })}
-          style={{ ...selectStyle, flex: 'none', width: '100%' }}
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      padding: '8px 0',
+    }}
+    >
+      {/* Port selector */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <label style={{
+          fontSize: '11px',
+          color: 'var(--color-text-secondary)',
+          width: '70px',
+          textAlign: 'right',
+          flexShrink: 0,
+        }}
         >
-          {baudRates.map(br => (
-            <option key={br} value={br}>{br.toLocaleString()}</option>
-          ))}
-        </select>
-      </div>
-      <div style={rowStyle}>
-        <label style={labelStyle}>Advanced</label>
-        <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
-          <select
-            value={config.dataBits}
-            onChange={e => onChange({ dataBits: Number(e.target.value) })}
-            style={selectStyle}
-          >
-            <option value={5}>5 bit</option>
-            <option value={6}>6 bit</option>
-            <option value={7}>7 bit</option>
-            <option value={8}>8 bit</option>
-          </select>
-          <select
-            value={config.stopBits}
-            onChange={e => onChange({ stopBits: Number(e.target.value) })}
-            style={selectStyle}
-          >
-            <option value={1}>1 stop</option>
-            <option value={2}>2 stop</option>
-          </select>
-          <select
-            value={config.parity}
-            onChange={e => onChange({ parity: e.target.value })}
-            style={selectStyle}
-          >
-            <option value="none">none</option>
-            <option value="odd">odd</option>
-            <option value="even">even</option>
-          </select>
-          <select
-            value={config.flowControl}
-            onChange={e => onChange({ flowControl: e.target.value })}
-            style={selectStyle}
-          >
-            <option value="none">none</option>
-            <option value="hardware">HW</option>
-            <option value="software">SW</option>
-          </select>
+          Port
+        </label>
+        <div style={{ flex: 1 }}>
+          <PortSelector
+            value={config.portName}
+            onChange={v => onChange({ portName: v })}
+          />
         </div>
       </div>
+
+      {/* Baud rate */}
+      <SelectField
+        label="Baud Rate"
+        value={config.baudRate}
+        options={BAUD_RATES}
+        onChange={v => onChange({ baudRate: Number(v) })}
+        formatLabel={v => Number(v).toLocaleString()}
+      />
+
+      {/* Data bits */}
+      <SelectField
+        label="Data Bits"
+        value={config.dataBits}
+        options={DATA_BITS}
+        onChange={v => onChange({ dataBits: Number(v) })}
+      />
+
+      {/* Stop bits */}
+      <SelectField
+        label="Stop Bits"
+        value={config.stopBits}
+        options={STOP_BITS}
+        onChange={v => onChange({ stopBits: Number(v) })}
+      />
+
+      {/* Parity */}
+      <SelectField
+        label={t('menu.connection.portSettings').split('(')[0].trim() || 'Parity'}
+        value={config.parity}
+        options={PARITY_OPTIONS}
+        onChange={v => onChange({ parity: v })}
+      />
+
+      {/* Flow control */}
+      <SelectField
+        label="Flow Ctrl"
+        value={config.flowControl}
+        options={FLOW_CONTROL_OPTIONS}
+        onChange={v => onChange({ flowControl: v })}
+      />
     </div>
   )
 }

@@ -8,6 +8,7 @@ interface UseDataFeedOptions {
   portId?: string | null // 只订阅指定端口，null = 全部
   batchSize?: number
   flushInterval?: number
+  clearSequence?: number // 外部清屏信号，变化时自动 clear
 }
 
 interface UseDataFeedReturn {
@@ -23,7 +24,7 @@ interface UseDataFeedReturn {
  * 只在 flush 时更新 state（可见范围 + totalCount）。
  */
 export function useDataFeed(options: UseDataFeedOptions = {}): UseDataFeedReturn {
-  const { portId, flushInterval = 100 } = options
+  const { portId, flushInterval = 100, clearSequence } = options
 
   const allFramesRef = useRef<DisplayFrame[]>([])
   const batchRef = useRef<DisplayFrame[]>([])
@@ -85,6 +86,13 @@ export function useDataFeed(options: UseDataFeedOptions = {}): UseDataFeedReturn
     setFrames([])
     setTotalCount(0)
   }, [])
+
+  // 外部清屏信号：clearSequence 变化时自动 clear
+  useEffect(() => {
+    if (clearSequence && clearSequence > 0) {
+      clear()
+    }
+  }, [clearSequence, clear])
 
   return { frames, totalCount, clear }
 }

@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useMainStore } from '@/lib/store'
 import { openDecoderWindow, openHistoryWindow, openWaveformWindow } from '@/lib/window'
+import { ConnectionDialog } from '@/components/connection/ConnectionDialog'
 import { ActivityBar } from './ActivityBar'
 import { StatusBar } from './StatusBar'
 import { TitleBar } from './TitleBar'
@@ -14,11 +16,22 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps) {
-  const { activePortId, toggleSidebar, toggleHexDisplay } = useMainStore()
+  const { activePortId, toggleSidebar, toggleHexDisplay, incrementClearSequence, connectionDialogOpen, toggleConnectionDialog } = useMainStore()
+  const [dialogVisible, setDialogVisible] = useState(false)
+
+  const openConnectionDialog = () => {
+    toggleConnectionDialog(true)
+    setDialogVisible(true)
+  }
+
+  const closeConnectionDialog = () => {
+    toggleConnectionDialog(false)
+    setDialogVisible(false)
+  }
 
   useKeyboardShortcuts([
     { key: 'h', ctrl: true, handler: toggleHexDisplay },
-    { key: 'l', ctrl: true, handler: () => { /* clear terminal placeholder */ } },
+    { key: 'l', ctrl: true, handler: incrementClearSequence },
     { key: 'w', ctrl: true, shift: true, handler: () => activePortId && openWaveformWindow(activePortId) },
     { key: 'd', ctrl: true, shift: true, handler: () => activePortId && openDecoderWindow(activePortId) },
     { key: 'h', ctrl: true, shift: true, handler: () => openHistoryWindow() },
@@ -33,8 +46,8 @@ export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps)
       color: 'var(--color-text)',
     }}
     >
-      <TitleBar />
-      <Toolbar />
+      <TitleBar onOpenConnectionDialog={openConnectionDialog} onClearTerminal={incrementClearSequence} />
+      <Toolbar onOpenConnectionDialog={openConnectionDialog} />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <ActivityBar />
         {sidebar}
@@ -46,6 +59,9 @@ export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps)
         </div>
       </div>
       <StatusBar />
+      {connectionDialogOpen && dialogVisible && (
+        <ConnectionDialog onClose={closeConnectionDialog} />
+      )}
     </div>
   )
 }

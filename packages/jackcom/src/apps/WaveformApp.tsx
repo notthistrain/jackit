@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { getPortFromUrl } from '@/lib/window'
 import { useWaveformStore } from '@/stores/waveform-store'
 import { useDataFeed } from '@/hooks/useDataFeed'
+import { WaveformCanvas } from '@/components/waveform/WaveformCanvas'
 
 export default function WaveformApp() {
   const { portId, setPortId, channels, paused, togglePause, clear } = useWaveformStore()
@@ -55,28 +56,7 @@ export default function WaveformApp() {
           </div>
         )}
         {hasData && (
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: '11px' }}>
-            {channelNames.map((ch) => (
-              <div key={ch} style={{ marginBottom: '8px' }}>
-                <div style={{ color: 'var(--color-rx)', fontWeight: 600 }}>{ch}</div>
-                <div style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>
-                  {channels[ch].length} points · latest: {channels[ch][channels[ch].length - 1]?.toFixed(2) ?? 'N/A'}
-                </div>
-                <div style={{
-                  height: '80px',
-                  background: 'var(--color-sidebar-bg)',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-text-secondary)',
-                  fontSize: '10px',
-                }}>
-                  Canvas waveform rendering — coming soon
-                </div>
-              </div>
-            ))}
-          </div>
+          <WaveformCanvas channels={channels} paused={paused} />
         )}
       </div>
 

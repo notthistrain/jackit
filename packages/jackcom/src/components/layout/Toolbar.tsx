@@ -1,10 +1,16 @@
 import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
+import { useSerialPort } from '@/hooks/useSerialPort'
 import { openDecoderWindow, openWaveformWindow } from '@/lib/window'
 
-export function Toolbar() {
+interface ToolbarProps {
+  onOpenConnectionDialog: () => void
+}
+
+export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
   const { t } = useT()
   const { connections, activePortId, toggleSidebar } = useMainStore()
+  const { close } = useSerialPort()
   const activeConn = activePortId ? connections[activePortId] : null
   const isOnline = activeConn?.online ?? false
 
@@ -20,6 +26,13 @@ export function Toolbar() {
     }}
     >
       <button
+        onClick={() => {
+          if (isOnline && activePortId) {
+            close(activePortId).catch(() => {})
+          } else {
+            onOpenConnectionDialog()
+          }
+        }}
         title={isOnline ? t('toolbar.disconnect') : t('toolbar.connect')}
         style={{
           background: isOnline ? 'var(--color-accent)' : 'var(--color-border)',
@@ -32,7 +45,7 @@ export function Toolbar() {
           fontSize: '11px',
         }}
       >
-        {isOnline ? `\u25B6 ${t('toolbar.connect')}` : `\u26A1 ${t('toolbar.connect')}`}
+        {isOnline ? `\u23F9 ${t('toolbar.disconnect')}` : `\u26A1 ${t('toolbar.connect')}`}
       </button>
       {activeConn && (
         <span style={{ color: 'var(--color-text-secondary)', fontSize: '11px' }}>
