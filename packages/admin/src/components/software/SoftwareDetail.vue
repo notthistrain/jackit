@@ -60,12 +60,12 @@ onMounted(() => {
 <template>
   <div>
     <!-- 返回链接 -->
-    <a href="/" style="color: #67e8f9; font-size: 12px;" class="inline-flex items-center gap-1 hover:underline mb-4">
+    <a href="/" class="text-[#67e8f9] text-xs inline-flex items-center gap-1 hover:underline mb-4">
       ← 返回列表
     </a>
 
-    <div v-if="loading" class="text-center py-20" style="color: #64748b;">加载中...</div>
-    <div v-else-if="error" class="text-center py-20" style="color: #f87171;">{{ error }}</div>
+    <div v-if="loading" class="text-center py-20 text-[#64748b]">加载中...</div>
+    <div v-else-if="error" class="text-center py-20 text-[#f87171]">{{ error }}</div>
 
     <template v-else-if="software">
       <!-- 编辑说明书模式 -->
@@ -82,10 +82,10 @@ onMounted(() => {
           <!-- 头部 -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
-              <div class="shrink-0 flex items-center justify-center rounded-xl bg-gradient-primary" style="width:40px; height:40px; font-size:16px;">📦</div>
+              <div class="shrink-0 flex items-center justify-center rounded-xl bg-gradient-primary size-10 text-base">📦</div>
               <div>
-                <div style="color: #e2e8f0; font-size: 16px; font-weight: 600;">{{ software.displayName || software.name }}</div>
-                <div v-if="software.identifier" style="color: #67e8f9; font-size: 11px;">{{ software.identifier }}</div>
+                <div class="text-[#e2e8f0] text-base font-semibold">{{ software.displayName || software.name }}</div>
+                <div v-if="software.identifier" class="text-[#67e8f9] text-[11px]">{{ software.identifier }}</div>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -93,12 +93,12 @@ onMounted(() => {
                 v-if="software.manual"
                 :href="`/manual?id=${software.id}`"
                 target="_blank"
-                style="color: #67e8f9; font-size: 11px; padding: 5px 12px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25); border-radius: 6px;"
+                class="text-[#67e8f9] text-[11px] px-3 py-[5px] bg-[rgba(6,182,212,0.1)] border border-[rgba(6,182,212,0.25)] rounded-md"
               >
                 📄 说明书
               </a>
               <button
-                style="color: #94a3b8; font-size: 11px; padding: 5px 12px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25); border-radius: 6px;"
+                class="text-[#94a3b8] text-[11px] px-3 py-[5px] bg-[rgba(6,182,212,0.1)] border border-[rgba(6,182,212,0.25)] rounded-md"
                 @click="editingManual = true"
               >
                 编辑说明书
@@ -108,23 +108,23 @@ onMounted(() => {
           </div>
 
           <!-- 描述 -->
-          <div v-if="software.description" style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 14px; color: #94a3b8; font-size: 12px; line-height: 1.7; margin-bottom: 16px;">
+          <div v-if="software.description" class="bg-white/[0.03] rounded-lg px-[14px] py-[10px] text-[#94a3b8] text-xs leading-[1.7] mb-4">
             {{ software.description }}
           </div>
 
           <!-- 元数据网格 -->
           <div class="grid grid-cols-3 gap-4">
             <div>
-              <div style="color: #64748b; font-size: 10px; margin-bottom: 2px;">最新版本</div>
-              <div style="color: #67e8f9; font-size: 13px; font-weight: 500;">{{ versions.length > 0 ? versions[0].sequence : '-' }}</div>
+              <div class="text-[#64748b] text-[10px] mb-[2px]">最新版本</div>
+              <div class="text-[#67e8f9] text-[13px] font-medium">{{ versions.length > 0 ? versions[0].sequence : '-' }}</div>
             </div>
             <div>
-              <div style="color: #64748b; font-size: 10px; margin-bottom: 2px;">版本数量</div>
-              <div style="color: #e2e8f0; font-size: 13px; font-weight: 500;">{{ versions.length }}</div>
+              <div class="text-[#64748b] text-[10px] mb-[2px]">版本数量</div>
+              <div class="text-[#e2e8f0] text-[13px] font-medium">{{ versions.length }}</div>
             </div>
             <div>
-              <div style="color: #64748b; font-size: 10px; margin-bottom: 2px;">创建时间</div>
-              <div style="color: #94a3b8; font-size: 13px; font-weight: 500;">{{ formatDate(software.createdAt) }}</div>
+              <div class="text-[#64748b] text-[10px] mb-[2px]">创建时间</div>
+              <div class="text-[#94a3b8] text-[13px] font-medium">{{ formatDate(software.createdAt) }}</div>
             </div>
           </div>
         </div>
@@ -134,6 +134,6 @@ onMounted(() => {
       </template>
     </template>
 
-    <div v-else class="text-center py-20" style="color: #64748b;">软件不存在或已被删除</div>
+    <div v-else class="text-center py-20 text-[#64748b]">软件不存在或已被删除</div>
   </div>
 </template>

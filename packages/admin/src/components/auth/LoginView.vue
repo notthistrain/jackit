@@ -32,29 +32,28 @@ async function handleLogin() {
 <template>
   <div class="flex items-center justify-center min-h-screen relative overflow-hidden">
     <!-- 光晕装饰 -->
-    <div class="absolute" style="top:-60px; right:-40px; width:300px; height:300px; background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%); border-radius:50%;" />
-    <div class="absolute" style="bottom:-80px; left:-60px; width:250px; height:250px; background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%); border-radius:50%;" />
+    <div class="absolute -top-[60px] -right-[40px] size-[300px] rounded-full" style="background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%);" />
+    <div class="absolute -bottom-[80px] -left-[60px] size-[250px] rounded-full" style="background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);" />
 
     <!-- 登录卡片 -->
     <div
-      class="relative"
-      style="width: 420px; background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 40px 36px;"
+      class="relative w-[420px] bg-white/[0.04] backdrop-blur-[20px] border border-white/[0.08] rounded-2xl px-9 py-10"
     >
       <!-- 品牌 -->
       <div class="flex items-center gap-2.5 mb-7">
-        <div class="flex items-center justify-center rounded-xl bg-gradient-primary" style="width:36px; height:36px; font-size:16px;">
+        <div class="flex items-center justify-center rounded-xl bg-gradient-primary size-9 text-base">
           📦
         </div>
         <div>
-          <div style="color: #f1f5f9; font-weight: 600; font-size: 15px;">Upgrade</div>
-          <div style="color: #64748b; font-size: 10px;">组件升级管理平台</div>
+          <div class="text-[#f1f5f9] font-semibold text-[15px]">Upgrade</div>
+          <div class="text-[#64748b] text-[10px]">组件升级管理平台</div>
         </div>
       </div>
 
       <!-- 表单 -->
       <form @submit.prevent="handleLogin" class="space-y-3.5">
         <div class="flex items-center gap-3">
-          <label style="color: #94a3b8; font-size: 12px; min-width: 48px; white-space: nowrap;">用户名</label>
+          <label class="text-[#94a3b8] text-xs min-w-[48px] whitespace-nowrap">用户名</label>
           <input
             v-model="username"
             type="text"
@@ -63,7 +62,7 @@ async function handleLogin() {
           />
         </div>
         <div class="flex items-center gap-3">
-          <label style="color: #94a3b8; font-size: 12px; min-width: 48px; white-space: nowrap;">密码</label>
+          <label class="text-[#94a3b8] text-xs min-w-[48px] whitespace-nowrap">密码</label>
           <input
             v-model="password"
             type="password"
@@ -82,11 +81,12 @@ async function handleLogin() {
         style="background: linear-gradient(135deg, #06b6d4, #3b82f6);"
         @click="handleLogin"
       >
+      >
         {{ loading ? '登录中...' : '登 录' }}
       </button>
 
       <!-- 底部 -->
-      <div class="text-center mt-4" style="color: #475569; font-size: 10px;">
+      <div class="text-center mt-4 text-[#475569] text-[10px]">
         🔒 安全连接 · Upgrade Admin
       </div>
     </div>

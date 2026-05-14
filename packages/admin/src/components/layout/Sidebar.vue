@@ -61,18 +61,16 @@ const sidebarWidth = computed(() => collapsed.value ? '56px' : '200px')
 <template>
   <!-- Mobile hamburger -->
   <button
-    class="fixed top-2 left-2 z-50 p-2 rounded-lg md:hidden"
-    style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);"
+    class="fixed top-2 left-2 z-50 p-2 rounded-lg md:hidden bg-white/[0.06] border border-white/[0.1]"
     @click="toggleMobile"
   >
-    <span style="color: #94a3b8; font-size: 16px;">☰</span>
+    <span class="text-[#94a3b8] text-base">☰</span>
   </button>
 
   <!-- Mobile overlay -->
   <div
     v-if="mobileOpen"
-    class="fixed inset-0 z-40 md:hidden"
-    style="background: rgba(0,0,0,0.5);"
+    class="fixed inset-0 z-40 md:hidden bg-black/50"
     @click="mobileOpen = false"
   />
 
@@ -88,20 +86,17 @@ const sidebarWidth = computed(() => collapsed.value ? '56px' : '200px')
   >
     <!-- Logo -->
     <div
-      class="flex items-center gap-2 px-3"
+      class="flex items-center gap-2 px-3 border-b border-white/[0.06]"
       :class="collapsed ? 'justify-center py-3' : 'py-3'"
-      style="border-bottom: 1px solid rgba(255,255,255,0.06);"
     >
       <div
-        class="shrink-0 flex items-center justify-center rounded-lg bg-gradient-primary"
-        style="width:28px; height:28px; font-size:12px;"
+        class="shrink-0 flex items-center justify-center rounded-lg bg-gradient-primary size-7 text-xs"
       >
         📦
       </div>
       <span
         v-if="!collapsed"
-        class="font-semibold whitespace-nowrap"
-        style="color: #e2e8f0; font-size: 12px;"
+        class="font-semibold whitespace-nowrap text-[#e2e8f0] text-xs"
       >
         Upgrade
       </span>
@@ -133,11 +128,10 @@ const sidebarWidth = computed(() => collapsed.value ? '56px' : '200px')
     </nav>
 
     <!-- Collapse toggle -->
-    <div class="px-1.5 py-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
+    <div class="px-1.5 py-2 border-t border-white/[0.06]">
       <button
-        class="flex items-center gap-2 w-full rounded-md px-2 py-1.5 transition-colors"
+        class="flex items-center gap-2 w-full rounded-md px-2 py-1.5 transition-colors text-[#94a3b8] text-[11px]"
         :class="collapsed ? 'justify-center' : ''"
-        style="color: #94a3b8; font-size: 11px;"
         @click="toggleCollapse"
       >
         <span class="shrink-0">{{ collapsed ? '▶' : '◀' }}</span>

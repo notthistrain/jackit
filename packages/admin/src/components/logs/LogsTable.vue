@@ -72,7 +72,7 @@ onMounted(fetchData)
     <!-- 筛选栏 -->
     <div class="flex items-center gap-2 mb-4">
       <Select v-model="action" @update:model-value="handleSearch">
-        <SelectTrigger class="dark-input" style="width:120px; font-size:12px; height:32px;">
+        <SelectTrigger class="dark-input w-[120px] text-xs h-8">
           <SelectValue placeholder="操作类型" />
         </SelectTrigger>
         <SelectContent>
@@ -83,8 +83,7 @@ onMounted(fetchData)
       </Select>
       <input
         v-model="keyword"
-        class="dark-input px-2.5 py-1.5 text-xs"
-        style="width:180px;"
+        class="dark-input px-2.5 py-1.5 text-xs w-[180px]"
         placeholder="🔍 搜索..."
         @keyup.enter="handleSearch"
       />
@@ -93,59 +92,58 @@ onMounted(fetchData)
 
     <!-- 表格卡片 -->
     <div class="glass-card p-4 overflow-hidden">
-      <Table style="table-layout: fixed; width: 100%;">
+      <Table class="table-fixed w-full">
         <colgroup>
-          <col style="width:140px;">
+          <col class="w-[140px]">
           <col>
-          <col style="width:80px;">
-          <col style="width:120px;">
+          <col class="w-[80px]">
+          <col class="w-[120px]">
         </colgroup>
         <TableHeader>
-          <TableRow style="background: rgba(255,255,255,0.04);">
-            <TableHead style="color:#64748b; font-size:11px;">时间</TableHead>
-            <TableHead style="color:#64748b; font-size:11px;">操作内容</TableHead>
-            <TableHead style="color:#64748b; font-size:11px;">类型</TableHead>
-            <TableHead style="color:#64748b; font-size:11px;">操作对象</TableHead>
+          <TableRow class="bg-white/[0.04]">
+            <TableHead class="text-[#64748b] text-[11px]">时间</TableHead>
+            <TableHead class="text-[#64748b] text-[11px]">操作内容</TableHead>
+            <TableHead class="text-[#64748b] text-[11px]">类型</TableHead>
+            <TableHead class="text-[#64748b] text-[11px]">操作对象</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading">
-            <TableCell colspan="4" style="color:#64748b; text-align:center; padding:32px;">加载中...</TableCell>
+            <TableCell colspan="4" class="text-[#64748b] text-center p-8">加载中...</TableCell>
           </TableRow>
           <TableRow v-else-if="logs.length === 0">
-            <TableCell colspan="4" style="color:#64748b; text-align:center; padding:32px;">暂无日志记录</TableCell>
+            <TableCell colspan="4" class="text-[#64748b] text-center p-8">暂无日志记录</TableCell>
           </TableRow>
           <TableRow
             v-for="log in logs"
             :key="log.id"
-            style="border-bottom: 1px solid rgba(255,255,255,0.04);"
-            class="hover:bg-white/[0.03]"
+            class="border-b border-white/[0.04] hover:bg-white/[0.03]"
           >
-            <TableCell style="color:#64748b; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            <TableCell class="text-[#64748b] text-[11px] whitespace-nowrap overflow-hidden text-ellipsis">
               {{ formatDate(log.createdAt) }}
             </TableCell>
-            <TableCell style="max-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <TableCell class="max-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <span style="color:#94a3b8; font-size:12px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ log.detail }}</span>
+                    <span class="text-[#94a3b8] text-xs block overflow-hidden text-ellipsis whitespace-nowrap">{{ log.detail }}</span>
                   </TooltipTrigger>
-                  <TooltipContent style="max-width:400px; max-height:200px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">
+                  <TooltipContent class="max-w-[400px] max-h-[200px] overflow-y-auto whitespace-pre-wrap break-all">
                     {{ log.detail }}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </TableCell>
             <TableCell>
-              <span :class="getActionTagClass(log.action)" style="font-size:10px; padding:2px 8px; border-radius:4px; display:inline-block;">
+              <span :class="getActionTagClass(log.action)" class="text-[10px] px-2 py-[2px] rounded inline-block">
                 {{ getActionLabel(log.action) }}
               </span>
             </TableCell>
-            <TableCell style="color:#94a3b8; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            <TableCell class="text-[#94a3b8] text-[11px] whitespace-nowrap overflow-hidden text-ellipsis">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ log.target }}</span>
+                    <span class="block overflow-hidden text-ellipsis whitespace-nowrap">{{ log.target }}</span>
                   </TooltipTrigger>
                   <TooltipContent>
                     {{ log.target }}
@@ -158,12 +156,12 @@ onMounted(fetchData)
       </Table>
 
       <!-- 分页 -->
-      <div v-if="total > pageSize" class="flex items-center justify-between mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.04);">
-        <span style="color:#64748b; font-size:11px;">共 {{ total }} 条</span>
+      <div v-if="total > pageSize" class="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.04]">
+        <span class="text-[#64748b] text-[11px]">共 {{ total }} 条</span>
         <div class="flex items-center gap-2">
-          <button :disabled="page === 1" style="color:#94a3b8; font-size:11px; padding:4px 10px;" class="dark-input" @click="page--">上一页</button>
-          <span style="color:#67e8f9; font-size:12px; font-weight:500;">{{ page }}</span>
-          <button :disabled="page * pageSize >= total" style="color:#94a3b8; font-size:11px; padding:4px 10px;" class="dark-input" @click="page++">下一页</button>
+          <button :disabled="page === 1" class="text-[#94a3b8] text-[11px] px-[10px] py-1 dark-input" @click="page--">上一页</button>
+          <span class="text-[#67e8f9] text-xs font-medium">{{ page }}</span>
+          <button :disabled="page * pageSize >= total" class="text-[#94a3b8] text-[11px] px-[10px] py-1 dark-input" @click="page++">下一页</button>
         </div>
       </div>
     </div>
