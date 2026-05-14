@@ -1,5 +1,6 @@
+import type { PortChangePayload } from '@/lib/tauri-events'
 import { useEffect } from 'react'
-import { on, type PortChangePayload } from '@/lib/tauri-events'
+import { on } from '@/lib/tauri-events'
 
 /**
  * 监听端口热插拔事件
@@ -17,7 +18,8 @@ export function usePortWatcher(onChange: (change: PortChangePayload) => void) {
     setup()
 
     return () => {
-      if (unlisten) unlisten()
+      if (unlisten)
+        unlisten()
     }
   }, [onChange])
 }

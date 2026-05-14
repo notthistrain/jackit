@@ -1,4 +1,5 @@
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import type { UnlistenFn } from '@tauri-apps/api/event'
+import { listen } from '@tauri-apps/api/event'
 
 // === Payload 类型 ===
 // 与 Rust PortEvent serde 输出一一对应
@@ -56,7 +57,7 @@ export interface PortStatsPayload {
 
 // === Event Map ===
 
-export type EventMap = {
+export interface EventMap {
   'port:data': PortDataPayload
   'port:opened': PortOpenedPayload
   'port:closed': PortClosedPayload
@@ -71,5 +72,5 @@ export function on<K extends keyof EventMap>(
   event: K,
   handler: (payload: EventMap[K]) => void,
 ): Promise<UnlistenFn> {
-  return listen<EventMap[K]>(event, (e) => handler(e.payload))
+  return listen<EventMap[K]>(event, e => handler(e.payload))
 }

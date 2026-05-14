@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    upgrade-component_toolbox_lib::run()
+    app_toolbox_lib::run()
 }

@@ -1,16 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  bytesToHex,
   bytesToAscii,
-  hexToBytes,
-  formatTimestamp,
-  formatBytes,
+  bytesToHex,
   formatBaudRate,
+  formatBytes,
+  formatTimestamp,
+  hexToBytes,
 } from '../formatters'
 
 describe('bytesToHex', () => {
   it('converts byte array to hex string', () => {
-    expect(bytesToHex([0x01, 0x03, 0x00, 0x0a])).toBe('01 03 00 0A')
+    expect(bytesToHex([0x01, 0x03, 0x00, 0x0A])).toBe('01 03 00 0A')
   })
 
   it('handles empty array', () => {
@@ -18,13 +18,13 @@ describe('bytesToHex', () => {
   })
 
   it('handles single byte', () => {
-    expect(bytesToHex([0xff])).toBe('FF')
+    expect(bytesToHex([0xFF])).toBe('FF')
   })
 })
 
 describe('bytesToAscii', () => {
   it('converts printable bytes to ASCII', () => {
-    expect(bytesToAscii([0x48, 0x65, 0x6c, 0x6c, 0x6f])).toBe('Hello')
+    expect(bytesToAscii([0x48, 0x65, 0x6C, 0x6C, 0x6F])).toBe('Hello')
   })
 
   it('replaces non-printable bytes with dot', () => {
@@ -38,11 +38,11 @@ describe('bytesToAscii', () => {
 
 describe('hexToBytes', () => {
   it('converts hex string to bytes', () => {
-    expect(hexToBytes('01 03 AB')).toEqual([0x01, 0x03, 0xab])
+    expect(hexToBytes('01 03 AB')).toEqual([0x01, 0x03, 0xAB])
   })
 
   it('handles continuous hex', () => {
-    expect(hexToBytes('0103AB')).toEqual([0x01, 0x03, 0xab])
+    expect(hexToBytes('0103AB')).toEqual([0x01, 0x03, 0xAB])
   })
 
   it('handles empty string', () => {
@@ -58,7 +58,7 @@ describe('hexToBytes', () => {
   })
 
   it('is case insensitive', () => {
-    expect(hexToBytes('aabbCC')).toEqual([0xaa, 0xbb, 0xcc])
+    expect(hexToBytes('aabbCC')).toEqual([0xAA, 0xBB, 0xCC])
   })
 })
 

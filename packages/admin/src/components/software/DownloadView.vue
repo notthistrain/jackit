@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 
 const downloading = ref(false)
-const error = ref<string | null>(null)
+const error = ref <string | null> (null)
 const softwareName = ref('toolbox')
 
 onMounted(() => {
@@ -40,19 +40,19 @@ async function handleDownload() {
 <template>
   <div class="flex items-center justify-center min-h-screen relative">
     <!-- 光晕 -->
-    <div class="absolute top-[20%] left-1/2 -translate-x-1/2 w-[400px] h-[200px]" style="background: radial-gradient(ellipse, rgba(6,182,212,0.06) 0%, transparent 70%);" />
+    <div class="absolute" style="top:20%; left:50%; transform:translateX(-50%); width:400px; height:200px; background: radial-gradient(ellipse, rgba(6,182,212,0.06) 0%, transparent 70%);" />
 
     <!-- 下载卡片 -->
-    <div class="relative text-center w-[320px] bg-white/[0.04] backdrop-blur-[20px] border border-white/[0.08] rounded-2xl px-8 py-9">
+    <div class="relative text-center" style="width:320px; background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 36px 32px;">
       <!-- 图标 -->
-      <div class="mx-auto mb-4 flex items-center justify-center rounded-xl size-14 text-2xl" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(59,130,246,0.2));">
+      <div class="mx-auto mb-4 flex items-center justify-center rounded-xl" style="width:56px; height:56px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(59,130,246,0.2)); font-size:24px;">
         📦
       </div>
 
-      <div class="text-[#f1f5f9] text-lg font-semibold mb-1">
+      <div style="color:#f1f5f9; font-size:18px; font-weight:600; margin-bottom:4px;">
         {{ softwareName === 'toolbox' ? 'Toolbox 工具盒' : softwareName }}
       </div>
-      <div class="text-[#64748b] text-[11px] mb-5">
+      <div style="color:#64748b; font-size:11px; margin-bottom:20px;">
         组件升级管理客户端
       </div>
 
@@ -67,9 +67,11 @@ async function handleDownload() {
         {{ downloading ? '获取下载链接...' : '⬇ 立即下载' }}
       </button>
 
-      <div v-if="error" class="mt-3 text-xs text-[#f87171]">{{ error }}</div>
+      <div v-if="error" class="mt-3 text-xs" style="color: #f87171;">
+        {{ error }}
+      </div>
 
-      <div class="mt-3 text-[#475569] text-[9px]">
+      <div class="mt-3" style="color:#475569; font-size:9px;">
         适用于 Windows 10/11
       </div>
     </div>

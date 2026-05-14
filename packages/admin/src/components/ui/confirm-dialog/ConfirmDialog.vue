@@ -43,7 +43,9 @@ function handleConfirm() {
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>取消</AlertDialogCancel>
-        <AlertDialogAction @click="handleConfirm">确认</AlertDialogAction>
+        <AlertDialogAction @click="handleConfirm">
+          确认
+        </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

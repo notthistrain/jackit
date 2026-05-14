@@ -1,5 +1,5 @@
-import { create } from 'zustand'
 import type { DisplayFrame } from '@/lib/tauri-events'
+import { create } from 'zustand'
 
 interface DecoderStore {
   portId: string | null
@@ -14,15 +14,15 @@ interface DecoderStore {
   setAutoScroll: (auto: boolean) => void
 }
 
-export const useDecoderStore = create<DecoderStore>((set) => ({
+export const useDecoderStore = create<DecoderStore>(set => ({
   portId: null,
   protocol: null,
   currentFrame: null,
   pinnedFrame: null,
   autoScroll: true,
 
-  setPortId: (id) => set({ portId: id }),
-  setCurrentFrame: (frame) => set({ currentFrame: frame }),
-  pinFrame: (frame) => set({ pinnedFrame: frame }),
-  setAutoScroll: (auto) => set({ autoScroll: auto }),
+  setPortId: id => set({ portId: id }),
+  setCurrentFrame: frame => set({ currentFrame: frame }),
+  pinFrame: frame => set({ pinnedFrame: frame }),
+  setAutoScroll: auto => set({ autoScroll: auto }),
 }))

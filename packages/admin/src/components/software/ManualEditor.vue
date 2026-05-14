@@ -38,7 +38,8 @@ async function fetchData() {
 }
 
 async function handleSave() {
-  if (!software.value) return
+  if (!software.value)
+    return
   saving.value = true
   try {
     const result = await api.software.update(props.softwareId, { manual: content.value })
@@ -60,7 +61,8 @@ function triggerFileInput() {
 function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  if (!file) return
+  if (!file)
+    return
   if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
     toast.error('请选择 Markdown 文件 (.md 或 .markdown)')
     return
@@ -85,20 +87,21 @@ onMounted(fetchData)
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
         <button
-          class="text-[#67e8f9] text-xs hover:underline"
+          style="color:#67e8f9; font-size:12px;"
+          class="hover:underline"
           @click="emit('back')"
         >
           ← 返回详情
         </button>
-        <span class="text-[#64748b] text-[10px]">/</span>
-        <span class="text-[#e2e8f0] text-[13px] font-medium">
+        <span style="color:#64748b; font-size:10px;">/</span>
+        <span style="color:#e2e8f0; font-size:13px; font-weight:500;">
           编辑说明书
-          <span v-if="software" class="text-[#64748b] font-normal"> — {{ software.displayName || software.name }}</span>
+          <span v-if="software" style="color:#64748b; font-weight:400;"> — {{ software.displayName || software.name }}</span>
         </span>
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="text-[#94a3b8] text-[11px] px-3 py-[5px] bg-white/[0.06] border border-white/[0.1] rounded-md"
+          style="color:#94a3b8; font-size:11px; padding:5px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px;"
           :disabled="loading"
           @click="triggerFileInput"
         >
@@ -123,7 +126,9 @@ onMounted(fetchData)
 
     <!-- 编辑器 -->
     <div class="glass-card p-4">
-      <div v-if="loading" class="text-center py-8 text-[#64748b]">加载中...</div>
+      <div v-if="loading" class="text-center py-8" style="color:#64748b;">
+        加载中...
+      </div>
       <TiptapEditor
         v-else
         ref="editorRef"

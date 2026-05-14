@@ -1,18 +1,17 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import type { DisplayFrame } from './TerminalLine'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { TerminalLine, type DisplayFrame } from './TerminalLine'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMainStore } from '@/lib/store'
-import { terminalView } from './terminal-view.variants'
+import { TerminalLine } from './TerminalLine'
 
 interface TerminalViewProps {
   frames: DisplayFrame[]
 }
 
 export function TerminalView({ frames }: TerminalViewProps) {
-  const hexDisplay = useMainStore((s) => s.hexDisplay)
+  const hexDisplay = useMainStore(s => s.hexDisplay)
   const parentRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
-  const { root, inner, row } = terminalView()
 
   const virtualizer = useVirtualizer({
     count: frames.length,
@@ -29,7 +28,8 @@ export function TerminalView({ frames }: TerminalViewProps) {
   }, [frames.length, autoScroll, virtualizer])
 
   const handleScroll = useCallback(() => {
-    if (!parentRef.current) return
+    if (!parentRef.current)
+      return
     const { scrollTop, scrollHeight, clientHeight } = parentRef.current
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 30
     setAutoScroll(isAtBottom)
@@ -39,19 +39,32 @@ export function TerminalView({ frames }: TerminalViewProps) {
     <div
       ref={parentRef}
       onScroll={handleScroll}
-      className={root()}
+      style={{
+        flex: 1,
+        overflow: 'auto',
+        background: 'var(--color-editor-bg)',
+        position: 'relative',
+      }}
     >
       <div
-        className={inner()}
-        style={{ height: virtualizer.getTotalSize() + 'px' }}
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const frame = frames[virtualRow.index]
           return (
             <div
               key={virtualRow.index}
-              className={row()}
-              style={{ transform: `translateY(${virtualRow.start}px)` }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
             >
               <TerminalLine frame={frame} hexMode={hexDisplay} />
             </div>

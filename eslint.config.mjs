@@ -2,6 +2,8 @@ import uni from '@uni-helper/eslint-config'
 
 export default uni(
   {
+    vue: true,
+    typescript: true,
     unocss: false,
     ignores: [
       '**/dist/**',

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
-import { on, type DisplayFrame, type PortDataPayload } from '@/lib/tauri-events'
+import type { DisplayFrame, PortDataPayload } from '@/lib/tauri-events'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { on } from '@/lib/tauri-events'
 
 const MAX_FRAMES = 10000
 const RENDER_WINDOW = 1000
@@ -32,7 +33,8 @@ export function useDataFeed(options: UseDataFeedOptions = {}): UseDataFeedReturn
   const [totalCount, setTotalCount] = useState(0)
 
   const flush = useCallback(() => {
-    if (batchRef.current.length === 0) return
+    if (batchRef.current.length === 0)
+      return
 
     allFramesRef.current = [...allFramesRef.current, ...batchRef.current]
     // 限制内存：超过上限时丢弃旧数据
@@ -54,9 +56,11 @@ export function useDataFeed(options: UseDataFeedOptions = {}): UseDataFeedReturn
     const setup = async () => {
       const unsub = await on('port:data', (payload: PortDataPayload) => {
         // 已取消则忽略
-        if (cancelled) return
+        if (cancelled)
+          return
         // 过滤端口
-        if (portId && payload.port_id !== portId) return
+        if (portId && payload.port_id !== portId)
+          return
 
         batchRef.current.push(...payload.frames)
       })
@@ -75,8 +79,10 @@ export function useDataFeed(options: UseDataFeedOptions = {}): UseDataFeedReturn
 
     return () => {
       cancelled = true
-      if (timer) clearInterval(timer)
-      if (unlisten) unlisten()
+      if (timer)
+        clearInterval(timer)
+      if (unlisten)
+        unlisten()
     }
   }, [portId, flushInterval, flush])
 

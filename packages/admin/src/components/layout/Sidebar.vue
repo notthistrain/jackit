@@ -49,8 +49,9 @@ function toggleMobile() {
 }
 
 function isActive(item: NavItem): boolean {
-  return item.match.some(m => {
-    if (m === '/') return currentPath.value === '/'
+  return item.match.some((m) => {
+    if (m === '/')
+      return currentPath.value === '/'
     return currentPath.value.startsWith(m)
   })
 }

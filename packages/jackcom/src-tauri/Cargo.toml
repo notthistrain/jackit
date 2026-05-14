@@ -1,10 +1,10 @@
 [package]
-name = "upgrade-component-jackcom"
+name = "jackit-jackcom"
 version = "1.0.0"
 edition = "2021"
 
 [lib]
-name = "upgrade_component_jackcom_lib"
+name = "app_jackcom_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

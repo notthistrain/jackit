@@ -22,10 +22,14 @@ const api = useApi()
 const deletingId = ref<number | null>(null)
 
 function formatSize(bytes: number | null) {
-  if (!bytes) return '-'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+  if (!bytes)
+    return '-'
+  if (bytes < 1024)
+    return `${bytes} B`
+  if (bytes < 1024 * 1024)
+    return `${(bytes / 1024).toFixed(2)} KB`
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
@@ -48,37 +52,45 @@ async function handleDelete(id: number) {
   <div class="glass-card p-4">
     <!-- 标题栏 -->
     <div class="flex justify-between items-center mb-4">
-      <span class="text-[#e2e8f0] text-[13px] font-semibold">版本历史</span>
+      <span style="color: #e2e8f0; font-size: 13px; font-weight: 600;">版本历史</span>
       <VersionEditDialog :software-id="softwareId" @saved="$emit('refresh')" />
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-8 text-[#64748b]">加载中...</div>
+    <div v-if="loading" class="text-center py-8" style="color: #64748b;">
+      加载中...
+    </div>
 
     <!-- Empty -->
-    <div v-else-if="versions.length === 0" class="text-center py-8 text-[#64748b]">暂无版本记录</div>
+    <div v-else-if="versions.length === 0" class="text-center py-8" style="color: #64748b;">
+      暂无版本记录
+    </div>
 
     <!-- Version list -->
     <div v-else class="space-y-2">
       <div
         v-for="(version, index) in versions"
         :key="version.id"
-        class="flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors border-l-[3px]"
-        :class="index === 0 ? 'border-l-[#06b6d4] bg-[rgba(6,182,212,0.04)]' : 'border-l-white/[0.08]'"
+        class="flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors"
+        style="border-left: 3px solid;"
+        :style="{
+          borderLeftColor: index === 0 ? '#06b6d4' : 'rgba(255,255,255,0.08)',
+          background: index === 0 ? 'rgba(6,182,212,0.04)' : 'transparent',
+        }"
       >
         <!-- 版本信息 -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <span class="text-[#e2e8f0] text-xs font-medium">{{ version.sequence }}</span>
-            <span v-if="index === 0" class="text-[#22c55e] text-[9px] bg-[rgba(34,197,94,0.12)] px-1.5 py-[1px] rounded-[3px] font-medium">最新</span>
-            <span v-if="version.force" class="text-[#f87171] text-[9px] bg-[rgba(239,68,68,0.12)] px-1.5 py-[1px] rounded-[3px]">强制</span>
+            <span style="color: #e2e8f0; font-size: 12px; font-weight: 500;">{{ version.sequence }}</span>
+            <span v-if="index === 0" style="color: #22c55e; font-size: 9px; background: rgba(34,197,94,0.12); padding: 1px 6px; border-radius: 3px; font-weight: 500;">最新</span>
+            <span v-if="version.force" style="color: #f87171; font-size: 9px; background: rgba(239,68,68,0.12); padding: 1px 6px; border-radius: 3px;">强制</span>
           </div>
-          <div class="flex items-center gap-3 mt-1 text-[#64748b] text-[10px]">
+          <div class="flex items-center gap-3 mt-1" style="color: #64748b; font-size: 10px;">
             <span>{{ formatSize(version.size) }}</span>
             <span>{{ formatDate(version.createdAt) }}</span>
           </div>
-          <div v-if="version.changelog" class="text-[#94a3b8] text-[11px] mt-1 leading-[1.6]">
-            {{ version.changelog.length > 100 ? version.changelog.slice(0, 100) + '...' : version.changelog }}
+          <div v-if="version.changelog" style="color: #94a3b8; font-size: 11px; margin-top: 4px; line-height: 1.6;">
+            {{ version.changelog.length > 100 ? `${version.changelog.slice(0, 100)}...` : version.changelog }}
           </div>
         </div>
 
@@ -92,7 +104,8 @@ async function handleDelete(id: number) {
           >
             <button
               :disabled="deletingId === version.id"
-              class="text-[#f87171] text-[11px] px-2 py-[3px] rounded bg-[rgba(239,68,68,0.08)] hover:bg-red-500/20"
+              style="color: #f87171; font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(239,68,68,0.08);"
+              class="hover:bg-red-500/20"
             >
               删除
             </button>

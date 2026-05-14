@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 // Mock @tauri-apps/api/event
 vi.mock('@tauri-apps/api/event', () => ({

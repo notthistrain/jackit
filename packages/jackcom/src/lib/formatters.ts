@@ -4,7 +4,7 @@
  */
 export function bytesToHex(data: number[] | Uint8Array): string {
   return Array.from(data)
-    .map((b) => b.toString(16).toUpperCase().padStart(2, '0'))
+    .map(b => b.toString(16).toUpperCase().padStart(2, '0'))
     .join(' ')
 }
 
@@ -13,7 +13,7 @@ export function bytesToHex(data: number[] | Uint8Array): string {
  */
 export function bytesToAscii(data: number[] | Uint8Array): string {
   return Array.from(data)
-    .map((b) => (b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : '.'))
+    .map(b => (b >= 0x20 && b < 0x7F ? String.fromCharCode(b) : '.'))
     .join('')
 }
 
@@ -24,13 +24,16 @@ export function bytesToAscii(data: number[] | Uint8Array): string {
  */
 export function hexToBytes(hex: string): number[] | null {
   const cleaned = hex.replace(/\s+/g, '')
-  if (cleaned.length === 0) return []
-  if (cleaned.length % 2 !== 0) return null
-  if (!/^[0-9A-Fa-f]*$/.test(cleaned)) return null
+  if (cleaned.length === 0)
+    return []
+  if (cleaned.length % 2 !== 0)
+    return null
+  if (!/^[0-9A-F]*$/i.test(cleaned))
+    return null
 
   const bytes: number[] = []
   for (let i = 0; i < cleaned.length; i += 2) {
-    bytes.push(parseInt(cleaned.substring(i, i + 2), 16))
+    bytes.push(Number.parseInt(cleaned.substring(i, i + 2), 16))
   }
   return bytes
 }
@@ -52,8 +55,10 @@ export function formatTimestamp(iso: string): string {
  * 12847 → "12.5KB"
  */
 export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
+  if (bytes < 1024)
+    return `${bytes}B`
+  if (bytes < 1024 * 1024)
+    return `${(bytes / 1024).toFixed(1)}KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
 }
 

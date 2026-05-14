@@ -69,17 +69,25 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0c1222]">
-    <div class="mx-auto px-5 py-10 max-w-[720px]">
-      <div v-if="loading" class="text-center py-20 text-[#64748b]">加载中...</div>
-      <div v-else-if="error" class="text-center py-20 text-[#f87171]">{{ error }}</div>
+  <div class="min-h-screen" style="background: #0c1222;">
+    <div class="mx-auto px-5 py-10" style="max-width: 720px;">
+      <div v-if="loading" class="text-center py-20" style="color: #64748b;">
+        加载中...
+      </div>
+      <div v-else-if="error" class="text-center py-20" style="color: #f87171;">
+        {{ error }}
+      </div>
       <template v-else-if="software">
         <div v-if="software.manual" class="manual-content" v-html="software.manual" />
-        <div v-else class="text-center py-20 text-[#64748b]">暂无操作说明书</div>
+        <div v-else class="text-center py-20" style="color: #64748b;">
+          暂无操作说明书
+        </div>
       </template>
-      <div v-else class="text-center py-20 text-[#64748b]">软件不存在或已被删除</div>
+      <div v-else class="text-center py-20" style="color: #64748b;">
+        软件不存在或已被删除
+      </div>
 
-      <div class="mt-6 text-center text-[#334155] text-[10px]">
+      <div class="mt-6 text-center" style="color: #334155; font-size: 10px;">
         Powered by Upgrade
       </div>
     </div>

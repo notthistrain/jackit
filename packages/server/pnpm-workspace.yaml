@@ -4,3 +4,30 @@ trustPolicy: no-downgrade
 
 onlyBuiltDependencies:
   - better-sqlite3
+catalog:
+  '@aws-sdk/client-s3': ^0.0.0
+  '@aws-sdk/s3-request-presigner': ^0.0.0
+  '@iarna/toml': ^0.0.0
+  '@midwayjs/bootstrap': ^0.0.0
+  '@midwayjs/busboy': ^0.0.0
+  '@midwayjs/core': ^0.0.0
+  '@midwayjs/info': ^0.0.0
+  '@midwayjs/jwt': ^0.0.0
+  '@midwayjs/koa': ^0.0.0
+  '@midwayjs/logger': ^0.0.0
+  '@midwayjs/mock': ^0.0.0
+  '@midwayjs/static-file': ^0.0.0
+  '@midwayjs/typeorm': ^0.0.0
+  '@midwayjs/validate': ^0.0.0
+  '@types/better-sqlite3': ^0.0.0
+  '@types/jest': ^0.0.0
+  '@types/node': ^0.0.0
+  bcryptjs: ^0.0.0
+  better-sqlite3: ^0.0.0
+  cross-env: ^0.0.0
+  jest: ^0.0.0
+  mwts: ^0.0.0
+  mwtsc: ^0.0.0
+  ts-jest: ^0.0.0
+  typeorm: ^0.0.0
+  typescript: ^0.0.0

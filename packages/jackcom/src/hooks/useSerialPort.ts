@@ -1,6 +1,7 @@
-import { useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
+import { useCallback } from 'react'
 import { useMainStore } from '@/lib/store'
+
 interface PortInfo {
   name: string
   manufacturer: string | null

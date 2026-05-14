@@ -13,8 +13,8 @@ services:
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:-rustfsadmin}
       - RUSTFS_OBS_LOGGER_LEVEL=info
     ports:
-      - "9090:9000"
-      - "9091:9001"
+      - '9090:9000'
+      - '9091:9001'
     volumes:
       - ./rustfs/data:/data
       - ./rustfs/logs:/app/logs

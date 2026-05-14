@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { SendBar } from '../SendBar'
 
-describe('SendBar', () => {
+describe('sendBar', () => {
   it('renders hex mode by default', () => {
     render(<SendBar onSend={vi.fn()} />)
     expect(screen.getByPlaceholderText('01 03 00 00 00 0A C5 CD')).toBeTruthy()
@@ -49,7 +49,7 @@ describe('SendBar', () => {
     fireEvent.change(input, { target: { value: '01' } })
     fireEvent.click(screen.getByText('+CRLF'))
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(onSend).toHaveBeenCalledWith([0x01, 0x0d, 0x0a])
+    expect(onSend).toHaveBeenCalledWith([0x01, 0x0D, 0x0A])
   })
 
   it('disables input and button when disabled', () => {

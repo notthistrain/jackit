@@ -2,6 +2,7 @@
   "name": "upgrade-component",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev:server": "pnpm --filter @upgrade/server dev",
     "dev:admin": "pnpm --filter @upgrade/admin dev",
@@ -14,11 +15,11 @@
     "test:jackcom:rust": "cd packages/jackcom/src-tauri && cargo test",
     "test:mock-mcu": "cd packages/jackcom-mock-mcu && cargo test",
     "mock:mcu": "cd packages/jackcom-mock-mcu && cargo run",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "lint:fix": "eslint packages --fix"
   },
-  "packageManager": "pnpm@10.30.3",
   "devDependencies": {
-    "@uni-helper/eslint-config": "^0.7.3",
-    "eslint": "^10.3.0"
+    "@uni-helper/eslint-config": "catalog:",
+    "eslint": "catalog:"
   }
 }

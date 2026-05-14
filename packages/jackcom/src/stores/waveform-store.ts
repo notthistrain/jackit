@@ -14,21 +14,21 @@ interface WaveformStore {
   clear: () => void
 }
 
-export const useWaveformStore = create<WaveformStore>((set) => ({
+export const useWaveformStore = create<WaveformStore>(set => ({
   portId: null,
   channels: {},
   timeWindow: 10,
   paused: false,
   maxPoints: 500,
 
-  setPortId: (id) => set({ portId: id }),
+  setPortId: id => set({ portId: id }),
   addData: (channel, value) =>
     set((s) => {
       const current = s.channels[channel] ?? []
       const newValues = [...current, value].slice(-s.maxPoints)
       return { channels: { ...s.channels, [channel]: newValues } }
     }),
-  togglePause: () => set((s) => ({ paused: !s.paused })),
-  setTimeWindow: (seconds) => set({ timeWindow: seconds }),
+  togglePause: () => set(s => ({ paused: !s.paused })),
+  setTimeWindow: seconds => set({ timeWindow: seconds }),
   clear: () => set({ channels: {} }),
 }))

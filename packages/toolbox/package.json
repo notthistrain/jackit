@@ -6,9 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@tauri-apps/api": "catalog:",

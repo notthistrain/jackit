@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@source "../components/**";
+@source "../pages/**/*.ts";
+@source "../composables/**/*.ts";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

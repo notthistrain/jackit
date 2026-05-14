@@ -1,8 +1,8 @@
+import { resolve } from 'node:path'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
 // packages/jackcom/vite.config.ts
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { resolve } from 'path'
 
 const root = resolve(import.meta.dirname, 'src/pages')
 
@@ -36,7 +36,8 @@ export default defineConfig({
         assetFileNames: 'assets/[name]/[hash][extname]',
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('/@tauri-apps/')) return 'vendor-tauri'
+            if (id.includes('/@tauri-apps/'))
+              return 'vendor-tauri'
             if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/'))
               return 'vendor-react'
             return 'vendor'
@@ -47,7 +48,7 @@ export default defineConfig({
   },
 
   server: {
-    port: 4321,
+    port: 5173,
     strictPort: true,
     open: false,
   },

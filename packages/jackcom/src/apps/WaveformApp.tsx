@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
+import { useDataFeed } from '@/hooks/useDataFeed'
 import { getPortFromUrl } from '@/lib/window'
 import { useWaveformStore } from '@/stores/waveform-store'
-import { useDataFeed } from '@/hooks/useDataFeed'
-import { WaveformCanvas } from '@/components/waveform/WaveformCanvas'
 
 export default function WaveformApp() {
   const { portId, setPortId, channels, paused, togglePause, clear } = useWaveformStore()
@@ -10,7 +9,8 @@ export default function WaveformApp() {
 
   useEffect(() => {
     const port = getPortFromUrl()
-    if (port) setPortId(port)
+    if (port)
+      setPortId(port)
   }, [setPortId])
 
   const channelNames = Object.keys(channels)
@@ -24,7 +24,8 @@ export default function WaveformApp() {
       display: 'flex',
       flexDirection: 'column',
       fontFamily: 'system-ui, sans-serif',
-    }}>
+    }}
+    >
       {/* 标题栏 */}
       <div style={{
         background: 'var(--color-titlebar-bg)',
@@ -33,13 +34,18 @@ export default function WaveformApp() {
         alignItems: 'center',
         gap: '8px',
         borderBottom: '1px solid var(--color-border)',
-      }}>
+      }}
+      >
         <span style={{ color: 'var(--color-accent)' }}>&#x1F4CA;</span>
         <span style={{ fontSize: '12px', fontWeight: 600 }}>
-          Waveform — {portId ?? 'No Port'}
+          Waveform —
+          {' '}
+          {portId ?? 'No Port'}
         </span>
         <span style={{ marginLeft: 'auto', color: 'var(--color-text-secondary)', fontSize: '10px' }}>
-          {frames.length} frames received
+          {frames.length}
+          {' '}
+          frames received
         </span>
       </div>
 
@@ -52,11 +58,39 @@ export default function WaveformApp() {
         )}
         {!hasData && portId && (
           <div style={{ color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '40px' }}>
-            Waiting for data from {portId}...
+            Waiting for data from
+            {' '}
+            {portId}
+            ...
           </div>
         )}
         {hasData && (
-          <WaveformCanvas channels={channels} paused={paused} />
+          <div style={{ color: 'var(--color-text-secondary)', fontSize: '11px' }}>
+            {channelNames.map(ch => (
+              <div key={ch} style={{ marginBottom: '8px' }}>
+                <div style={{ color: 'var(--color-rx)', fontWeight: 600 }}>{ch}</div>
+                <div style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>
+                  {channels[ch].length}
+                  {' '}
+                  points · latest:
+                  {channels[ch][channels[ch].length - 1]?.toFixed(2) ?? 'N/A'}
+                </div>
+                <div style={{
+                  height: '80px',
+                  background: 'var(--color-sidebar-bg)',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-text-secondary)',
+                  fontSize: '10px',
+                }}
+                >
+                  Canvas waveform rendering — coming soon
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -69,7 +103,8 @@ export default function WaveformApp() {
         gap: '12px',
         fontSize: '10px',
         color: 'var(--color-text-secondary)',
-      }}>
+      }}
+      >
         <button
           onClick={togglePause}
           style={{

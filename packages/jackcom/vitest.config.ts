@@ -1,8 +1,8 @@
+import { resolve } from 'node:path'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
 // packages/jackcom/vitest.config.ts
 import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

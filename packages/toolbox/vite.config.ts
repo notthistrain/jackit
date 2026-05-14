@@ -1,8 +1,8 @@
+import { resolve } from 'node:path'
+import tailwindcss from '@tailwindcss/vite'
+import vue from '@vitejs/plugin-vue'
 // packages/toolbox/vite.config.ts
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import tailwindcss from '@tailwindcss/vite'
-import { resolve } from 'path'
 
 const root = resolve(import.meta.dirname, 'src/pages')
 
@@ -34,7 +34,8 @@ export default defineConfig({
         assetFileNames: 'assets/[name]/[hash][extname]',
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('/@tauri-apps/')) return 'vendor-tauri'
+            if (id.includes('/@tauri-apps/'))
+              return 'vendor-tauri'
             if (id.includes('/vue/')
               || id.includes('/@vue/')
               || id.includes('/vue-demi/')
@@ -42,8 +43,9 @@ export default defineConfig({
               || id.includes('/reka-ui/')
               || id.includes('/@floating-ui/')
               || id.includes('/vue-sonner/')
-              || id.includes('/lucide-vue-next/'))
+              || id.includes('/lucide-vue-next/')) {
               return 'vendor-vue'
+            }
             return 'vendor'
           }
         },

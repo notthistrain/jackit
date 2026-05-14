@@ -1,8 +1,7 @@
-import { useEffect, useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
+import { useDataFeed } from '@/hooks/useDataFeed'
 import { getPortFromUrl } from '@/lib/window'
 import { useDecoderStore } from '@/stores/decoder-store'
-import { useDataFeed } from '@/hooks/useDataFeed'
-import type { DisplayFrame } from '@/lib/tauri-events'
 
 export default function DecoderApp() {
   const { portId, setPortId, pinnedFrame, pinFrame } = useDecoderStore()
@@ -10,7 +9,8 @@ export default function DecoderApp() {
 
   useEffect(() => {
     const port = getPortFromUrl()
-    if (port) setPortId(port)
+    if (port)
+      setPortId(port)
   }, [setPortId])
 
   // 使用最新帧作为当前帧
@@ -18,7 +18,8 @@ export default function DecoderApp() {
   const displayFrame = pinnedFrame ?? latestFrame
 
   const handleCopyFrame = useCallback(() => {
-    if (!displayFrame) return
+    if (!displayFrame)
+      return
     const text = [
       `Protocol: ${displayFrame.protocol}`,
       `Direction: ${displayFrame.direction}`,
@@ -36,8 +37,9 @@ export default function DecoderApp() {
       color: 'var(--color-text)',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: "'Consolas', 'Courier New', monospace",
-    }}>
+      fontFamily: '\'Consolas\', \'Courier New\', monospace',
+    }}
+    >
       {/* 标题栏 */}
       <div style={{
         background: 'var(--color-titlebar-bg)',
@@ -47,9 +49,13 @@ export default function DecoderApp() {
         gap: '8px',
         borderBottom: '1px solid var(--color-border)',
         fontSize: '12px',
-      }}>
+      }}
+      >
         <span style={{ color: 'var(--color-accent)' }}>&#x1F52C;</span>
-        <span style={{ fontWeight: 600 }}>Decoder — {portId ?? 'No Port'}</span>
+        <span style={{ fontWeight: 600 }}>
+          Decoder —
+          {portId ?? 'No Port'}
+        </span>
       </div>
 
       {/* 帧详情 */}
@@ -66,33 +72,41 @@ export default function DecoderApp() {
                 color: 'var(--color-accent)',
                 fontWeight: 600,
                 fontSize: '14px',
-              }}>
-                {displayFrame.protocol.toUpperCase()} Frame
+              }}
+              >
+                {displayFrame.protocol.toUpperCase()}
+                {' '}
+                Frame
               </span>
             </div>
             <div style={{ color: 'var(--color-text)', lineHeight: '1.8' }}>
               <div>
-                <span style={{ color: 'var(--color-timestamp)' }}>Direction</span>{' '}
+                <span style={{ color: 'var(--color-timestamp)' }}>Direction</span>
+                {' '}
                 <span style={{ color: displayFrame.direction === 'rx' ? 'var(--color-rx)' : 'var(--color-tx)' }}>
                   {displayFrame.direction.toUpperCase()}
                 </span>
               </div>
               <div>
-                <span style={{ color: 'var(--color-timestamp)' }}>Time</span>{' '}
+                <span style={{ color: 'var(--color-timestamp)' }}>Time</span>
+                {' '}
                 <span>{displayFrame.timestamp}</span>
               </div>
               <div>
-                <span style={{ color: 'var(--color-timestamp)' }}>Protocol</span>{' '}
+                <span style={{ color: 'var(--color-timestamp)' }}>Protocol</span>
+                {' '}
                 <span style={{ color: 'var(--color-accent)' }}>{displayFrame.protocol}</span>
               </div>
               {displayFrame.formatted && (
                 <div>
-                  <span style={{ color: 'var(--color-timestamp)' }}>Parsed</span>{' '}
+                  <span style={{ color: 'var(--color-timestamp)' }}>Parsed</span>
+                  {' '}
                   <span style={{ color: 'var(--color-string)' }}>{displayFrame.formatted}</span>
                 </div>
               )}
               <div>
-                <span style={{ color: 'var(--color-timestamp)' }}>RAW HEX</span>{' '}
+                <span style={{ color: 'var(--color-timestamp)' }}>RAW HEX</span>
+                {' '}
                 <span>{displayFrame.raw_hex}</span>
               </div>
             </div>
@@ -109,7 +123,8 @@ export default function DecoderApp() {
         gap: '12px',
         fontSize: '10px',
         color: 'var(--color-text-secondary)',
-      }}>
+      }}
+      >
         <button
           onClick={() => pinFrame(latestFrame ?? null)}
           style={{
@@ -128,8 +143,11 @@ export default function DecoderApp() {
           onClick={handleCopyFrame}
           disabled={!displayFrame}
           style={{
-            background: 'transparent', border: 'none',
-            color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '10px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--color-text-secondary)',
+            cursor: 'pointer',
+            fontSize: '10px',
             opacity: displayFrame ? 1 : 0.4,
           }}
         >

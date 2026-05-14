@@ -2,11 +2,11 @@ use bytes::Bytes;
 use chrono::Utc;
 use tokio::sync::mpsc;
 
-use upgrade_component_jackcom_lib::channel::broker::Broker;
-use upgrade_component_jackcom_lib::channel::backpressure::BackpressureStrategy;
-use upgrade_component_jackcom_lib::channel::PortEvent;
-use upgrade_component_jackcom_lib::protocol::frame::{Direction, RawFrame, ParsedFrame};
-use upgrade_component_jackcom_lib::protocol::{ProtocolType, ParsedData};
+use app_jackcom_lib::channel::broker::Broker;
+use app_jackcom_lib::channel::backpressure::BackpressureStrategy;
+use app_jackcom_lib::channel::PortEvent;
+use app_jackcom_lib::protocol::frame::{Direction, RawFrame, ParsedFrame};
+use app_jackcom_lib::protocol::{ProtocolType, ParsedData};
 
 fn make_data_event(port_id: &str, seq: u8) -> PortEvent {
     let data = vec![seq];
