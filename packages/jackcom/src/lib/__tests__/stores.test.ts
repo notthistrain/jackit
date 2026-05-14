@@ -68,6 +68,20 @@ describe('useMainStore', () => {
     expect(useMainStore.getState().hexDisplay).toBe(!initial)
     useMainStore.getState().toggleHexDisplay()
   })
+
+  it('increments clearSequence', () => {
+    const initial = useMainStore.getState().clearSequence
+    useMainStore.getState().incrementClearSequence()
+    expect(useMainStore.getState().clearSequence).toBe(initial + 1)
+  })
+
+  it('toggles connection dialog', () => {
+    expect(useMainStore.getState().connectionDialogOpen).toBe(false)
+    useMainStore.getState().toggleConnectionDialog(true)
+    expect(useMainStore.getState().connectionDialogOpen).toBe(true)
+    useMainStore.getState().toggleConnectionDialog(false)
+    expect(useMainStore.getState().connectionDialogOpen).toBe(false)
+  })
 })
 
 describe('useWaveformStore', () => {

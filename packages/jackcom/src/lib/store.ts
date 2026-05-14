@@ -26,6 +26,14 @@ interface MainStore {
   // Hex 显示模式
   hexDisplay: boolean
   toggleHexDisplay: () => void
+
+  // 清屏计数器
+  clearSequence: number
+  incrementClearSequence: () => void
+
+  // 连接对话框
+  connectionDialogOpen: boolean
+  toggleConnectionDialog: (open: boolean) => void
 }
 
 export const useMainStore = create<MainStore>(set => ({
@@ -67,4 +75,10 @@ export const useMainStore = create<MainStore>(set => ({
 
   hexDisplay: true,
   toggleHexDisplay: () => set(s => ({ hexDisplay: !s.hexDisplay })),
+
+  clearSequence: 0,
+  incrementClearSequence: () => set(s => ({ clearSequence: s.clearSequence + 1 })),
+
+  connectionDialogOpen: false,
+  toggleConnectionDialog: (open) => set({ connectionDialogOpen: open }),
 }))
