@@ -1,7 +1,7 @@
 # JackCom 占位符功能实现设计
 
 **日期：** 2026-05-14
-**目标：** 实现 05-11/05-13 批次计划中 4 项未完成的占位符功能
+**目标：** 实现 05-11/05-13 批次计划中 4 项未完成的占位符功能 + 1 个端到端测试工具
 
 ---
 
@@ -198,6 +198,107 @@ class WaveformRenderer {
 
 ---
 
+## 5. Mock MCU — 端到端测试工具
+
+### 定位
+
+独立 Rust crate，不并入生产构建。用于在没有真实 MCU 硬件时，通过虚拟串口对模拟 MCU 发送串口数据，完成 JackCom 前后端端到端测试。
+
+### 前置依赖
+
+用户需安装虚拟串口驱动（Windows 上推荐 com0com 或 VSPD），创建端口对，例如 COM20 ↔ COM21。
+
+### 新建文件
+
+独立 crate：`packages/jackcom-mock-mcu/`
+
+```
+packages/jackcom-mock-mcu/
+├── Cargo.toml
+└── src/
+    ├── main.rs          # CLI 入口 + 串口连接 + 发送循环
+    ├── scenarios.rs      # 场景定义（Modbus/AT/JSON/Raw）
+    └── protocols.rs      # 帧构造器（复用 jackcom 的 CRC-16 等，或独立实现）
+```
+
+### CLI 接口
+
+```bash
+# 混合场景（默认），100ms 间隔
+jackcom-mock-mcu --port COM20 --interval 100
+
+# 指定场景
+jackcom-mock-mcu --port COM20 --scenario modbus
+jackcom-mock-mcu --port COM20 --scenario at-esp32
+jackcom-mock-mcu --port COM20 --scenario json-sensor
+jackcom-mock-mcu --port COM20 --scenario raw
+
+# 列出可用端口
+jackcom-mock-mcu --list-ports
+```
+
+### 场景定义
+
+| 场景 | 模拟内容 | 数据模式 |
+|------|----------|----------|
+| `modbus` | Modbus RTU 从站 | 周期性发读保持寄存器响应（10 个寄存器，数值递增） |
+| `at-esp32` | ESP32 AT 固件 | 响应式：收到 `AT` → 回 `OK`，收到 `AT+RST` → 回 `OK` + `ready` |
+| `json-sensor` | 传感器数据 | 每 500ms 发 `{"temp":25.6,"hum":60.1,"press":1013}` |
+| `raw` | 随机二进制 | 随机长度随机字节 |
+| `mixed`（默认）| 混合以上所有 | 按比例轮流发送（Modbus 40% / AT 20% / JSON 20% / Raw 20%） |
+
+### protocols.rs 帧构造器
+
+独立实现（不依赖 jackcom crate），避免生产代码和测试工具耦合：
+
+- `fn build_modbus_response(slave: u8, values: &[u16]) -> Vec<u8>` — 含 CRC-16
+- `fn build_at_response(command: &str) -> Vec<u8>` — 含 `\r\n`
+- `fn build_json_payload(temp: f64, hum: f64) -> Vec<u8>`
+- `fn build_raw_random(len: usize) -> Vec<u8>`
+- `fn crc16_modbus(data: &[u8]) -> u16` — CRC-16/Modbus 独立实现
+
+### main.rs 流程
+
+1. 解析 CLI 参数（clap）
+2. 打开指定串口（serialport crate），配置 115200 8N1
+3. 选择场景 → 进入发送循环
+4. AT 场景为响应式：先读串口收到命令，再回复；其他场景为主动发送
+5. Ctrl+C 优雅退出
+
+### 依赖
+
+```toml
+[dependencies]
+serialport = "4"
+clap = { version = "4", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+```
+
+### 与 JackCom 的使用流程
+
+1. 安装 com0com，创建虚拟端口对 COM20 ↔ COM21
+2. 启动 mock-mcu：`cargo run --port COM20`
+3. 启动 JackCom，连接 COM21
+4. 观察终端/波形/解码窗口是否正确显示数据
+
+### workspace 集成
+
+在根 `Cargo.toml` 的 `[workspace]` 中注册：
+```toml
+members = [
+    # ... 已有成员
+    "packages/jackcom-mock-mcu",
+]
+```
+
+在根 `package.json` 添加脚本：
+```json
+"mock:mcu": "cd packages/jackcom-mock-mcu && cargo run"
+```
+
+---
+
 ## 规格自检
 
 ### 占位符扫描
@@ -209,13 +310,16 @@ class WaveformRenderer {
 - HistoryApp 使用 `list_recent_sessions` / `query_history` API，与 Rust commands/data.rs 定义的接口一致
 - WaveformApp 从 `useWaveformStore.channels` 取数据，与已有 store 一致
 - 清屏 action 影响范围限于 useDataFeed + AppLayout，不涉及 Rust 后端
+- Mock MCU 的 CRC-16 和帧格式与 jackcom protocol parsers 兼容（相同算法，独立实现）
 
 ### 范围检查
 
-4 个功能独立，可以拆分为 4 个实现计划。Connection Dialog 明确排除。
+5 个功能独立，可以拆分为多个实现计划。Connection Dialog 明确排除。Mock MCU 为独立 crate，不影响生产代码。
 
 ### 模糊性检查
 
 - Export Data 触发时机：菜单项点击时，导出当前选中 session 的全部帧
 - WebGPU 不可用：只显示提示文字，不做 Canvas 2D 降级
 - 帧展开详情：在表格行内展开，不是新窗口
+- Mock MCU 的 AT 场景是响应式（需双向通信），其他场景是单向主动发送
+- Mock MCU 不依赖 jackcom crate，所有协议构造逻辑独立实现
