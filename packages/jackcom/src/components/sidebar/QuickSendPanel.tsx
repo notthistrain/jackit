@@ -95,7 +95,7 @@ export function QuickSendPanel() {
             value={data}
             onChange={e => setData(e.target.value)}
             placeholder={t('sidebar.quickSend.dataPlaceholder')}
-            className={`${addInput()} font-mono`}
+            className={addInput({ mono: true })}
           />
           <div className={addActions()}>
             <button

@@ -27,5 +27,8 @@ export const quickSendPanel = tv({
       true: { addButton: 'border-t-0' },
       false: { addButton: 'border-t border-border' },
     },
+    mono: {
+      true: { addInput: 'font-mono' },
+    },
   },
 })

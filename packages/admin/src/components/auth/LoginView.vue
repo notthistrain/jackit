@@ -81,7 +81,6 @@ async function handleLogin() {
         style="background: linear-gradient(135deg, #06b6d4, #3b82f6);"
         @click="handleLogin"
       >
-      >
         {{ loading ? '登录中...' : '登 录' }}
       </button>
 

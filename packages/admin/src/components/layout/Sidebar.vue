@@ -110,17 +110,19 @@ const sidebarWidth = computed(() => collapsed.value ? '56px' : '200px')
         :href="item.href"
         class="flex items-center gap-2 rounded-md transition-colors"
         :class="collapsed ? 'justify-center px-0 py-1.5' : 'px-2 py-1.5'"
-        :style="isActive(item)
-          ? 'background: rgba(6,182,212,0.12); border: 1px solid rgba(6,182,212,0.2);'
-          : 'border: 1px solid transparent;'"
+        :class="[
+          isActive(item)
+            ? 'bg-cyan-500/10 border border-cyan-400/20'
+            : 'border border-transparent',
+        ]"
       >
-        <span class="shrink-0" :style="{ fontSize: '13px', opacity: isActive(item) ? '1' : '0.5' }">
+        <span class="shrink-0 text-[13px]" :class="isActive(item) ? 'opacity-100' : 'opacity-50'">
           {{ item.icon }}
         </span>
         <span
           v-if="!collapsed"
           class="whitespace-nowrap text-xs font-medium"
-          :style="{ color: isActive(item) ? '#67e8f9' : '#94a3b8' }"
+          :class="isActive(item) ? 'text-cyan-300' : 'text-slate-400'"
         >
           {{ item.label }}
         </span>
