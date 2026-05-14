@@ -40,6 +40,10 @@
     }
   },
   "plugins": {
-    "log": null
+    "log": null,
+    "dialog": null,
+    "shell": {
+      "open": true
+    }
   }
 }

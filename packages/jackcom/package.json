@@ -13,17 +13,19 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@tauri-apps/api": "catalog:",
-    "@tauri-apps/plugin-log": "catalog:",
-    "react": "^19",
-    "react-dom": "^19",
-    "zustand": "^5",
     "@tanstack/react-virtual": "^3",
-    "cmdk": "^1",
-    "lucide-react": "^0.460",
+    "@tauri-apps/api": "catalog:",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-log": "catalog:",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
-    "tailwind-merge": "catalog:"
+    "cmdk": "^1",
+    "lucide-react": "^0.460",
+    "react": "^19",
+    "react-dom": "^19",
+    "tailwind-merge": "catalog:",
+    "zustand": "^5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "catalog:",
