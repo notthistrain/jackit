@@ -126,12 +126,11 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
     setOpenMenuId(null)
   }, [])
 
-  const { root, brand, brandIcon, brandText, menuArea, menuContainer, menuTrigger } = titleBar()
+  const { root, brand, brandIcon, brandText, menuArea, menuContainer, menuTrigger, dragRegion } = titleBar()
 
   return (
     <div className={root()}>
       <div
-        data-tauri-drag-region
         className={brand()}
       >
         <span className={brandIcon()}>&#x26A1;</span>
@@ -173,6 +172,7 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
         ))}
       </div>
 
+      <div data-tauri-drag-region className={dragRegion()} />
       <WindowControls />
     </div>
   )

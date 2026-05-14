@@ -9,5 +9,6 @@ export const titleBar = tv({
     menuArea: 'flex h-full flex-1',
     menuContainer: 'relative h-full',
     menuTrigger: 'px-2.5 h-full flex items-center cursor-pointer text-xs rounded-t-sm data-[open=true]:text-text data-[open=true]:bg-menu-bg data-[open=false]:text-text-secondary data-[open=false]:bg-transparent',
+    dragRegion: 'flex-1 h-full',
   },
 })
