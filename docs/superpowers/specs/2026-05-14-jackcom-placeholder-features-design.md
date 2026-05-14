@@ -187,9 +187,11 @@ class WaveformRenderer {
 |--------|------|
 | Export Data | 调用 `export_data` Tauri command，参数为当前 sessionId |
 | Quick Send | 调用 `setSidebarTab('snippets')` + `toggleSidebar()` 打开 Quick Send 面板 |
-| About | `window.alert('JackCom v1.0.0 — Serial Debugger')` |
-| Documentation | `window.open('https://github.com/...', '_blank')` |
-| Check Updates | 同 Documentation 暂时，后续可接自动更新 |
+| About / Documentation | 合为一项，用默认浏览器打开 GitHub 仓库 jackcom 子项目 README |
+
+### 移除项
+
+- Check Updates — 从菜单中移除
 
 ### 不实现项（保持 disabled 或 onClick 为空）
 
