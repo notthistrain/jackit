@@ -1,7 +1,7 @@
 # JackCom 占位符功能实现设计
 
 **日期：** 2026-05-14
-**目标：** 实现 05-11/05-13 批次计划中 4 项未完成的占位符功能 + 1 个端到端测试工具
+**目标：** 实现 05-11/05-13 批次计划中 4 项未完成的占位符功能 + Mock MCU 测试工具 + ConnectionDialog
 
 ---
 
@@ -185,18 +185,18 @@ class WaveformRenderer {
 
 | 菜单项 | 实现 |
 |--------|------|
+| New Connection / Connect | 打开 ConnectionDialog（见第 6 节） |
+| Disconnect | 调用 `close_port(activePortId)` |
+| Port Settings | 打开 ConnectionDialog（预填当前配置） |
+| Close Connection | 调用 `close_port(activePortId)` |
+| Close All | 调用 `close_all()` |
 | Export Data | 调用 `export_data` Tauri command，参数为当前 sessionId |
 | Quick Send | 调用 `setSidebarTab('snippets')` + `toggleSidebar()` 打开 Quick Send 面板 |
-| About / Documentation | 合为一项，用默认浏览器打开 GitHub 仓库 jackcom 子项目 README |
+| About / Documentation | 用默认浏览器打开 GitHub 仓库 README（`@tauri-apps/plugin-shell` 的 `openUrl`） |
 
 ### 移除项
 
-- Check Updates — 从菜单中移除
-
-### 不实现项（保持 disabled 或 onClick 为空）
-
-- Connect / Disconnect / Port Settings — 需要连接对话框，留到下个迭代
-- New Connection / Close Connection / Close All — 同上
+- Check Updates — 从菜单中移除，不实现
 
 ---
 
@@ -301,6 +301,111 @@ members = [
 
 ---
 
+## 6. ConnectionDialog — 串口连接对话框
+
+### 定位
+
+模态对话框，用于选择串口、配置参数、建立/断开连接。菜单 Connect / Toolbar 连接按钮共用此组件。
+
+### 新建文件
+
+| 文件 | 职责 |
+|------|------|
+| `src/components/connection/ConnectionDialog.tsx` | 模态对话框主组件 |
+| `src/components/connection/PortSelector.tsx` | 端口选择下拉框（实时刷新） |
+| `src/components/connection/SerialConfigForm.tsx` | 串口参数配置表单 |
+| `src/hooks/useSerialConfig.ts` | 串口配置状态管理 + 保存/加载最近配置 |
+
+### 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `src/lib/store.ts` | 添加 `connectionDialogOpen` 状态和 `toggleConnectionDialog` action |
+| `src/components/layout/TitleBar.tsx` | Connect/Port Settings 菜单 onClick 打开对话框 |
+| `src/components/layout/Toolbar.tsx` | 连接按钮 onClick 打开对话框 |
+| `src/components/layout/AppLayout.tsx` | 渲染 ConnectionDialog |
+
+### 对话框布局
+
+```
+┌─────────────────────────────────────┐
+│  Connect to Serial Port        [×]  │
+├─────────────────────────────────────┤
+│                                     │
+│  Port        [COM3          ▾] [↻]  │
+│  Baud Rate   [115200        ▾]      │
+│  Data Bits   [8             ▾]      │
+│  Stop Bits   [1             ▾]      │
+│  Parity      [None          ▾]      │
+│  Flow Control[None          ▾]      │
+│                                     │
+│  ─── Recent ─────────────────────── │
+│  COM3 @ 115200 8N1       [Connect]  │
+│  COM5 @ 9600 8N1         [Connect]  │
+│                                     │
+├─────────────────────────────────────┤
+│               [Cancel]  [Connect]   │
+└─────────────────────────────────────┘
+```
+
+### 数据流
+
+1. 用户点击 Connect → `toggleConnectionDialog(true)` → 对话框打开
+2. PortSelector 挂载 → 调用 `enumerate_ports` Tauri command → 填充下拉框
+3. 刷新按钮 → 重新调用 `enumerate_ports`
+4. 表单默认值：最近一次成功连接的配置（localStorage `jackcom:last-serial-config`）
+5. Recent 列表：最近 5 次成功连接配置（localStorage `jackcom:recent-connections`）
+6. 点击 Connect → 调用 `open_port` Tauri command → 成功后关闭对话框 → store 更新 `activePortId` + `connections`
+7. 连接失败 → 显示错误提示，对话框保持打开
+
+### SerialConfigForm 表单项
+
+| 字段 | 类型 | 选项 |
+|------|------|------|
+| Port | 下拉 | `enumerate_ports()` 返回的端口列表 |
+| Baud Rate | 下拉 | 1200/2400/4800/9600/19200/38400/57600/115200/230400/460800/921600 |
+| Data Bits | 下拉 | 5/6/7/8（默认 8） |
+| Stop Bits | 下拉 | 1/2（默认 1） |
+| Parity | 下拉 | None/Odd/Even（默认 None） |
+| Flow Control | 下拉 | None/Hardware/Software（默认 None） |
+
+### useSerialConfig hook
+
+```typescript
+interface SerialConfig {
+  portName: string
+  baudRate: number
+  dataBits: number
+  stopBits: number
+  parity: string
+  flowControl: string
+}
+
+function useSerialConfig(): {
+  config: SerialConfig
+  setConfig: (config: Partial<SerialConfig>) => void
+  recentConfigs: SerialConfig[]
+  saveAsRecent: () => void
+}
+```
+
+从 localStorage 读写，key 为 `jackcom:serial-config` 和 `jackcom:recent-connections`。
+
+### 快捷连接（Recent 列表）
+
+- 显示最近 5 次成功连接
+- 每项一行：端口名 @ 波特率 数据位校验位停止位
+- 点击直接用该配置连接，无需确认
+- 连接成功后保存到 recent 列表
+
+### 与 Toolbar 连接按钮的关系
+
+- 未连接时：按钮显示 "Connect"，点击打开 ConnectionDialog
+- 已连接时：按钮显示 "Disconnect"，点击直接断开（不打开对话框）
+- Toolbar 上的端口信息从 store `connections[activePortId]` 读取
+
+---
+
 ## 规格自检
 
 ### 占位符扫描
@@ -316,7 +421,7 @@ members = [
 
 ### 范围检查
 
-5 个功能独立，可以拆分为多个实现计划。Connection Dialog 明确排除。Mock MCU 为独立 crate，不影响生产代码。
+6 个功能独立。Mock MCU 为独立 crate 不影响生产代码。ConnectionDialog 补齐了 Connect/Disconnect 菜单项的缺失。
 
 ### 模糊性检查
 
@@ -325,3 +430,7 @@ members = [
 - 帧展开详情：在表格行内展开，不是新窗口
 - Mock MCU 的 AT 场景是响应式（需双向通信），其他场景是单向主动发送
 - Mock MCU 不依赖 jackcom crate，所有协议构造逻辑独立实现
+- About / Documentation 合为一项：打开 GitHub README，不再有 Check Updates
+- ConnectionDialog 是模态弹窗，不是独立窗口
+- Recent 连接列表存 localStorage，最多 5 条
+- Disconnect 操作直接断开，不打开对话框
