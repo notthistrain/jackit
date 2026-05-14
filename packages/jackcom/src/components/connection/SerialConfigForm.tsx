@@ -1,5 +1,7 @@
 import { useT } from '@/i18n'
 import type { SerialConfig } from '@/hooks/useSerialConfig'
+import type { SelectOption } from '@/components/ui/Select'
+import { Select } from '@/components/ui/Select'
 import { PortSelector } from './PortSelector'
 import { serialConfigForm } from './serial-config-form.variants'
 
@@ -12,14 +14,14 @@ const BAUD_RATES = [
   9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600,
 ]
 
-const DATA_BITS = [5, 6, 7, 8]
-const STOP_BITS = [1, 2]
-const PARITY_OPTIONS = ['none', 'odd', 'even']
-const FLOW_CONTROL_OPTIONS = ['none', 'hardware', 'software']
+const DATA_BITS_OPTIONS: SelectOption[] = [5, 6, 7, 8].map(b => ({ value: String(b), label: `${b} bit` }))
+const STOP_BITS_OPTIONS: SelectOption[] = [1, 2].map(b => ({ value: String(b), label: `${b} stop` }))
+const PARITY_OPTIONS: SelectOption[] = ['none', 'odd', 'even'].map(p => ({ value: p, label: p }))
+const FLOW_CONTROL_OPTIONS: SelectOption[] = ['none', 'hardware', 'software'].map(f => ({ value: f, label: f }))
 
 export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
   const { t } = useT()
-  const { row, label, select, compactSelect, portRow } = serialConfigForm()
+  const { row, label, portRow } = serialConfigForm()
 
   return (
     <>
@@ -39,59 +41,46 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
       {/* Baud rate */}
       <div className={row()}>
         <label className={label()}>{t('connection.baudRate')}</label>
-        <select
+        <Select
           value={String(config.baudRate)}
-          onChange={e => onChange({ baudRate: Number(e.target.value) })}
-          className={select()}
-        >
-          {BAUD_RATES.map(rate => (
-            <option key={rate} value={String(rate)}>
-              {rate.toLocaleString()}
-            </option>
-          ))}
-        </select>
+          options={BAUD_RATES.map(rate => ({ value: String(rate), label: rate.toLocaleString() }))}
+          onChange={v => onChange({ baudRate: Number(v) })}
+          className="flex-1"
+        />
       </div>
 
-      {/* Advanced: data bits / stop bits / parity / flow control in one row */}
+      {/* Advanced: data bits / stop bits / parity / flow control */}
       <div className={row()}>
         <label className={label()}>Advanced</label>
         <div className="flex gap-1 flex-1">
-          <select
+          <Select
             value={String(config.dataBits)}
-            onChange={e => onChange({ dataBits: Number(e.target.value) })}
-            className={compactSelect()}
-          >
-            {DATA_BITS.map(b => (
-              <option key={b} value={String(b)}>{b} bit</option>
-            ))}
-          </select>
-          <select
+            options={DATA_BITS_OPTIONS}
+            onChange={v => onChange({ dataBits: Number(v) })}
+            size="compact"
+            className="flex-1"
+          />
+          <Select
             value={String(config.stopBits)}
-            onChange={e => onChange({ stopBits: Number(e.target.value) })}
-            className={compactSelect()}
-          >
-            {STOP_BITS.map(b => (
-              <option key={b} value={String(b)}>{b} stop</option>
-            ))}
-          </select>
-          <select
+            options={STOP_BITS_OPTIONS}
+            onChange={v => onChange({ stopBits: Number(v) })}
+            size="compact"
+            className="flex-1"
+          />
+          <Select
             value={config.parity}
-            onChange={e => onChange({ parity: e.target.value })}
-            className={compactSelect()}
-          >
-            {PARITY_OPTIONS.map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-          <select
+            options={PARITY_OPTIONS}
+            onChange={v => onChange({ parity: v })}
+            size="compact"
+            className="flex-1"
+          />
+          <Select
             value={config.flowControl}
-            onChange={e => onChange({ flowControl: e.target.value })}
-            className={compactSelect()}
-          >
-            {FLOW_CONTROL_OPTIONS.map(f => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+            options={FLOW_CONTROL_OPTIONS}
+            onChange={v => onChange({ flowControl: v })}
+            size="compact"
+            className="flex-1"
+          />
         </div>
       </div>
     </>
