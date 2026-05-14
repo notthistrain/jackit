@@ -109,8 +109,8 @@ const sidebarWidth = computed(() => collapsed.value ? '56px' : '200px')
         :key="item.href"
         :href="item.href"
         class="flex items-center gap-2 rounded-md transition-colors"
-        :class="collapsed ? 'justify-center px-0 py-1.5' : 'px-2 py-1.5'"
         :class="[
+          collapsed ? 'justify-center px-0 py-1.5' : 'px-2 py-1.5',
           isActive(item)
             ? 'bg-cyan-500/10 border border-cyan-400/20'
             : 'border border-transparent',
