@@ -25,4 +25,12 @@
   --color-online: #4EC9B0;
   --color-error: #F44747;
   --color-warning: #F0C040;
+
+  /* 输入控件 */
+  --color-input-bg: #3C3C3C;
+  --color-input-border: #4c4c4c;
+
+  /* 列表交互 */
+  --color-list-hover: #2a2d2e;
+  --color-list-active: #094771;
 }
