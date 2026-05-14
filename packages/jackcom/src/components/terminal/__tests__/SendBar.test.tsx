@@ -38,8 +38,8 @@ describe('SendBar', () => {
     render(<SendBar onSend={vi.fn()} />)
     const input = screen.getByPlaceholderText('01 03 00 00 00 0A C5 CD')
     fireEvent.change(input, { target: { value: 'GG' } })
-    // border shorthand should contain error color
-    expect(input.style.border).toContain('var(--color-error)')
+    // error state applies border-error Tailwind class
+    expect(input.className).toContain('border-error')
   })
 
   it('adds line ending when selected', () => {
