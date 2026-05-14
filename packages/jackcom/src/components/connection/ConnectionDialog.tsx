@@ -4,6 +4,7 @@ import { useSerialConfig } from '@/hooks/useSerialConfig'
 import { useSerialPort } from '@/hooks/useSerialPort'
 import { useMainStore } from '@/lib/store'
 import { SerialConfigForm } from './SerialConfigForm'
+import { connectionDialog } from './connection-dialog.variants'
 
 interface ConnectionDialogProps {
   onClose: () => void
@@ -15,9 +16,15 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
   const { open } = useSerialPort()
   const { toggleConnectionDialog } = useMainStore()
   const [connecting, setConnecting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [errorMsg, setErrMsg] = useState<string | null>(null)
   const [hoveredRecent, setHoveredRecent] = useState<number | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
+
+  const {
+    overlay, dialog, titleBar, titleText, closeBtn,
+    body, recentList, recentHeader, recentItem, recentPort, recentDetail,
+    configArea, error, spacer, actions, cancelBtn, connectBtn,
+  } = connectionDialog()
 
   useEffect(() => {
     dialogRef.current?.focus()
@@ -26,11 +33,11 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
   const handleConnect = useCallback(async (overrideConfig?: typeof config) => {
     const cfg = overrideConfig ?? config
     if (!cfg.portName) {
-      setError('Please select a port')
+      setErrMsg('Please select a port')
       return
     }
     setConnecting(true)
-    setError(null)
+    setErrMsg(null)
     try {
       await open({
         port_name: cfg.portName,
@@ -44,7 +51,7 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
       toggleConnectionDialog(false)
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setErrMsg(e instanceof Error ? e.message : String(e))
     } finally {
       setConnecting(false)
     }
@@ -80,15 +87,7 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000,
-      }}
+      className={overlay()}
       onMouseDown={e => {
         if (e.target === e.currentTarget) handleClose()
       }}
@@ -99,64 +98,27 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
         aria-label={t('connection.title')}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        style={{
-          background: '#1e1e1e',
-          borderRadius: '6px',
-          overflow: 'hidden',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
-          minWidth: '480px',
-          fontFamily: "'Segoe UI', system-ui, sans-serif",
-          fontSize: '11px',
-          color: '#d4d4d4',
-        }}
+        className={dialog()}
       >
         {/* Title bar */}
-        <div style={{
-          background: '#323233',
-          padding: '8px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          borderBottom: '1px solid #3c3c3c',
-        }}
-        >
-          <span style={{ color: 'var(--color-accent)', fontWeight: 600, fontSize: '12px' }}>
+        <div className={titleBar()}>
+          <span className={titleText()}>
             {t('connection.title')}
           </span>
           <button
             onClick={handleClose}
-            style={{
-              marginLeft: 'auto',
-              color: '#858585',
-              cursor: 'pointer',
-              fontSize: '14px',
-              background: 'transparent',
-              border: 'none',
-              padding: '0 2px',
-              lineHeight: 1,
-            }}
+            className={closeBtn()}
           >
             ✕
           </button>
         </div>
 
         {/* Two-column layout */}
-        <div style={{ display: 'flex', minHeight: '200px' }}>
+        <div className={body()}>
           {/* Left: Recent connections */}
           {recentConfigs.length > 0 && (
-            <div style={{
-              width: '160px',
-              borderRight: '1px solid #3c3c3c',
-              padding: '10px',
-            }}
-            >
-              <div style={{
-                color: '#858585',
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-                marginBottom: '8px',
-              }}
-              >
+            <div className={recentList()}>
+              <div className={recentHeader()}>
                 RECENT
               </div>
               {recentConfigs.map((rc, i) => (
@@ -165,18 +127,12 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
                   onClick={() => handleRecentConnect(rc)}
                   onMouseEnter={() => setHoveredRecent(i)}
                   onMouseLeave={() => setHoveredRecent(null)}
-                  style={{
-                    background: hoveredRecent === i ? 'var(--color-accent)' : '#2a2d2e',
-                    borderRadius: '3px',
-                    padding: '6px 8px',
-                    marginBottom: '3px',
-                    cursor: 'pointer',
-                  }}
+                  className={recentItem({ hovered: hoveredRecent === i })}
                 >
-                  <div style={{ color: '#d4d4d4', fontSize: '11px', fontWeight: 600 }}>
+                  <div className={recentPort()}>
                     {rc.portName}
                   </div>
-                  <div style={{ color: '#858585', fontSize: '10px' }}>
+                  <div className={recentDetail()}>
                     {rc.baudRate.toLocaleString()} {rc.dataBits}{rc.parity[0].toUpperCase()}{rc.stopBits}
                   </div>
                 </div>
@@ -185,63 +141,31 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
           )}
 
           {/* Right: Config form + buttons */}
-          <div style={{
-            flex: 1,
-            padding: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-          >
+          <div className={configArea()}>
             <SerialConfigForm config={config} onChange={setConfig} />
 
             {/* Error */}
-            {error && (
-              <div style={{
-                fontSize: '11px',
-                color: '#e06c75',
-                padding: '4px 8px',
-                background: 'rgba(224, 108, 117, 0.1)',
-                borderRadius: '3px',
-              }}
-              >
-                {error}
+            {errorMsg && (
+              <div className={error()}>
+                {errorMsg}
               </div>
             )}
 
             {/* Spacer */}
-            <div style={{ flex: 1 }} />
+            <div className={spacer()} />
 
             {/* Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <div className={actions()}>
               <button
                 onClick={handleClose}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #4c4c4c',
-                  borderRadius: '3px',
-                  padding: '4px 14px',
-                  color: '#858585',
-                  fontSize: '10px',
-                  cursor: 'pointer',
-                }}
+                className={cancelBtn()}
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={() => handleConnect()}
                 disabled={connecting || !config.portName}
-                style={{
-                  background: 'var(--color-accent)',
-                  border: 'none',
-                  borderRadius: '3px',
-                  padding: '4px 14px',
-                  color: '#fff',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  cursor: connecting || !config.portName ? 'not-allowed' : 'pointer',
-                  opacity: connecting || !config.portName ? 0.6 : 1,
-                }}
+                className={connectBtn({ disabled: connecting || !config.portName })}
               >
                 {connecting ? t('connection.connecting') : t('connection.connect')}
               </button>

@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { TerminalLine, type DisplayFrame } from './TerminalLine'
 import { useMainStore } from '@/lib/store'
+import { terminalView } from './terminal-view.variants'
 
 interface TerminalViewProps {
   frames: DisplayFrame[]
@@ -11,6 +12,7 @@ export function TerminalView({ frames }: TerminalViewProps) {
   const hexDisplay = useMainStore((s) => s.hexDisplay)
   const parentRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
+  const { root, inner, row } = terminalView()
 
   const virtualizer = useVirtualizer({
     count: frames.length,
@@ -37,32 +39,19 @@ export function TerminalView({ frames }: TerminalViewProps) {
     <div
       ref={parentRef}
       onScroll={handleScroll}
-      style={{
-        flex: 1,
-        overflow: 'auto',
-        background: 'var(--color-editor-bg)',
-        position: 'relative',
-      }}
+      className={root()}
     >
       <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
+        className={inner()}
+        style={{ height: virtualizer.getTotalSize() + 'px' }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const frame = frames[virtualRow.index]
           return (
             <div
               key={virtualRow.index}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
+              className={row()}
+              style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
               <TerminalLine frame={frame} hexMode={hexDisplay} />
             </div>

@@ -1,6 +1,7 @@
 import { useT } from '@/i18n'
 import type { SerialConfig } from '@/hooks/useSerialConfig'
 import { PortSelector } from './PortSelector'
+import { serialConfigForm } from './serial-config-form.variants'
 
 interface SerialConfigFormProps {
   config: SerialConfig
@@ -16,47 +17,17 @@ const STOP_BITS = [1, 2]
 const PARITY_OPTIONS = ['none', 'odd', 'even']
 const FLOW_CONTROL_OPTIONS = ['none', 'hardware', 'software']
 
-const rowLabelStyle: React.CSSProperties = {
-  fontSize: '10px',
-  color: '#858585',
-  textAlign: 'right',
-  width: '70px',
-  flexShrink: 0,
-}
-
-const selectStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '3px 6px',
-  fontSize: '11px',
-  background: '#3c3c3c',
-  color: '#d4d4d4',
-  border: '1px solid #4c4c4c',
-  borderRadius: '3px',
-  outline: 'none',
-}
-
-const compactSelectStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '3px 6px',
-  fontSize: '10px',
-  background: '#3c3c3c',
-  color: '#d4d4d4',
-  border: '1px solid #4c4c4c',
-  borderRadius: '3px',
-  outline: 'none',
-  textAlign: 'center',
-}
-
 export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
   const { t } = useT()
+  const { row, label, select, compactSelect, portRow } = serialConfigForm()
 
   return (
     <>
       {/* Port selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <label style={rowLabelStyle}>{t('connection.port')}</label>
-        <div style={{ flex: 1, display: 'flex', gap: '4px' }}>
-          <div style={{ flex: 1 }}>
+      <div className={row()}>
+        <label className={label()}>{t('connection.port')}</label>
+        <div className={portRow()}>
+          <div className="flex-1">
             <PortSelector
               value={config.portName}
               onChange={v => onChange({ portName: v })}
@@ -66,12 +37,12 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
       </div>
 
       {/* Baud rate */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <label style={rowLabelStyle}>{t('connection.baudRate')}</label>
+      <div className={row()}>
+        <label className={label()}>{t('connection.baudRate')}</label>
         <select
           value={String(config.baudRate)}
           onChange={e => onChange({ baudRate: Number(e.target.value) })}
-          style={selectStyle}
+          className={select()}
         >
           {BAUD_RATES.map(rate => (
             <option key={rate} value={String(rate)}>
@@ -82,13 +53,13 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
       </div>
 
       {/* Advanced: data bits / stop bits / parity / flow control in one row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <label style={rowLabelStyle}>Advanced</label>
-        <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+      <div className={row()}>
+        <label className={label()}>Advanced</label>
+        <div className="flex gap-1 flex-1">
           <select
             value={String(config.dataBits)}
             onChange={e => onChange({ dataBits: Number(e.target.value) })}
-            style={compactSelectStyle}
+            className={compactSelect()}
           >
             {DATA_BITS.map(b => (
               <option key={b} value={String(b)}>{b} bit</option>
@@ -97,7 +68,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
           <select
             value={String(config.stopBits)}
             onChange={e => onChange({ stopBits: Number(e.target.value) })}
-            style={compactSelectStyle}
+            className={compactSelect()}
           >
             {STOP_BITS.map(b => (
               <option key={b} value={String(b)}>{b} stop</option>
@@ -106,7 +77,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
           <select
             value={config.parity}
             onChange={e => onChange({ parity: e.target.value })}
-            style={compactSelectStyle}
+            className={compactSelect()}
           >
             {PARITY_OPTIONS.map(p => (
               <option key={p} value={p}>{p}</option>
@@ -115,7 +86,7 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
           <select
             value={config.flowControl}
             onChange={e => onChange({ flowControl: e.target.value })}
-            style={compactSelectStyle}
+            className={compactSelect()}
           >
             {FLOW_CONTROL_OPTIONS.map(f => (
               <option key={f} value={f}>{f}</option>

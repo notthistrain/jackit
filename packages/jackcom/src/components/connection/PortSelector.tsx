@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSerialPort } from '@/hooks/useSerialPort'
+import { portSelector } from './port-selector.variants'
 
 interface PortInfo {
   name: string
@@ -18,15 +19,17 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
   const { enumerate } = useSerialPort()
   const [ports, setPorts] = useState<PortInfo[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [errorMsg, setErrMsg] = useState<string | null>(null)
   const valueRef = useRef(value)
   valueRef.current = value
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
+  const { root, row, select, refreshBtn, error } = portSelector()
+
   const refresh = useCallback(async () => {
     setLoading(true)
-    setError(null)
+    setErrMsg(null)
     try {
       const list = await enumerate()
       setPorts(list)
@@ -35,7 +38,7 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
         onChangeRef.current(list[0].name)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setErrMsg(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }
@@ -46,22 +49,13 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
   }, [refresh])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+    <div className={root()}>
+      <div className={row()}>
         <select
           value={value}
           onChange={e => onChange(e.target.value)}
           disabled={loading || ports.length === 0}
-          style={{
-            flex: 1,
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: 'var(--color-editor-bg)',
-            color: 'var(--color-text)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '3px',
-            outline: 'none',
-          }}
+          className={select()}
         >
           {ports.length === 0 && (
             <option value="">{loading ? '...' : 'No ports'}</option>
@@ -76,22 +70,13 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
           onClick={refresh}
           disabled={loading}
           title="Refresh"
-          style={{
-            padding: '4px 8px',
-            fontSize: '11px',
-            background: 'var(--color-border)',
-            color: 'var(--color-text)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '3px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1,
-          }}
+          className={refreshBtn({ loading })}
         >
           {loading ? '...' : 'R'}
         </button>
       </div>
-      {error && (
-        <span style={{ fontSize: '11px', color: '#e06c75' }}>{error}</span>
+      {errorMsg && (
+        <span className={error()}>{errorMsg}</span>
       )}
     </div>
   )

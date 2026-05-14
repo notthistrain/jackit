@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { menuDropdown } from './menu-dropdown.variants'
 
 interface MenuDropdownProps {
   children: ReactNode
@@ -8,6 +9,7 @@ interface MenuDropdownProps {
 
 export function MenuDropdown({ children, onClose }: MenuDropdownProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const { root } = menuDropdown()
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -33,18 +35,7 @@ export function MenuDropdown({ children, onClose }: MenuDropdownProps) {
     <div
       ref={ref}
       role="menu"
-      style={{
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        background: 'var(--color-menu-bg)',
-        border: '1px solid var(--color-border)',
-        borderRadius: '4px',
-        padding: '4px 0',
-        minWidth: '180px',
-        zIndex: 1000,
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-      }}
+      className={root()}
     >
       {children}
     </div>

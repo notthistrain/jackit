@@ -1,48 +1,40 @@
 import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
+import { connectionList } from './connection-list.variants'
 
 export function ConnectionList() {
   const { t } = useT()
   const { connections, activePortId, setActivePortId } = useMainStore()
   const connList = Object.values(connections)
+  const { empty, list, item, row, statusDot, portName, baudRate } = connectionList()
 
   if (connList.length === 0) {
     return (
-      <div style={{ padding: '12px 8px', color: 'var(--color-text-secondary)', fontSize: '11px' }}>
+      <div className={empty()}>
         {t('sidebar.noConnections')}
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '4px' }}>
+    <div className={list()}>
       {connList.map(conn => (
         <div
           key={conn.portName}
           onClick={() => setActivePortId(conn.portName)}
-          style={{
-            padding: '6px 8px',
-            marginBottom: '2px',
-            borderRadius: '3px',
-            cursor: 'pointer',
-            background: activePortId === conn.portName
-              ? 'var(--color-border)'
-              : 'transparent',
-            borderLeft: conn.online
-              ? '3px solid var(--color-online)'
-              : '3px solid transparent',
-          }}
+          data-active={activePortId === conn.portName}
+          data-online={conn.online}
+          className={item()}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{
-              color: conn.online ? 'var(--color-online)' : 'var(--color-text-secondary)',
-              fontSize: '8px',
-            }}
+          <div className={row()}>
+            <span
+              className={statusDot()}
+              style={{ color: conn.online ? 'var(--color-online)' : 'var(--color-text-secondary)' }}
             >
               {conn.online ? '●' : '○'}
             </span>
-            <span style={{ fontWeight: 600, fontSize: '12px' }}>{conn.portName}</span>
-            <span style={{ marginLeft: 'auto', color: 'var(--color-text-secondary)', fontSize: '10px' }}>
+            <span className={portName()}>{conn.portName}</span>
+            <span className={baudRate()}>
               {conn.baudRate.toLocaleString()}
             </span>
           </div>
