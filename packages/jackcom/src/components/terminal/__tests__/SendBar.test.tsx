@@ -36,10 +36,10 @@ describe('sendBar', () => {
 
   it('shows error border for invalid hex', () => {
     render(<SendBar onSend={vi.fn()} />)
-    const input = screen.getByPlaceholderText('01 03 00 00 00 0A C5 CD')
+    const input = screen.getByPlaceholderText('01 03 00 00 00 0A C5 CD') as HTMLInputElement
     fireEvent.change(input, { target: { value: 'GG' } })
-    // error state applies border-error Tailwind class
-    expect(input.className).toContain('border-error')
+    // error state applies inline border style with --color-error
+    expect(input.style.border).toContain('var(--color-error)')
   })
 
   it('adds line ending when selected', () => {

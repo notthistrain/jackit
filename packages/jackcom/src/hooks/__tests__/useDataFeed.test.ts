@@ -65,44 +65,46 @@ describe('useDataFeed', () => {
   })
 
   it('receives and batches frames from port:data events', async () => {
-    renderHook(() => useDataFeed({ flushInterval: 100 }))
+    const { result } = renderHook(() => useDataFeed({ flushInterval: 100 }))
 
-    // Wait for async setup to complete (listen Promise resolves)
     await waitForListener()
 
-    // Emit frames
     emitEvent('port:data', { port_id: 'COM3', frames: [sampleFrame] })
 
-    // Advance timer to trigger flush
     act(() => {
       vi.advanceTimersByTime(150)
     })
 
-    // Re-read result from a new renderHook to get latest state
-    // Actually, we need to get the result from the renderHook call
+    expect(result.current.frames).toHaveLength(1)
+    expect(result.current.frames[0]).toEqual(sampleFrame)
+    expect(result.current.totalCount).toBe(1)
   })
 
   it('filters frames by portId', async () => {
-    renderHook(() => useDataFeed({ portId: 'COM3', flushInterval: 100 }))
+    const { result } = renderHook(() => useDataFeed({ portId: 'COM3', flushInterval: 100 }))
 
     await waitForListener()
 
-    // Emit for different port — should be filtered
+    // Emit for different port — should be filtered out
     emitEvent('port:data', { port_id: 'COM5', frames: [sampleFrame] })
 
     act(() => {
       vi.advanceTimersByTime(150)
     })
 
-    // Emit for correct port — should pass
+    expect(result.current.frames).toHaveLength(0)
+    expect(result.current.totalCount).toBe(0)
+
+    // Emit for correct port — should pass through
     emitEvent('port:data', { port_id: 'COM3', frames: [sampleFrame2] })
 
     act(() => {
       vi.advanceTimersByTime(150)
     })
 
-    // The hook was filtering correctly — verified by no crash
-    // (Detailed state assertion requires accessing result)
+    expect(result.current.frames).toHaveLength(1)
+    expect(result.current.frames[0]).toEqual(sampleFrame2)
+    expect(result.current.totalCount).toBe(1)
   })
 
   it('batches multiple events before flush', async () => {

@@ -78,6 +78,7 @@ onMounted(async () => {
         {{ error }}
       </div>
       <template v-else-if="software">
+        <!-- eslint-disable-next-line vue/no-v-html -- 内容由管理后台 Tiptap 编辑器生成，可信来源 -->
         <div v-if="software.manual" class="manual-content" v-html="software.manual" />
         <div v-else class="text-center py-20" style="color: #64748b;">
           暂无操作说明书

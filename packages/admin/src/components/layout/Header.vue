@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
 const { user, logout } = useAuth()
@@ -7,10 +7,16 @@ const showMenu = ref(false)
 
 const username = computed(() => user.value?.username || 'Admin')
 
+function onDocumentClick() {
+  showMenu.value = false
+}
+
 onMounted(() => {
-  document.addEventListener('click', () => {
-    showMenu.value = false
-  })
+  document.addEventListener('click', onDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
 })
 
 function handleLogout() {

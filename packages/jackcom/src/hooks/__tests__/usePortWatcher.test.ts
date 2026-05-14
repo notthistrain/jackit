@@ -1,21 +1,33 @@
 import { renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock @tauri-apps/api/event
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn().mockResolvedValue(vi.fn()),
+// Track listeners and allow simulating events
+let registeredCallbacks: Record<string, (payload: any) => void> = {}
+
+vi.mock('@/lib/tauri-events', () => ({
+  on: vi.fn().mockImplementation((event: string, callback: (payload: any) => void) => {
+    registeredCallbacks[event] = callback
+    return Promise.resolve(vi.fn()) // unlisten
+  }),
 }))
 
 describe('usePortWatcher', () => {
+  beforeEach(() => {
+    registeredCallbacks = {}
+  })
+
   it('calls onChange when port:change event fires', async () => {
-    const { listen } = await import('@tauri-apps/api/event')
     const onChange = vi.fn()
 
-    // 导入 hook（在 mock 之后）
     const { usePortWatcher } = await import('../usePortWatcher')
     renderHook(() => usePortWatcher(onChange))
 
-    // 验证 listen 被调用
-    expect(listen).toHaveBeenCalledWith('port:change', expect.any(Function))
+    // Simulate port:change event
+    const testPayload = { port: 'COM3', action: 'connected' }
+    if (registeredCallbacks['port:change']) {
+      registeredCallbacks['port:change'](testPayload)
+    }
+
+    expect(onChange).toHaveBeenCalledWith(testPayload)
   })
 })
