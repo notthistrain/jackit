@@ -48,6 +48,9 @@ catalogs:
     tailwind-merge:
       specifier: ^3.5.0
       version: 3.6.0
+    tailwind-variants:
+      specifier: ^1.0.0
+      version: 1.0.0
     tailwindcss:
       specifier: ^4.2.1
       version: 4.3.0
@@ -207,6 +210,9 @@ importers:
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.6.0
+      tailwind-variants:
+        specifier: 'catalog:'
+        version: 1.0.0(tailwindcss@4.3.0)
       zustand:
         specifier: ^5
         version: 5.0.13(@types/react@19.2.14)(react@19.2.6)
@@ -7437,8 +7443,17 @@ packages:
     resolution: {integrity: sha512-9kY+CygyYM6j02t5YFHbNz2FN5QmYGv9zAjVp4lCDjlCw7amdckXlEt/bjMhUIfj4ThGRE4gCUH5+yGnNuPo5A==}
     engines: {node: '>=10.0.0'}
 
+  tailwind-merge@3.0.2:
+    resolution: {integrity: sha512-l7z+OYZ7mu3DTqrL88RiKrKIqO3NcpEO8V/Od04bNpvk0kiIFndGEoqfuzvj4yuhRkHKjRkII2z+KS2HfPcSxw==}
+
   tailwind-merge@3.6.0:
     resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
+
+  tailwind-variants@1.0.0:
+    resolution: {integrity: sha512-2WSbv4ulEEyuBKomOunut65D8UZwxrHoRfYnxGcQNnHqlSCp2+B7Yz2W+yrNDrxRodOXtGD/1oCcKGNBnUqMqA==}
+    engines: {node: '>=16.x', pnpm: '>=7.x'}
+    peerDependencies:
+      tailwindcss: '*'
 
   tailwindcss@4.3.0:
     resolution: {integrity: sha512-y6nxMGB1nMW9R6k96e5gdIFzcfL/gTJRNaqGes1YvkLnPVXzWgbqFF2yLC0T8G774n24cx3Pe8XrKoniCOAH+Q==}
@@ -17105,7 +17120,14 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
 
+  tailwind-merge@3.0.2: {}
+
   tailwind-merge@3.6.0: {}
+
+  tailwind-variants@1.0.0(tailwindcss@4.3.0):
+    dependencies:
+      tailwind-merge: 3.0.2
+      tailwindcss: 4.3.0
 
   tailwindcss@4.3.0: {}
 

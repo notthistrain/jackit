@@ -1,4 +1,4 @@
-:root {
+@theme {
   /* 主强调色 */
   --color-accent: #007ACC;
   --color-accent-hover: #1E8AD2;

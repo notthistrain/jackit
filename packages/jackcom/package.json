@@ -25,6 +25,7 @@
     "react": "^19",
     "react-dom": "^19",
     "tailwind-merge": "catalog:",
+    "tailwind-variants": "catalog:",
     "zustand": "^5"
   },
   "devDependencies": {
