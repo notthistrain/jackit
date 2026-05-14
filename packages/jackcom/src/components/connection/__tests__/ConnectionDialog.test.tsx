@@ -133,7 +133,8 @@ describe('ConnectionDialog', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('selecting a recent connection calls setConfig', () => {
+  it('clicking a recent connection directly connects', async () => {
+    mockOpen.mockResolvedValue(undefined)
     mockRecentConfigs = [
       { portName: 'COM5', baudRate: 57600, dataBits: 7, stopBits: 2, parity: 'even', flowControl: 'hardware' },
     ]
@@ -143,13 +144,17 @@ describe('ConnectionDialog', () => {
     const recentBtn = screen.getByText(/COM5/)
     fireEvent.click(recentBtn)
 
-    expect(mockSetConfig).toHaveBeenCalledWith({
-      portName: 'COM5',
-      baudRate: 57600,
-      dataBits: 7,
-      stopBits: 2,
-      parity: 'even',
-      flowControl: 'hardware',
+    await waitFor(() => {
+      expect(mockOpen).toHaveBeenCalledWith({
+        port_name: 'COM5',
+        baud_rate: 57600,
+        data_bits: 'seven',
+        stop_bits: 'two',
+        parity: 'even',
+        flow_control: 'hardware',
+      })
+      expect(mockToggleDialog).toHaveBeenCalledWith(false)
+      expect(onClose).toHaveBeenCalled()
     })
   })
 })

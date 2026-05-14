@@ -9,13 +9,6 @@ interface ConnectionDialogProps {
   onClose: () => void
 }
 
-/**
- * Serial port connection dialog.
- *
- * Renders a modal overlay with a SerialConfigForm, recent-connections list,
- * and connect/cancel buttons. On successful connection, calls the store's
- * addConnection (via useSerialPort) and closes the dialog.
- */
 export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
   const { t } = useT()
   const { config, setConfig, recentConfigs, saveAsRecent } = useSerialConfig()
@@ -26,27 +19,26 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
   const [hoveredRecent, setHoveredRecent] = useState<number | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
 
-  // Auto-focus dialog for keyboard handling
   useEffect(() => {
     dialogRef.current?.focus()
   }, [])
 
-  const handleConnect = useCallback(async () => {
-    if (!config.portName) {
+  const handleConnect = useCallback(async (overrideConfig?: typeof config) => {
+    const cfg = overrideConfig ?? config
+    if (!cfg.portName) {
       setError('Please select a port')
       return
     }
     setConnecting(true)
     setError(null)
     try {
-      // Map UI config to Tauri command format
       await open({
-        port_name: config.portName,
-        baud_rate: config.baudRate,
-        data_bits: dataBitsToString(config.dataBits),
-        stop_bits: stopBitsToString(config.stopBits),
-        parity: config.parity,
-        flow_control: config.flowControl,
+        port_name: cfg.portName,
+        baud_rate: cfg.baudRate,
+        data_bits: dataBitsToString(cfg.dataBits),
+        stop_bits: stopBitsToString(cfg.stopBits),
+        parity: cfg.parity,
+        flow_control: cfg.flowControl,
       })
       saveAsRecent()
       toggleConnectionDialog(false)
@@ -69,14 +61,22 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
     })
   }, [setConfig])
 
+  const handleClose = useCallback(() => {
+    toggleConnectionDialog(false)
+    onClose()
+  }, [toggleConnectionDialog, onClose])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       e.preventDefault()
       e.stopPropagation()
-      toggleConnectionDialog(false)
-      onClose()
+      handleClose()
     }
-  }, [toggleConnectionDialog, onClose])
+  }, [handleClose])
+
+  const handleRecentConnect = useCallback((recent: typeof config) => {
+    handleConnect(recent)
+  }, [handleConnect])
 
   return (
     <div
@@ -90,11 +90,7 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
         zIndex: 2000,
       }}
       onMouseDown={e => {
-        // Close on backdrop click
-        if (e.target === e.currentTarget) {
-          toggleConnectionDialog(false)
-          onClose()
-        }
+        if (e.target === e.currentTarget) handleClose()
       }}
     >
       <div
@@ -104,139 +100,158 @@ export function ConnectionDialog({ onClose }: ConnectionDialogProps) {
         tabIndex={-1}
         onKeyDown={handleKeyDown}
         style={{
-          background: 'var(--color-menu-bg)',
-          border: '1px solid var(--color-border)',
+          background: '#1e1e1e',
           borderRadius: '6px',
-          padding: '16px',
-          minWidth: '380px',
-          maxWidth: '460px',
+          overflow: 'hidden',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
+          minWidth: '480px',
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+          fontSize: '11px',
+          color: '#d4d4d4',
         }}
       >
-        {/* Title */}
+        {/* Title bar */}
         <div style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: 'var(--color-text)',
-          paddingBottom: '8px',
-          borderBottom: '1px solid var(--color-border)',
+          background: '#323233',
+          padding: '8px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          borderBottom: '1px solid #3c3c3c',
         }}
         >
-          {t('connection.title')}
+          <span style={{ color: 'var(--color-accent)', fontWeight: 600, fontSize: '12px' }}>
+            {t('connection.title')}
+          </span>
+          <button
+            onClick={handleClose}
+            style={{
+              marginLeft: 'auto',
+              color: '#858585',
+              cursor: 'pointer',
+              fontSize: '14px',
+              background: 'transparent',
+              border: 'none',
+              padding: '0 2px',
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Config form */}
-        <SerialConfigForm config={config} onChange={setConfig} />
-
-        {/* Recent connections */}
-        {recentConfigs.length > 0 && (
-          <div>
+        {/* Two-column layout */}
+        <div style={{ display: 'flex', minHeight: '200px' }}>
+          {/* Left: Recent connections */}
+          {recentConfigs.length > 0 && (
             <div style={{
-              fontSize: '11px',
-              color: 'var(--color-text-secondary)',
-              marginBottom: '4px',
-              fontWeight: 600,
-              letterSpacing: '0.5px',
+              width: '160px',
+              borderRight: '1px solid #3c3c3c',
+              padding: '10px',
             }}
             >
-              {t('connection.recent')}
-            </div>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '2px',
-              maxHeight: '100px',
-              overflowY: 'auto',
-            }}
-            >
+              <div style={{
+                color: '#858585',
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+                marginBottom: '8px',
+              }}
+              >
+                RECENT
+              </div>
               {recentConfigs.map((rc, i) => (
-                <button
+                <div
                   key={`${rc.portName}-${rc.baudRate}-${i}`}
-                  onClick={() => handleRecentSelect(rc)}
-                  style={{
-                    background: hoveredRecent === i ? 'var(--color-accent)' : 'transparent',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '3px',
-                    padding: '4px 8px',
-                    fontSize: '11px',
-                    color: hoveredRecent === i ? '#fff' : 'var(--color-text)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
+                  onClick={() => handleRecentConnect(rc)}
                   onMouseEnter={() => setHoveredRecent(i)}
                   onMouseLeave={() => setHoveredRecent(null)}
+                  style={{
+                    background: hoveredRecent === i ? 'var(--color-accent)' : '#2a2d2e',
+                    borderRadius: '3px',
+                    padding: '6px 8px',
+                    marginBottom: '3px',
+                    cursor: 'pointer',
+                  }}
                 >
-                  {rc.portName} @ {rc.baudRate.toLocaleString()} ({rc.dataBits}{rc.parity[0].toUpperCase()}{rc.stopBits})
-                </button>
+                  <div style={{ color: '#d4d4d4', fontSize: '11px', fontWeight: 600 }}>
+                    {rc.portName}
+                  </div>
+                  <div style={{ color: '#858585', fontSize: '10px' }}>
+                    {rc.baudRate.toLocaleString()} {rc.dataBits}{rc.parity[0].toUpperCase()}{rc.stopBits}
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Error */}
-        {error && (
+          {/* Right: Config form + buttons */}
           <div style={{
-            fontSize: '11px',
-            color: '#e06c75',
-            padding: '4px 8px',
-            background: 'rgba(224, 108, 117, 0.1)',
-            borderRadius: '3px',
+            flex: 1,
+            padding: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
           }}
           >
-            {error}
-          </div>
-        )}
+            <SerialConfigForm config={config} onChange={setConfig} />
 
-        {/* Actions */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '8px',
-          paddingTop: '8px',
-          borderTop: '1px solid var(--color-border)',
-        }}
-        >
-          <button
-            onClick={() => { toggleConnectionDialog(false); onClose() }}
-            style={{
-              padding: '5px 16px',
-              fontSize: '12px',
-              background: 'transparent',
-              color: 'var(--color-text-secondary)',
-              border: '1px solid var(--color-border)',
-              borderRadius: '3px',
-              cursor: 'pointer',
-            }}
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={handleConnect}
-            disabled={connecting || !config.portName}
-            style={{
-              padding: '5px 16px',
-              fontSize: '12px',
-              background: 'var(--color-accent)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: connecting || !config.portName ? 'not-allowed' : 'pointer',
-              opacity: connecting || !config.portName ? 0.6 : 1,
-              fontWeight: 600,
-            }}
-          >
-            {connecting ? t('connection.connecting') : t('connection.connect')}
-          </button>
+            {/* Error */}
+            {error && (
+              <div style={{
+                fontSize: '11px',
+                color: '#e06c75',
+                padding: '4px 8px',
+                background: 'rgba(224, 108, 117, 0.1)',
+                borderRadius: '3px',
+              }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                onClick={handleClose}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #4c4c4c',
+                  borderRadius: '3px',
+                  padding: '4px 14px',
+                  color: '#858585',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => handleConnect()}
+                disabled={connecting || !config.portName}
+                style={{
+                  background: 'var(--color-accent)',
+                  border: 'none',
+                  borderRadius: '3px',
+                  padding: '4px 14px',
+                  color: '#fff',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  cursor: connecting || !config.portName ? 'not-allowed' : 'pointer',
+                  opacity: connecting || !config.portName ? 0.6 : 1,
+                }}
+              >
+                {connecting ? t('connection.connecting') : t('connection.connect')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-
-// === Helpers: map numeric values to Tauri command string format ===
 
 function dataBitsToString(bits: number): string {
   switch (bits) {

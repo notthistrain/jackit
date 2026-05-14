@@ -105,7 +105,7 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
     {
       id: 'help',
       items: [
-        { labelKey: 'menu.help.about', onClick: () => open('https://github.com/nicepkg/jackcom#readme') },
+        { labelKey: 'menu.help.about', onClick: () => open('https://github.com/notthistrain/jackit/tree/main/packages/jackcom/README.md') },
       ],
     },
   ]

@@ -13,6 +13,7 @@
     "core:window:allow-set-size",
     "core:window:allow-set-position",
     "core:event:default",
-    "log:default"
+    "log:default",
+    "shell:allow-open"
   ]
 }

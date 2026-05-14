@@ -16,126 +16,113 @@ const STOP_BITS = [1, 2]
 const PARITY_OPTIONS = ['none', 'odd', 'even']
 const FLOW_CONTROL_OPTIONS = ['none', 'hardware', 'software']
 
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-  formatLabel,
-}: {
-  label: string
-  value: string | number
-  options: Array<string | number>
-  onChange: (val: string) => void
-  formatLabel?: (val: string | number) => string
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <label style={{
-        fontSize: '11px',
-        color: 'var(--color-text-secondary)',
-        width: '70px',
-        textAlign: 'right',
-        flexShrink: 0,
-      }}
-      >
-        {label}
-      </label>
-      <select
-        value={String(value)}
-        onChange={e => onChange(e.target.value)}
-        style={{
-          flex: 1,
-          padding: '3px 6px',
-          fontSize: '12px',
-          background: 'var(--color-editor-bg)',
-          color: 'var(--color-text)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '3px',
-          outline: 'none',
-        }}
-      >
-        {options.map(opt => (
-          <option key={String(opt)} value={String(opt)}>
-            {formatLabel ? formatLabel(opt) : String(opt)}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
+const rowLabelStyle: React.CSSProperties = {
+  fontSize: '10px',
+  color: '#858585',
+  textAlign: 'right',
+  width: '70px',
+  flexShrink: 0,
+}
+
+const selectStyle: React.CSSProperties = {
+  flex: 1,
+  padding: '3px 6px',
+  fontSize: '11px',
+  background: '#3c3c3c',
+  color: '#d4d4d4',
+  border: '1px solid #4c4c4c',
+  borderRadius: '3px',
+  outline: 'none',
+}
+
+const compactSelectStyle: React.CSSProperties = {
+  flex: 1,
+  padding: '3px 6px',
+  fontSize: '10px',
+  background: '#3c3c3c',
+  color: '#d4d4d4',
+  border: '1px solid #4c4c4c',
+  borderRadius: '3px',
+  outline: 'none',
+  textAlign: 'center',
 }
 
 export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
   const { t } = useT()
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '10px',
-      padding: '8px 0',
-    }}
-    >
+    <>
       {/* Port selector */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <label style={{
-          fontSize: '11px',
-          color: 'var(--color-text-secondary)',
-          width: '70px',
-          textAlign: 'right',
-          flexShrink: 0,
-        }}
-        >
-          {t('connection.port')}
-        </label>
-        <div style={{ flex: 1 }}>
-          <PortSelector
-            value={config.portName}
-            onChange={v => onChange({ portName: v })}
-          />
+        <label style={rowLabelStyle}>{t('connection.port')}</label>
+        <div style={{ flex: 1, display: 'flex', gap: '4px' }}>
+          <div style={{ flex: 1 }}>
+            <PortSelector
+              value={config.portName}
+              onChange={v => onChange({ portName: v })}
+            />
+          </div>
         </div>
       </div>
 
       {/* Baud rate */}
-      <SelectField
-        label={t('connection.baudRate')}
-        value={config.baudRate}
-        options={BAUD_RATES}
-        onChange={v => onChange({ baudRate: Number(v) })}
-        formatLabel={v => Number(v).toLocaleString()}
-      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <label style={rowLabelStyle}>{t('connection.baudRate')}</label>
+        <select
+          value={String(config.baudRate)}
+          onChange={e => onChange({ baudRate: Number(e.target.value) })}
+          style={selectStyle}
+        >
+          {BAUD_RATES.map(rate => (
+            <option key={rate} value={String(rate)}>
+              {rate.toLocaleString()}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {/* Data bits */}
-      <SelectField
-        label={t('connection.dataBits')}
-        value={config.dataBits}
-        options={DATA_BITS}
-        onChange={v => onChange({ dataBits: Number(v) })}
-      />
-
-      {/* Stop bits */}
-      <SelectField
-        label={t('connection.stopBits')}
-        value={config.stopBits}
-        options={STOP_BITS}
-        onChange={v => onChange({ stopBits: Number(v) })}
-      />
-
-      {/* Parity */}
-      <SelectField
-        label={t('connection.parity')}
-        value={config.parity}
-        options={PARITY_OPTIONS}
-        onChange={v => onChange({ parity: v })}
-      />
-
-      {/* Flow control */}
-      <SelectField
-        label={t('connection.flowControl')}
-        value={config.flowControl}
-        options={FLOW_CONTROL_OPTIONS}
-        onChange={v => onChange({ flowControl: v })}
-      />
-    </div>
+      {/* Advanced: data bits / stop bits / parity / flow control in one row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <label style={rowLabelStyle}>Advanced</label>
+        <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+          <select
+            value={String(config.dataBits)}
+            onChange={e => onChange({ dataBits: Number(e.target.value) })}
+            style={compactSelectStyle}
+          >
+            {DATA_BITS.map(b => (
+              <option key={b} value={String(b)}>{b} bit</option>
+            ))}
+          </select>
+          <select
+            value={String(config.stopBits)}
+            onChange={e => onChange({ stopBits: Number(e.target.value) })}
+            style={compactSelectStyle}
+          >
+            {STOP_BITS.map(b => (
+              <option key={b} value={String(b)}>{b} stop</option>
+            ))}
+          </select>
+          <select
+            value={config.parity}
+            onChange={e => onChange({ parity: e.target.value })}
+            style={compactSelectStyle}
+          >
+            {PARITY_OPTIONS.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <select
+            value={config.flowControl}
+            onChange={e => onChange({ flowControl: e.target.value })}
+            style={compactSelectStyle}
+          >
+            {FLOW_CONTROL_OPTIONS.map(f => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </>
   )
 }
