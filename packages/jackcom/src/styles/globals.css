@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "./vscode-theme.css";
 
+@source "../components/**/*.variants.ts";
+
 * {
   box-sizing: border-box;
 }
