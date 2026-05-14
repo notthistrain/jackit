@@ -8,6 +8,7 @@ import { ActivityBar } from './ActivityBar'
 import { StatusBar } from './StatusBar'
 import { TitleBar } from './TitleBar'
 import { Toolbar } from './Toolbar'
+import { appLayout } from './app-layout.variants'
 
 interface AppLayoutProps {
   sidebar: ReactNode
@@ -30,22 +31,17 @@ export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps)
     { key: 'h', ctrl: true, shift: true, handler: () => openHistoryWindow() },
   ])
 
+  const { root, mainRow, contentCol, contentArea } = appLayout()
+
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      background: 'var(--color-editor-bg)',
-      color: 'var(--color-text)',
-    }}
-    >
+    <div className={root()}>
       <TitleBar onOpenConnectionDialog={() => toggleConnectionDialog(true)} onClearTerminal={incrementClearSequence} />
       <Toolbar onOpenConnectionDialog={() => toggleConnectionDialog(true)} />
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div className={mainRow()}>
         <ActivityBar />
         {sidebar}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div className={contentCol()}>
+          <div className={contentArea()}>
             {mainContent}
           </div>
           {bottomPanel}

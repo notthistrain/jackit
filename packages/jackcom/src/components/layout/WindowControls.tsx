@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { windowControls } from './window-controls.variants'
 
 export function WindowControls() {
   const [maximized, setMaximized] = useState(false)
@@ -25,12 +26,15 @@ export function WindowControls() {
     getCurrentWindow().close().catch(() => {})
   }, [])
 
+  const { root, btn } = windowControls()
+
   return (
-    <div style={{ display: 'flex', height: '100%' }}>
+    <div className={root()}>
       <WindowButton
         onClick={handleMinimize}
         hoverBg="var(--color-border)"
         title="Minimize"
+        btn={btn}
       >
         <MinimizeIcon />
       </WindowButton>
@@ -38,6 +42,7 @@ export function WindowControls() {
         onClick={handleToggleMaximize}
         hoverBg="var(--color-border)"
         title={maximized ? 'Restore' : 'Maximize'}
+        btn={btn}
       >
         {maximized ? <RestoreIcon /> : <MaximizeIcon />}
       </WindowButton>
@@ -45,6 +50,7 @@ export function WindowControls() {
         onClick={handleClose}
         hoverBg="#e81123"
         title="Close"
+        btn={btn}
       >
         <CloseIcon />
       </WindowButton>
@@ -92,11 +98,13 @@ function WindowButton({
   hoverBg,
   title,
   children,
+  btn,
 }: {
   onClick: () => void
   hoverBg: string
   title: string
   children: React.ReactNode
+  btn: () => string
 }) {
   const [hovered, setHovered] = useState(false)
 
@@ -107,13 +115,8 @@ function WindowButton({
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className={btn()}
       style={{
-        width: '46px',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
         color: hovered && hoverBg === '#e81123' ? '#fff' : 'var(--color-text)',
         background: hovered ? hoverBg : 'transparent',
       }}

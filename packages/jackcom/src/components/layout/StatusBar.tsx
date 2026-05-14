@@ -1,6 +1,7 @@
 import { useT } from '@/i18n'
 import { formatBytes } from '@/lib/formatters'
 import { useMainStore } from '@/lib/store'
+import { statusBar } from './status-bar.variants'
 
 export function StatusBar() {
   const { t } = useT()
@@ -8,22 +9,16 @@ export function StatusBar() {
   const activeConn = activePortId ? connections[activePortId] : null
   const portStats = activePortId ? stats[activePortId] : null
 
+  const { root, stats: statsSlot, encoding } = statusBar()
+
   return (
-    <div style={{
-      background: 'var(--color-accent)',
-      padding: '2px 12px',
-      display: 'flex',
-      gap: '16px',
-      fontSize: '11px',
-      color: '#fff',
-    }}
-    >
+    <div className={root()}>
       <span>⚡ {t('statusbar.app')}</span>
       {activeConn && (
         <>
           <span>{activeConn.portName}</span>
           {portStats && (
-            <span style={{ marginLeft: 'auto' }}>
+            <span className={statsSlot()}>
               RX:
               {' '}
               {formatBytes(portStats.rx)}
@@ -35,7 +30,7 @@ export function StatusBar() {
           )}
         </>
       )}
-      <span style={{ marginLeft: portStats ? 0 : 'auto' }}>UTF-8 · 8N1</span>
+      <span className={portStats ? encoding() : statsSlot()}>UTF-8 · 8N1</span>
     </div>
   )
 }

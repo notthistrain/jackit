@@ -1,5 +1,6 @@
 import { useMainStore } from '@/lib/store'
 import { useT } from '@/i18n'
+import { activityBar } from './activity-bar.variants'
 
 const ICONS = [
   { id: 'connections' as const, icon: '🔌', titleKey: 'sidebar.connections' },
@@ -10,22 +11,15 @@ export function ActivityBar() {
   const { sidebarTab, setSidebarTab, sidebarVisible, toggleSidebar } = useMainStore()
   const { t } = useT()
 
+  const { root, item } = activityBar()
+
   return (
-    <div style={{
-      width: '40px',
-      background: 'var(--color-titlebar-bg)',
-      borderRight: '1px solid var(--color-border)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      paddingTop: '4px',
-      gap: '2px',
-    }}
-    >
+    <div className={root()}>
       {ICONS.map(({ id, icon, titleKey }) => (
         <div
           key={id}
           title={t(titleKey)}
+          data-active={sidebarVisible && sidebarTab === id}
           onClick={() => {
             if (sidebarTab === id && sidebarVisible) {
               toggleSidebar()
@@ -36,15 +30,7 @@ export function ActivityBar() {
                 toggleSidebar()
             }
           }}
-          style={{
-            fontSize: '18px',
-            padding: '6px',
-            cursor: 'pointer',
-            borderLeft: sidebarVisible && sidebarTab === id
-              ? '2px solid var(--color-accent)'
-              : '2px solid transparent',
-            opacity: sidebarVisible && sidebarTab === id ? 1 : 0.6,
-          }}
+          className={item()}
         >
           {icon}
         </div>

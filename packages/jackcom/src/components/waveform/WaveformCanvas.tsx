@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { WaveformRenderer } from './WaveformRenderer'
+import { waveformCanvas } from './waveform-canvas.variants'
 
 interface WaveformCanvasProps {
   channels: Record<string, number[]>
@@ -84,18 +85,15 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
     isDragging.current = false
   }
 
+  const { error, errorDetail, canvas } = waveformCanvas()
+
   // WebGPU 不可用提示
   if (webgpuAvailable === false) {
     return (
-      <div style={{
-        color: 'var(--color-text-secondary)',
-        textAlign: 'center',
-        padding: '40px 20px',
-        fontSize: '12px',
-      }}>
+      <div className={error()}>
         WebGPU is not available in this environment.
         <br />
-        <span style={{ fontSize: '11px' }}>
+        <span className={errorDetail()}>
           Waveform rendering requires a WebGPU-capable browser.
         </span>
       </div>
@@ -110,10 +108,8 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      className={canvas()}
       style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
         cursor: isDragging.current ? 'grabbing' : 'grab',
       }}
     />

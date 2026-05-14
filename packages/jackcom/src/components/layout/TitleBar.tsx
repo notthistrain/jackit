@@ -10,6 +10,7 @@ import { openDecoderWindow, openHistoryWindow, openWaveformWindow } from '@/lib/
 import { MenuDropdown } from '@/components/menu/MenuDropdown'
 import { MenuItem } from '@/components/menu/MenuItem'
 import { WindowControls } from './WindowControls'
+import { titleBar } from './title-bar.variants'
 
 interface TitleBarProps {
   onOpenConnectionDialog: () => void
@@ -125,55 +126,32 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
     setOpenMenuId(null)
   }, [])
 
+  const { root, brand, brandIcon, brandText, menuArea, menuContainer, menuTrigger } = titleBar()
+
   return (
-    <div style={{
-      height: '30px',
-      background: 'var(--color-titlebar-bg)',
-      borderBottom: '1px solid var(--color-border)',
-      display: 'flex',
-      alignItems: 'center',
-      fontSize: '13px',
-      userSelect: 'none',
-    }}
-    >
+    <div className={root()}>
       <div
         data-tauri-drag-region
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '0 10px',
-          height: '100%',
-          flexShrink: 0,
-        }}
+        className={brand()}
       >
-        <span style={{ color: 'var(--color-accent)', fontSize: '14px' }}>&#x26A1;</span>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)' }}>
+        <span className={brandIcon()}>&#x26A1;</span>
+        <span className={brandText()}>
           {t('app.title')}
         </span>
       </div>
 
-      <div style={{ display: 'flex', height: '100%', flex: 1 }}>
+      <div className={menuArea()}>
         {menus.map(menu => (
           <div
             key={menu.id}
-            style={{ position: 'relative', height: '100%' }}
+            className={menuContainer()}
           >
             <div
               role="menubar"
+              data-open={openMenuId === menu.id}
               onClick={() => handleMenuClick(menu.id)}
               onMouseEnter={() => handleMenuHover(menu.id)}
-              style={{
-                padding: '0 10px',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                fontSize: '12px',
-                color: openMenuId === menu.id ? 'var(--color-text)' : 'var(--color-text-secondary)',
-                background: openMenuId === menu.id ? 'var(--color-menu-bg)' : 'transparent',
-                borderRadius: '3px 3px 0 0',
-              }}
+              className={menuTrigger()}
             >
               {t(`menu.${menu.id}.label`)}
             </div>

@@ -1,6 +1,7 @@
 import { useT } from '@/i18n'
 import type { DisplayFrame } from '@/lib/tauri-events'
 import { FrameDetail } from './FrameDetail'
+import { frameTable } from './frame-table.variants'
 
 interface FrameTableProps {
   frames: DisplayFrame[]
@@ -20,40 +21,24 @@ const protoColor = (proto: string) => {
 
 export function FrameTable({ frames, expandedFrameId, onToggleExpand }: FrameTableProps) {
   const { t } = useT()
+  const { empty, root, header, headerTime, headerDir, headerProto, headerData, row, cellTime, cellDir, cellProto, cellData, cellSummary } = frameTable()
 
   if (frames.length === 0) {
     return (
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--color-text-secondary)',
-        fontSize: '11px',
-      }}>
+      <div className={empty()}>
         {t('history.noFrames')}
       </div>
     )
   }
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', background: 'var(--color-editor-bg)' }}>
+    <div className={root()}>
       {/* 表头 */}
-      <div style={{
-        display: 'flex',
-        padding: '4px 10px',
-        background: 'var(--color-sidebar-bg)',
-        color: 'var(--color-text-secondary)',
-        fontSize: '10px',
-        borderBottom: '1px solid var(--color-border)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1,
-      }}>
-        <span style={{ width: '90px' }}>Time</span>
-        <span style={{ width: '30px' }}>Dir</span>
-        <span style={{ width: '60px' }}>Protocol</span>
-        <span style={{ flex: 1 }}>Data</span>
+      <div className={header()}>
+        <span className={headerTime()}>Time</span>
+        <span className={headerDir()}>Dir</span>
+        <span className={headerProto()}>Protocol</span>
+        <span className={headerData()}>Data</span>
       </div>
       {/* 数据行 */}
       {frames.map(frame => {
@@ -69,27 +54,22 @@ export function FrameTable({ frames, expandedFrameId, onToggleExpand }: FrameTab
           <div key={frame.id}>
             <div
               onClick={() => onToggleExpand(frame.id)}
-              style={{
-                display: 'flex',
-                padding: '3px 10px',
-                borderBottom: '1px solid #2d2d2d',
-                cursor: 'pointer',
-                background: isExpanded ? '#2a2d2e' : 'transparent',
-              }}
+              data-expanded={isExpanded}
+              className={row()}
             >
-              <span style={{ width: '90px', color: 'var(--color-text-secondary)', fontSize: '11px' }}>
+              <span className={cellTime()}>
                 {timeStr}
               </span>
-              <span style={{ width: '30px', color: dirColor(frame.direction), fontSize: '11px', fontWeight: 600 }}>
+              <span className={cellDir()} style={{ color: dirColor(frame.direction) }}>
                 {frame.direction.toUpperCase()}
               </span>
-              <span style={{ width: '60px', color: protoColor(frame.protocol), fontSize: '11px' }}>
+              <span className={cellProto()} style={{ color: protoColor(frame.protocol) }}>
                 {frame.protocol}
               </span>
-              <span style={{ flex: 1, color: 'var(--color-text)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span className={cellData()}>
                 {frame.raw_hex.substring(0, 30)}{frame.raw_hex.length > 30 ? ' ...' : ''}
                 {frame.summary && (
-                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: '8px' }}>
+                  <span className={cellSummary()}>
                     {frame.summary.substring(0, 40)}
                   </span>
                 )}

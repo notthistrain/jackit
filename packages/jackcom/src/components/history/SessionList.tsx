@@ -1,5 +1,6 @@
 import { useT } from '@/i18n'
 import type { SessionRow } from '@/stores/history-store'
+import { sessionList } from './session-list.variants'
 
 interface SessionListProps {
   sessions: SessionRow[]
@@ -9,43 +10,31 @@ interface SessionListProps {
 
 export function SessionList({ sessions, selectedId, onSelect }: SessionListProps) {
   const { t } = useT()
+  const { empty, root, item, portInfo, time } = sessionList()
 
   if (sessions.length === 0) {
     return (
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--color-text-secondary)',
-        fontSize: '11px',
-        padding: '20px',
-        textAlign: 'center',
-      }}>
+      <div className={empty()}>
         {t('history.noSessions')}
       </div>
     )
   }
 
   return (
-    <div style={{ flex: 1, overflow: 'auto' }}>
+    <div className={root()}>
       {sessions.map(session => {
         const isSelected = session.id === selectedId
         return (
           <div
             key={session.id}
             onClick={() => onSelect(session.id)}
-            style={{
-              padding: '6px 10px',
-              background: isSelected ? 'var(--color-accent)' : 'transparent',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--color-border)',
-            }}
+            data-selected={isSelected}
+            className={item()}
           >
-            <div style={{ fontWeight: 600, color: 'var(--color-text)', fontSize: '11px' }}>
+            <div className={portInfo()}>
               {session.port_name} @ {session.baud_rate}
             </div>
-            <div style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>
+            <div className={time()}>
               {new Date(session.created_at).toLocaleString()}
             </div>
           </div>

@@ -2,6 +2,7 @@ import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
 import { useSerialPort } from '@/hooks/useSerialPort'
 import { openDecoderWindow, openWaveformWindow } from '@/lib/window'
+import { toolbar } from './toolbar.variants'
 
 interface ToolbarProps {
   onOpenConnectionDialog: () => void
@@ -14,17 +15,10 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
   const activeConn = activePortId ? connections[activePortId] : null
   const isOnline = activeConn?.online ?? false
 
+  const { root, connectBtn, connInfo, separator, toolBtn, windowBtn, onlineIndicator, spacer } = toolbar()
+
   return (
-    <div style={{
-      background: 'var(--color-titlebar-bg)',
-      borderBottom: '1px solid var(--color-border)',
-      padding: '4px 12px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '12px',
-    }}
-    >
+    <div className={root()}>
       <button
         onClick={() => {
           if (isOnline && activePortId) {
@@ -34,21 +28,12 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
           }
         }}
         title={isOnline ? t('toolbar.disconnect') : t('toolbar.connect')}
-        style={{
-          background: isOnline ? 'var(--color-accent)' : 'var(--color-border)',
-          color: '#fff',
-          border: 'none',
-          padding: '3px 14px',
-          borderRadius: '3px',
-          cursor: 'pointer',
-          fontWeight: 600,
-          fontSize: '11px',
-        }}
+        className={connectBtn({ online: isOnline })}
       >
         {isOnline ? `\u23F9 ${t('toolbar.disconnect')}` : `\u26A1 ${t('toolbar.connect')}`}
       </button>
       {activeConn && (
-        <span style={{ color: 'var(--color-text-secondary)', fontSize: '11px' }}>
+        <span className={connInfo()}>
           {activeConn.portName}
           {' '}
           ·
@@ -57,18 +42,11 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
           · 8N1
         </span>
       )}
-      <span style={{ color: 'var(--color-border)', margin: '0 4px' }}>|</span>
+      <span className={separator()}>|</span>
       <button
         onClick={toggleSidebar}
         title={t('toolbar.toggleSidebar')}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--color-text-secondary)',
-          cursor: 'pointer',
-          fontSize: '11px',
-          padding: '2px 6px',
-        }}
+        className={toolBtn()}
       >
         ☰
       </button>
@@ -76,15 +54,7 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
         onClick={() => activePortId && openWaveformWindow(activePortId)}
         disabled={!activePortId}
         title={t('toolbar.wave')}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: activePortId ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-          cursor: activePortId ? 'pointer' : 'not-allowed',
-          fontSize: '11px',
-          padding: '2px 6px',
-          opacity: activePortId ? 1 : 0.5,
-        }}
+        className={windowBtn({ active: !!activePortId })}
       >
         📊 {t('toolbar.wave')}
       </button>
@@ -92,21 +62,13 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
         onClick={() => activePortId && openDecoderWindow(activePortId)}
         disabled={!activePortId}
         title={t('toolbar.decode')}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: activePortId ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-          cursor: activePortId ? 'pointer' : 'not-allowed',
-          fontSize: '11px',
-          padding: '2px 6px',
-          opacity: activePortId ? 1 : 0.5,
-        }}
+        className={windowBtn({ active: !!activePortId })}
       >
         🔬 {t('toolbar.decode')}
       </button>
-      <span style={{ marginLeft: 'auto' }}>
+      <span className={spacer()}>
         {isOnline && (
-          <span style={{ color: 'var(--color-online)', fontSize: '11px', fontWeight: 600 }}>
+          <span className={onlineIndicator()}>
             ● {t('toolbar.online')}
           </span>
         )}
