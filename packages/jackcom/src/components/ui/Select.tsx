@@ -29,7 +29,6 @@ export function Select({
   const [open, setOpen] = useState(false)
   const [hoveredIndex, setHoveredIndex] = useState(-1)
   const rootRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
 
   const selectedOption = options.find(o => o.value === value)
   const displayText = selectedOption?.label ?? placeholder ?? ''
@@ -82,11 +81,13 @@ export function Select({
         return
       }
       if (e.key === 'ArrowDown') {
+        if (enabledOptions.length === 0) return
         setHoveredIndex(prev => {
           const next = prev + 1
           return next >= enabledOptions.length ? 0 : next
         })
       } else if (e.key === 'ArrowUp') {
+        if (enabledOptions.length === 0) return
         setHoveredIndex(prev => {
           const next = prev - 1
           return next < 0 ? enabledOptions.length - 1 : next
@@ -123,7 +124,7 @@ export function Select({
     : null
 
   return (
-    <div ref={rootRef} className={root()}>
+    <div ref={rootRef} className={`${root()}${className ? ` ${className}` : ''}`}>
       <div
         role="combobox"
         tabIndex={disabled ? -1 : 0}
@@ -139,7 +140,7 @@ export function Select({
         <ChevronDownIcon className={arrow()} />
       </div>
       {open && (
-        <div ref={panelRef} role="listbox" className={panel()}>
+        <div role="listbox" className={panel()}>
           {options.map(opt => {
             const isSelected = opt.value === value
             const isHovered = opt.value === hoveredValue
