@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSerialPort } from '@/hooks/useSerialPort'
+import { Select } from '@/components/ui/Select'
+import type { SelectOption } from '@/components/ui/Select'
 import { portSelector } from './port-selector.variants'
 
 interface PortInfo {
@@ -25,7 +27,7 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
-  const { root, row, select, refreshBtn, error } = portSelector()
+  const { root, row, refreshBtn, error } = portSelector()
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -33,7 +35,6 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
     try {
       const list = await enumerate()
       setPorts(list)
-      // Auto-select first port if no value set
       if (!valueRef.current && list.length > 0) {
         onChangeRef.current(list[0].name)
       }
@@ -48,24 +49,22 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
     refresh()
   }, [refresh])
 
+  const portOptions: SelectOption[] = ports.map(p => ({
+    value: p.name,
+    label: p.name + (p.manufacturer ? ` (${p.manufacturer})` : ''),
+  }))
+
   return (
     <div className={root()}>
       <div className={row()}>
-        <select
+        <Select
           value={value}
-          onChange={e => onChange(e.target.value)}
+          options={portOptions}
+          onChange={onChange}
+          placeholder={loading ? '...' : 'No ports'}
           disabled={loading || ports.length === 0}
-          className={select()}
-        >
-          {ports.length === 0 && (
-            <option value="">{loading ? '...' : 'No ports'}</option>
-          )}
-          {ports.map(p => (
-            <option key={p.name} value={p.name}>
-              {p.name}{p.manufacturer ? ` (${p.manufacturer})` : ''}
-            </option>
-          ))}
-        </select>
+          className="flex-1"
+        />
         <button
           onClick={refresh}
           disabled={loading}
