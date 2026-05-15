@@ -17,21 +17,21 @@ body {
   user-select: none;
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 — VS Code 风格：纤细、半透明 */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-editor-bg);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
+  background: var(--color-scrollbar-thumb);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary);
+  background: var(--color-scrollbar-thumb-hover);
 }

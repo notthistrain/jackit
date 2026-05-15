@@ -33,4 +33,8 @@
   /* 列表交互 */
   --color-list-hover: #2a2d2e;
   --color-list-active: #094771;
+
+  /* 滚动条 */
+  --color-scrollbar-thumb: rgba(121, 121, 121, 0.4);
+  --color-scrollbar-thumb-hover: rgba(121, 121, 121, 0.7);
 }

@@ -40,7 +40,7 @@ export function useSerialPort() {
   }, [removeConnection])
 
   const send = useCallback(async (portName: string, hexData: string) => {
-    await invoke('send_data', { request: { port_name: portName, hex_data: hexData, protocol: 'Raw' } })
+    await invoke('send_data', { request: { port_name: portName, hex_data: hexData, protocol: 'raw' } })
   }, [])
 
   const closeAll = useCallback(async () => {

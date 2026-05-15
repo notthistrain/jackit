@@ -9,6 +9,7 @@ interface WaveformStore {
 
   setPortId: (id: string) => void
   addData: (channel: string, value: number) => void
+  addDataBatch: (entries: [channel: string, value: number][]) => void
   togglePause: () => void
   setTimeWindow: (seconds: number) => void
   clear: () => void
@@ -27,6 +28,15 @@ export const useWaveformStore = create<WaveformStore>(set => ({
       const current = s.channels[channel] ?? []
       const newValues = [...current, value].slice(-s.maxPoints)
       return { channels: { ...s.channels, [channel]: newValues } }
+    }),
+  addDataBatch: entries =>
+    set((s) => {
+      const updated = { ...s.channels }
+      for (const [channel, value] of entries) {
+        const current = updated[channel] ?? []
+        updated[channel] = [...current, value].slice(-s.maxPoints)
+      }
+      return { channels: updated }
     }),
   togglePause: () => set(s => ({ paused: !s.paused })),
   setTimeWindow: seconds => set({ timeWindow: seconds }),

@@ -1,6 +1,10 @@
+use bytes::Bytes;
+use chrono::Utc;
 use tauri::State;
 
 use crate::error::AppError;
+use crate::protocol::frame::{Direction, ParsedFrame, RawFrame, bytes_to_hex, bytes_to_ascii};
+use crate::protocol::ParsedData;
 use crate::serial::config::SerialConfig;
 use crate::state::AppState;
 
@@ -162,8 +166,25 @@ pub async fn send_data(
     let len = bytes.len();
     state
         .serial_manager
-        .send_data(&request.port_name, bytes)
+        .send_data(&request.port_name, bytes.clone())
         .map_err(|e| AppError::Serial(format!("发送数据失败: {}", e)))?;
+
+    // 发布 TX 事件，让前端显示已发送的数据
+    let raw_frame = RawFrame {
+        port_id: request.port_name.clone(),
+        timestamp: Utc::now(),
+        data: Bytes::from(bytes),
+        direction: Direction::Tx,
+    };
+    let hex = bytes_to_hex(&raw_frame.data);
+    let ascii = bytes_to_ascii(&raw_frame.data);
+    let parsed_frame = ParsedFrame {
+        raw: raw_frame,
+        protocol: request.protocol,
+        parsed: ParsedData::Raw { hex: hex.clone(), ascii },
+        formatted: hex,
+    };
+    state.broker_handle.publish_data(&request.port_name, vec![parsed_frame]);
 
     Ok(SendDataResponse {
         port_name: request.port_name,
