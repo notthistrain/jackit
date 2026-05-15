@@ -17,7 +17,8 @@
         "width": 1280,
         "height": 800,
         "center": true,
-        "decorations": false
+        "decorations": false,
+        "backgroundColor": "#1E1E1E"
       }
     ],
     "security": {

@@ -4,9 +4,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JackCom — Serial Debugger</title>
+  <style>
+    body { margin: 0; background: #1e1e1e; }
+    @keyframes sk-pulse { 0%,100%{opacity:.25}50%{opacity:.1} }
+    .sk { background: #3c3c3c; border-radius: 2px; animation: sk-pulse 2s ease-in-out infinite; }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div style="display:flex;flex-direction:column;height:100vh;font-family:system-ui,sans-serif;color:#d4d4d4">
+      <!-- TitleBar -->
+      <div style="height:30px;background:#323233;border-bottom:1px solid #3c3c3c;display:flex;align-items:center;padding:0 10px">
+        <div class="sk" style="width:16px;height:16px;border-radius:3px"></div>
+        <div class="sk" style="width:60px;height:12px;margin-left:8px"></div>
+        <div style="flex:1"></div>
+        <div class="sk" style="width:46px;height:30px"></div>
+        <div class="sk" style="width:46px;height:30px"></div>
+        <div class="sk" style="width:46px;height:30px"></div>
+      </div>
+      <!-- Toolbar -->
+      <div style="height:28px;background:#323233;border-bottom:1px solid #3c3c3c;display:flex;align-items:center;padding:0 12px;gap:8px">
+        <div class="sk" style="width:80px;height:20px;border-radius:3px"></div>
+        <div class="sk" style="width:1px;height:16px"></div>
+        <div class="sk" style="width:20px;height:20px"></div>
+        <div class="sk" style="width:60px;height:20px"></div>
+        <div class="sk" style="width:60px;height:20px"></div>
+        <div style="flex:1"></div>
+      </div>
+      <!-- Main Row -->
+      <div style="flex:1;display:flex;overflow:hidden">
+        <!-- ActivityBar -->
+        <div style="width:40px;background:#323233;border-right:1px solid #3c3c3c;display:flex;flex-direction:column;align-items:center;padding-top:4px;gap:2px">
+          <div class="sk" style="width:24px;height:24px"></div>
+          <div class="sk" style="width:24px;height:24px"></div>
+        </div>
+        <!-- Sidebar -->
+        <div style="width:200px;background:#252526;border-right:1px solid #3c3c3c;display:flex;flex-direction:column">
+          <div style="height:28px;border-bottom:1px solid #3c3c3c;padding:0 10px;display:flex;align-items:center">
+            <div class="sk" style="width:70px;height:10px"></div>
+          </div>
+          <div style="padding:8px">
+            <div class="sk" style="width:100%;height:18px;margin-bottom:6px"></div>
+            <div class="sk" style="width:80%;height:18px"></div>
+          </div>
+        </div>
+        <!-- Terminal -->
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div style="flex:1;padding:8px">
+            <div class="sk" style="width:90%;height:14px;margin-bottom:8px"></div>
+            <div class="sk" style="width:70%;height:14px;margin-bottom:8px"></div>
+            <div class="sk" style="width:85%;height:14px;margin-bottom:8px"></div>
+            <div class="sk" style="width:60%;height:14px;margin-bottom:8px"></div>
+          </div>
+          <!-- SendBar -->
+          <div style="height:30px;background:#252526;border-top:1px solid #3c3c3c;display:flex;align-items:center;padding:0 10px;gap:6px">
+            <div class="sk" style="width:50px;height:18px"></div>
+            <div class="sk" style="flex:1;height:18px"></div>
+          </div>
+        </div>
+      </div>
+      <!-- StatusBar -->
+      <div style="height:20px;background:#007acc;display:flex;align-items:center;padding:0 10px;gap:12px">
+        <div style="width:40px;height:8px;background:rgba(255,255,255,.2);border-radius:2px"></div>
+        <div style="width:80px;height:8px;background:rgba(255,255,255,.15);border-radius:2px"></div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="./main.tsx"></script>
 </body>
 </html>

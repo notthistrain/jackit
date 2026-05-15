@@ -28,6 +28,7 @@ export async function createOrFocusChildWindow(opts: CreateChildWindowOptions): 
     height: opts.height ?? 600,
     center: true,
     decorations: true,
+    backgroundColor: '#1E1E1E',
   }
 
   const win = new WebviewWindow(opts.label, winOpts)

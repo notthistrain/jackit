@@ -4,9 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JackCom — Waveform</title>
+  <style>
+    body { margin: 0; background: #1e1e1e; }
+    @keyframes sk-pulse { 0%,100%{opacity:.25}50%{opacity:.1} }
+    .sk { background: #3c3c3c; border-radius: 2px; animation: sk-pulse 2s ease-in-out infinite; }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div style="height:100vh;display:flex;flex-direction:column;font-family:system-ui,sans-serif">
+      <!-- Waveform area -->
+      <div style="flex:1;position:relative;padding:20px">
+        <div class="sk" style="position:absolute;left:20px;right:20px;top:20px;bottom:20px"></div>
+        <!-- Fake grid lines -->
+        <div style="position:absolute;left:0;right:0;top:25%;border-top:1px solid rgba(255,255,255,.04)"></div>
+        <div style="position:absolute;left:0;right:0;top:50%;border-top:1px solid rgba(255,255,255,.04)"></div>
+        <div style="position:absolute;left:0;right:0;top:75%;border-top:1px solid rgba(255,255,255,.04)"></div>
+      </div>
+      <!-- Toolbar -->
+      <div style="height:26px;background:#252526;border-top:1px solid #3c3c3c;display:flex;align-items:center;padding:0 10px;gap:12px">
+        <div class="sk" style="width:50px;height:14px"></div>
+        <div class="sk" style="width:36px;height:14px"></div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="./waveform.tsx"></script>
 </body>
 </html>
