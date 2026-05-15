@@ -24,6 +24,17 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
   const rendererRef = useRef<WaveformRenderer | null>(null)
   const [webgpuAvailable, setWebgpuAvailable] = useState<boolean | null>(null)
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
+  const [viewportRange, setViewportRange] = useState({ start: 0, end: 0 })
+
+  const syncViewportRange = () => {
+    const renderer = rendererRef.current
+    if (!renderer || !renderer.isReady()) return
+    const range = renderer.getVisibleRange()
+    setViewportRange(prev => {
+      if (prev.start === range.startIndex && prev.end === range.endIndex) return prev
+      return { start: range.startIndex, end: range.endIndex }
+    })
+  }
 
   // 初始化渲染器
   useEffect(() => {
@@ -42,6 +53,7 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
       setWebgpuAvailable(success)
       if (success) {
         renderer.startRenderLoop()
+        syncViewportRange()
       }
     })
 
@@ -74,6 +86,7 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
   useEffect(() => {
     if (rendererRef.current) {
       rendererRef.current.updateData(channels)
+      syncViewportRange()
     }
   }, [channels])
 
@@ -89,15 +102,24 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
     }
   }, [paused])
 
-  // 鼠标滚轮缩放
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!rendererRef.current) return
-    e.preventDefault()
-    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1
-    rendererRef.current.setZoom(
-      rendererRef.current.getZoom() * zoomDelta
-    )
-  }
+  // 鼠标滚轮缩放（使用原生事件监听器，需 passive:false 才能 preventDefault）
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!rendererRef.current) return
+      e.preventDefault()
+      const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1
+      rendererRef.current.setZoom(
+        rendererRef.current.getEffectiveZoom() * zoomDelta
+      )
+      syncViewportRange()
+    }
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', handleWheel)
+  }, [])
 
   // 鼠标拖拽平移 + tooltip
   const isDragging = useRef(false)
@@ -121,6 +143,7 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
       const dpr = window.devicePixelRatio || 1
       const offsetDelta = (dx * dpr) / canvas.width
       renderer.setOffset(renderer.getOffset() - offsetDelta)
+      syncViewportRange()
       setTooltip(null)
     } else {
       const rect = canvas.getBoundingClientRect()
@@ -154,6 +177,7 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
   // 双击重置视图（恢复 autoFit）
   const handleDoubleClick = () => {
     rendererRef.current?.resetView()
+    syncViewportRange()
   }
 
   const { error, errorDetail, canvas } = waveformCanvas()
@@ -176,7 +200,6 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <canvas
         ref={canvasRef}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -207,6 +230,26 @@ export function WaveformCanvas({ channels, paused }: WaveformCanvasProps) {
               )}
             </div>
           ))}
+
+          {/* X 轴网格线 + 标签 */}
+          {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
+            const index = Math.round(viewportRange.start + (viewportRange.end - viewportRange.start) * ratio)
+            return (
+              <div key={`x-${ratio}`} style={{ position: 'absolute', top: 0, bottom: 0, left: `${ratio * 100}%` }}>
+                <div style={{ height: '100%', borderLeft: '1px solid rgba(255,255,255,0.06)' }} />
+                <span style={{
+                  position: 'absolute',
+                  bottom: 2,
+                  ...(ratio === 1 ? { right: 3 } : { left: 3 }),
+                  fontSize: '9px',
+                  color: 'var(--color-text-secondary)',
+                  fontFamily: 'monospace',
+                }}>
+                  {index}
+                </span>
+              </div>
+            )
+          })}
 
           {/* 通道图例 */}
           {channelNames.length > 0 && (

@@ -20,6 +20,8 @@ export class WaveformRenderer {
   private vertexBufferSize = 0
   private animationId: number | null = null
   private canvas: HTMLCanvasElement | null = null
+  private msaaTexture: GPUTexture | null = null
+  private msaaView: GPUTextureView | null = null
 
   isReady(): boolean {
     return this.device !== null && this.pipeline !== null
@@ -89,6 +91,9 @@ export class WaveformRenderer {
       primitive: {
         topology: 'line-strip',
       },
+      multisample: {
+        count: 4,
+      },
     })
 
     // 创建 bind group
@@ -116,7 +121,16 @@ export class WaveformRenderer {
   }
 
   setOffset(x: number): void {
-    this.offsetX = x
+    if (!this.canvas || this.channels.length === 0) {
+      this.offsetX = x
+      return
+    }
+    const maxLen = this.channels.reduce((max, ch) => Math.max(max, ch.values.length), 1)
+    const effectiveZoom = this.getEffectiveZoom()
+    const maxPoints = this.canvas.width / effectiveZoom
+    const minOffset = Math.min(0, 1 - maxLen / maxPoints)
+    const maxOffset = Math.max(0, 1 - maxLen / maxPoints)
+    this.offsetX = Math.max(minOffset, Math.min(x, maxOffset))
   }
 
   getZoom(): number {
@@ -132,12 +146,24 @@ export class WaveformRenderer {
     this.offsetX = 0
   }
 
-  private getEffectiveZoom(): number {
+  getEffectiveZoom(): number {
     if (this.autoFit && this.channels.length > 0 && this.canvas) {
       const maxLen = this.channels.reduce((max, ch) => Math.max(max, ch.values.length), 1)
       return this.canvas.width / maxLen
     }
     return this.zoom
+  }
+
+  getVisibleRange(): { startIndex: number, endIndex: number } {
+    if (!this.canvas || this.channels.length === 0) return { startIndex: 0, endIndex: 0 }
+    const maxLen = this.channels.reduce((max, ch) => Math.max(max, ch.values.length), 1)
+    const effectiveZoom = this.getEffectiveZoom()
+    const maxPoints = this.canvas.width / effectiveZoom
+    const offset = this.autoFit ? 0 : this.offsetX
+    return {
+      startIndex: Math.max(0, Math.round(-offset * maxPoints)),
+      endIndex: Math.min(maxLen, Math.round((1 - offset) * maxPoints)),
+    }
   }
 
   getDataAtScreenX(screenX: number, canvasWidth: number): { index: number, values: { channel: string, value: number, channelIndex: number }[] } | null {
@@ -161,6 +187,18 @@ export class WaveformRenderer {
 
     const width = this.canvas.width
     const height = this.canvas.height
+
+    // 确保 MSAA 纹理尺寸匹配
+    if (!this.msaaTexture || this.msaaTexture.width !== width || this.msaaTexture.height !== height) {
+      this.msaaTexture?.destroy()
+      this.msaaTexture = this.device.createTexture({
+        size: [width, height],
+        sampleCount: 4,
+        format: this.format,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      })
+      this.msaaView = this.msaaTexture.createView()
+    }
 
     const effectiveZoom = this.getEffectiveZoom()
     // 更新 uniforms
@@ -201,10 +239,11 @@ export class WaveformRenderer {
     const commandEncoder = this.device.createCommandEncoder()
     const passEncoder = commandEncoder.beginRenderPass({
       colorAttachments: [{
-        view: textureView,
+        view: this.msaaView!,
+        resolveTarget: textureView,
         clearValue: { r: 0.118, g: 0.118, b: 0.118, a: 1.0 }, // --color-editor-bg
         loadOp: 'clear',
-        storeOp: 'store',
+        storeOp: 'discard',
       }],
     })
 
@@ -247,6 +286,9 @@ export class WaveformRenderer {
     this.vertexBuffer?.destroy()
     this.vertexBuffer = null
     this.vertexBufferSize = 0
+    this.msaaTexture?.destroy()
+    this.msaaTexture = null
+    this.msaaView = null
     this.device?.destroy()
     this.device = null
     this.context = null

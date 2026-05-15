@@ -7,6 +7,7 @@ use crate::protocol::frame::{Direction, ParsedFrame, RawFrame, bytes_to_hex, byt
 use crate::protocol::ParsedData;
 use crate::serial::config::SerialConfig;
 use crate::state::AppState;
+use crate::storage;
 
 use super::types::{
     CloseAllResponse, ClosePortRequest, ClosePortResponse, OpenPortRequest, OpenPortResponse,
@@ -87,6 +88,25 @@ pub async fn open_port(
         .connections
         .insert(request.port_name.clone(), config);
 
+    // 创建数据库 session 记录（失败不影响端口使用）
+    {
+        let db_guard = state.db.read().await;
+        if let Some(pool) = db_guard.as_ref() {
+            let config_json = serde_json::to_string(
+                state.connections.get(&request.port_name).unwrap().value()
+            ).unwrap_or_default();
+            match storage::create_session(pool, &request.port_name, request.baud_rate, &config_json).await {
+                Ok(session_id) => {
+                    log::info!("Session {} created for {}", session_id, request.port_name);
+                    state.sessions.insert(request.port_name.clone(), session_id);
+                }
+                Err(e) => {
+                    log::warn!("Failed to create session for {}: {}", request.port_name, e);
+                }
+            }
+        }
+    }
+
     Ok(OpenPortResponse {
         port_name: request.port_name,
         is_open: true,
@@ -107,6 +127,16 @@ pub async fn close_port(
         .serial_manager
         .close_port(&request.port_name)
         .map_err(|e| AppError::Serial(format!("关闭串口失败: {}", e)))?;
+
+    // 结束数据库 session 记录
+    if let Some((_, session_id)) = state.sessions.remove(&request.port_name) {
+        let db_guard = state.db.read().await;
+        if let Some(pool) = db_guard.as_ref() {
+            if let Err(e) = storage::end_session(pool, session_id).await {
+                log::warn!("Failed to end session {} for {}: {}", session_id, request.port_name, e);
+            }
+        }
+    }
 
     state.connections.remove(&request.port_name);
 
@@ -131,11 +161,29 @@ pub async fn close_all(
     for name in &port_names {
         match state.serial_manager.close_port(name) {
             Ok(()) => {
+                // 结束 session
+                if let Some((_, session_id)) = state.sessions.remove(name) {
+                    let db_guard = state.db.read().await;
+                    if let Some(pool) = db_guard.as_ref() {
+                        if let Err(e) = storage::end_session(pool, session_id).await {
+                            log::warn!("Failed to end session {}: {}", session_id, e);
+                        }
+                    }
+                }
                 state.connections.remove(name);
                 closed.push(name.clone());
             }
             Err(_) => {
                 // 即使关闭失败也尝试从 map 中移除
+                // 结束 session
+                if let Some((_, session_id)) = state.sessions.remove(name) {
+                    let db_guard = state.db.read().await;
+                    if let Some(pool) = db_guard.as_ref() {
+                        if let Err(e) = storage::end_session(pool, session_id).await {
+                            log::warn!("Failed to end session {}: {}", session_id, e);
+                        }
+                    }
+                }
                 state.connections.remove(name);
                 closed.push(name.clone());
             }

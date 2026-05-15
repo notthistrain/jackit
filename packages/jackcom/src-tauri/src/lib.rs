@@ -168,6 +168,30 @@ async fn run_tauri_bridge(
     while let Some(event) = rx.recv().await {
         let (event_name, bridge_event) = match &event {
             PortEvent::Data { port_id, frames } => {
+                // 存储帧到数据库（异步、失败仅记录日志）
+                {
+                    let app_state = app_handle.state::<AppState>();
+                    if let Some(session_id) = app_state.sessions.get(port_id).map(|g| *g) {
+                        let db_guard = app_state.db.read().await;
+                        if let Some(pool) = db_guard.as_ref() {
+                            for f in frames.iter() {
+                                if let Err(e) = storage::insert_frame(
+                                    pool,
+                                    session_id,
+                                    &f.raw.timestamp,
+                                    f.raw.direction,
+                                    &f.raw.data,
+                                    f.protocol,
+                                    &f.formatted,
+                                    &format_parsed_summary(&f.parsed),
+                                ).await {
+                                    log::warn!("Failed to store frame for session {}: {}", session_id, e);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 let display_frames: Vec<DisplayFrame> = frames
                     .iter()
                     .map(|f| {

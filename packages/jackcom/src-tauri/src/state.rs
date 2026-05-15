@@ -18,6 +18,8 @@ pub struct AppState {
     pub serial_manager: Arc<SerialManager>,
     /// Broker 句柄：用于发布事件
     pub broker_handle: BrokerHandle,
+    /// 活跃会话映射（port_name → session_id）
+    pub sessions: DashMap<String, i64>,
 }
 
 impl AppState {
@@ -27,6 +29,7 @@ impl AppState {
             db: Arc::new(RwLock::new(None)),
             serial_manager,
             broker_handle,
+            sessions: DashMap::new(),
         }
     }
 
@@ -40,6 +43,7 @@ impl AppState {
             db: Arc::new(RwLock::new(None)),
             serial_manager,
             broker_handle,
+            sessions: DashMap::new(),
         }
     }
 }
