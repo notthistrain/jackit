@@ -183,10 +183,28 @@ fn collect_skills(
 
 fn extract_description(skill_md: &Path) -> String {
     let content = std::fs::read_to_string(skill_md).unwrap_or_default();
-    // 取第一行非空非标题行作为描述
+
+    // 尝试从 YAML frontmatter 中提取 description
+    if content.starts_with("---") {
+        let rest = &content[3..];
+        if let Some(end) = rest.find("---") {
+            let frontmatter = &rest[..end];
+            for line in frontmatter.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("description:") {
+                    let val = trimmed.strip_prefix("description:").unwrap().trim();
+                    // 去除引号
+                    return val.trim_matches('"').trim_matches('\'').to_string();
+                }
+            }
+        }
+    }
+
+    // fallback: 取第一行非空非标题非 frontmatter 行
     content
         .lines()
-        .find(|line| !line.is_empty() && !line.starts_with('#'))
+        .skip_while(|line| line.trim() == "---" || line.is_empty())
+        .find(|line| !line.is_empty() && !line.starts_with('#') && !line.starts_with("---"))
         .unwrap_or("")
         .to_string()
 }
