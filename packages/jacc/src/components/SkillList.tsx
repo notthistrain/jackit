@@ -5,6 +5,9 @@ import { InstallSkillDialog } from '@/components/dialogs/InstallSkillDialog'
 import type { SkillInfo } from '@/hooks/useSkills'
 import { SourceBadge } from '@/components/SourceBadge'
 import { Fab } from '@/components/Fab'
+import { useT } from '@/i18n'
+
+type Tab = 'enabled' | 'disabled'
 
 interface SkillListProps {
   title: string
@@ -17,7 +20,6 @@ interface SkillListProps {
 }
 
 export function SkillList({
-  title,
   skills,
   loading,
   onToggle,
@@ -25,19 +27,22 @@ export function SkillList({
   onInstallFromGithub,
   onConfirmInstall,
 }: SkillListProps) {
+  const { t } = useT()
+  const [tab, setTab] = useState<Tab>('enabled')
   const [search, setSearch] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const [showInstall, setShowInstall] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
 
-  const filtered = skills.filter(
+  const enabledSkills = skills.filter((s) => s.enabled)
+  const disabledSkills = skills.filter((s) => !s.enabled)
+
+  const currentList = tab === 'enabled' ? enabledSkills : disabledSkills
+  const filtered = currentList.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.description.toLowerCase().includes(search.toLowerCase()),
   )
-
-  const enabledCount = skills.filter((s) => s.enabled).length
-  const disabledCount = skills.filter((s) => !s.enabled).length
 
   async function handleToggle(name: string, enabled: boolean) {
     setToggling(name)
@@ -57,39 +62,51 @@ export function SkillList({
   }
 
   if (loading) {
-    return <div className="p-6 text-xs text-muted">加载中...</div>
+    return <div className="p-6 text-xs text-muted">{t('common.loading')}</div>
   }
 
   return (
     <div className="p-6 pb-20">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-medium text-foreground">{title}</h2>
+      {/* Tab 栏 */}
+      <div className="flex items-center gap-4 mb-4">
+        <button
+          onClick={() => setTab('enabled')}
+          className={`text-sm font-medium pb-1 border-b-2 transition-colors ${
+            tab === 'enabled'
+              ? 'text-foreground border-primary'
+              : 'text-muted border-transparent hover:text-foreground'
+          }`}
+        >
+          {t('skills.tab.enabled')} ({enabledSkills.length})
+        </button>
+        <button
+          onClick={() => setTab('disabled')}
+          className={`text-sm font-medium pb-1 border-b-2 transition-colors ${
+            tab === 'disabled'
+              ? 'text-foreground border-primary'
+              : 'text-muted border-transparent hover:text-foreground'
+          }`}
+        >
+          {t('skills.tab.disabled')} ({disabledSkills.length})
+        </button>
+        <div className="flex-1" />
         <div className="relative">
           <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={`搜索 ${title.toLowerCase()}...`}
+            placeholder={t('skills.search')}
             className="bg-card border border-border pl-7 pr-3 py-1.5 rounded-[4px] text-xs text-foreground w-[160px]"
           />
         </div>
       </div>
 
-      <div className="flex gap-4 mb-4 text-[11px] text-muted">
-        <span>共 {skills.length} 个</span>
-        <span>·</span>
-        <span className="text-success">{enabledCount} 已启用</span>
-        <span>·</span>
-        <span className="text-danger">{disabledCount} 已禁用</span>
-      </div>
-
+      {/* 列表 */}
       <div className="flex flex-col gap-1.5">
         {filtered.map((skill) => (
           <div
             key={skill.name}
-            className={`flex items-center justify-between px-3.5 py-2.5 bg-card border border-border-light rounded-[4px] ${
-              !skill.enabled ? 'opacity-50' : ''
-            }`}
+            className="flex items-center justify-between px-3.5 py-2.5 bg-card border border-border-light rounded-[4px]"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 bg-success-light rounded-[4px] flex items-center justify-center text-base shrink-0">
@@ -103,7 +120,7 @@ export function SkillList({
             <div className="flex items-center gap-2 shrink-0">
               <SourceBadge scope={skill.source as 'project' | 'user' | 'plugin'} />
               {skill.source === 'user' ? (
-                <span className="text-[10px] text-muted">只读</span>
+                <span className="text-[10px] text-muted">{t('skills.readonly')}</span>
               ) : (
                 <button
                   onClick={() => handleToggle(skill.name, !skill.enabled)}
@@ -130,13 +147,13 @@ export function SkillList({
             onClick={handleImport}
             className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-sidebar"
           >
-            从本地导入
+            {t('skills.importLocal')}
           </button>
           <button
             onClick={() => { setShowInstall(true); setShowMenu(false) }}
             className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-sidebar"
           >
-            从 GitHub 安装
+            {t('skills.installGithub')}
           </button>
         </div>
       )}

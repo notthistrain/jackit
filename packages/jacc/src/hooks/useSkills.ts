@@ -33,10 +33,22 @@ export function useSkills() {
   const toggle = useCallback(
     async (name: string, enabled: boolean) => {
       if (!currentProject) return
-      await invoke('toggle_skill', { projectPath: currentProject, name, enabled })
-      await refresh()
+
+      // 乐观更新：立即修改本地状态
+      setSkills((prev) =>
+        prev.map((s) => (s.name === name ? { ...s, enabled } : s)),
+      )
+
+      try {
+        await invoke('toggle_skill', { projectPath: currentProject, name, enabled })
+      } catch {
+        // 失败回滚
+        setSkills((prev) =>
+          prev.map((s) => (s.name === name ? { ...s, enabled: !enabled } : s)),
+        )
+      }
     },
-    [currentProject, refresh],
+    [currentProject],
   )
 
   const importSkill = useCallback(
