@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface SourceBadgeProps {
   scope: 'global' | 'project' | 'user' | 'plugin' | 'models'
@@ -13,15 +14,18 @@ const scopeStyles = {
   models: 'bg-success-light text-success',
 }
 
-const scopeLabels = {
-  global: '全局',
-  project: '项目',
-  user: '用户',
-  plugin: '插件',
+const scopeLabelKeys: Record<string, string> = {
+  global: 'source.global',
+  project: 'source.project',
+  user: 'source.user',
+  plugin: 'source.plugin',
   models: '🧠',
 }
 
 export function SourceBadge({ scope, className }: SourceBadgeProps) {
+  const { t } = useT()
+  const label = scope === 'models' ? '🧠' : t(scopeLabelKeys[scope])
+
   return (
     <span
       className={cn(
@@ -30,7 +34,7 @@ export function SourceBadge({ scope, className }: SourceBadgeProps) {
         className,
       )}
     >
-      {scopeLabels[scope]}
+      {label}
     </span>
   )
 }

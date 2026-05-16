@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useConfig } from '@/hooks/useConfig'
 import { SourceBadge } from '@/components/SourceBadge'
 import { Fab } from '@/components/Fab'
+import { useT } from '@/i18n'
 
 interface McpServer {
   command: string
@@ -11,6 +12,7 @@ interface McpServer {
 }
 
 export function McpServers() {
+  const { t } = useT()
   const { config, writeConfig } = useConfig()
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -50,7 +52,7 @@ export function McpServers() {
 
   return (
     <div className="p-6">
-      <h2 className="text-base font-medium text-foreground mb-4">MCP 服务器</h2>
+      <h2 className="text-base font-medium text-foreground mb-4">{t('mcp.title')}</h2>
 
       <div className="flex flex-col gap-2">
         {Object.entries(servers).map(([name, server]) => (
@@ -89,7 +91,7 @@ export function McpServers() {
               <div className="px-4 pb-3.5 border-t border-border-light">
                 <div className="flex flex-col gap-2.5 pt-3">
                   <div>
-                    <div className="text-[11px] text-muted mb-1">命令 (command)</div>
+                    <div className="text-[11px] text-muted mb-1">{t('mcp.command')}</div>
                     <input
                       value={server.command}
                       onChange={(e) => handleSave(name, { ...server, command: e.target.value })}
@@ -97,7 +99,7 @@ export function McpServers() {
                     />
                   </div>
                   <div>
-                    <div className="text-[11px] text-muted mb-1">参数 (args)</div>
+                    <div className="text-[11px] text-muted mb-1">{t('mcp.args')}</div>
                     <input
                       value={server.args?.join(' ') || ''}
                       onChange={(e) =>
@@ -110,7 +112,7 @@ export function McpServers() {
                     />
                   </div>
                   <div>
-                    <div className="text-[11px] text-muted mb-1">环境变量 (env)</div>
+                    <div className="text-[11px] text-muted mb-1">{t('mcp.env')}</div>
                     <div className="bg-sidebar border border-border rounded-[2px] p-2">
                       {Object.entries(server.env || {}).map(([k, v]) => (
                         <div key={k} className="flex gap-2 items-center mb-1">
@@ -137,7 +139,7 @@ export function McpServers() {
                       onClick={() => handleDelete(name)}
                       className="text-[11px] px-3 py-1.5 border border-border text-danger rounded-[2px] hover:bg-danger-light"
                     >
-                      删除
+                      {t('mcp.delete')}
                     </button>
                   </div>
                 </div>
@@ -150,14 +152,14 @@ export function McpServers() {
       {/* 添加表单 */}
       {showAdd && (
         <div className="mt-3 p-3 bg-card border border-border-light rounded-[4px]">
-          <div className="text-[13px] font-medium text-foreground mb-3">添加 MCP 服务器</div>
+          <div className="text-[13px] font-medium text-foreground mb-3">{t('mcp.add.title')}</div>
           <div className="flex flex-col gap-2">
-            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="名称，如 playwright" className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground" />
-            <input value={newCommand} onChange={(e) => setNewCommand(e.target.value)} placeholder="命令，如 npx" className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
-            <input value={newArgs} onChange={(e) => setNewArgs(e.target.value)} placeholder="参数（空格分隔），如 @anthropic/mcp-playwright" className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('mcp.add.name')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground" />
+            <input value={newCommand} onChange={(e) => setNewCommand(e.target.value)} placeholder={t('mcp.add.command')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
+            <input value={newArgs} onChange={(e) => setNewArgs(e.target.value)} placeholder={t('mcp.add.args')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 border border-border text-xs text-muted rounded-[2px]">取消</button>
-              <button onClick={handleAdd} className="px-3 py-1.5 bg-primary text-white text-xs rounded-[2px]">添加</button>
+              <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 border border-border text-xs text-muted rounded-[2px]">{t('mcp.add.cancel')}</button>
+              <button onClick={handleAdd} className="px-3 py-1.5 bg-primary text-white text-xs rounded-[2px]">{t('mcp.add.submit')}</button>
             </div>
           </div>
         </div>

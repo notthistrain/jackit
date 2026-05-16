@@ -3,8 +3,10 @@ import { ChevronDown, FolderOpen, Pin } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
 import { useProjects, type Project } from '@/hooks/useProjects'
+import { useT } from '@/i18n'
 
 export function ProjectSwitcher() {
+  const { t } = useT()
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { currentProject, setProject } = useAppStore()
@@ -47,9 +49,9 @@ export function ProjectSwitcher() {
         className="w-full px-2.5 py-1.5 bg-card border border-border rounded-[4px] flex items-center justify-between cursor-pointer hover:border-muted"
       >
         <div className="text-left">
-          <div className="text-[11px] text-muted">当前项目</div>
+          <div className="text-[11px] text-muted">{t('project.current')}</div>
           <div className="text-xs font-medium text-foreground truncate">
-            {currentName || '未选择'}
+            {currentName || t('project.none')}
           </div>
         </div>
         <ChevronDown size={14} className="text-muted shrink-0" />
@@ -59,7 +61,7 @@ export function ProjectSwitcher() {
         <div className="absolute left-3 right-3 top-full mt-1 bg-card border border-border rounded-[4px] shadow-lg z-50 overflow-hidden">
           {currentProject && (
             <div className="px-3 py-2 bg-primary-light border-b border-border">
-              <div className="text-[11px] text-primary">当前</div>
+              <div className="text-[11px] text-primary">{t('project.currentLabel')}</div>
               <div className="text-xs font-medium text-foreground truncate">{currentName}</div>
               <div className="text-[10px] text-muted truncate">{currentProject}</div>
             </div>
@@ -67,7 +69,7 @@ export function ProjectSwitcher() {
 
           {projects.length > 0 && (
             <div className="py-1.5">
-              <div className="px-3 py-1 text-[10px] text-muted">最近项目</div>
+              <div className="px-3 py-1 text-[10px] text-muted">{t('project.recent')}</div>
               {projects
                 .filter((p) => p.path !== currentProject)
                 .slice(0, 5)
@@ -101,7 +103,7 @@ export function ProjectSwitcher() {
               onClick={handleSelectFolder}
               className="text-xs text-primary cursor-pointer hover:underline"
             >
-              📂 打开其他项目...
+              {t('project.openOther')}
             </button>
           </div>
         </div>
