@@ -105,6 +105,12 @@ catalogs:
     '@types/node':
       specifier: '24'
       version: 24.12.4
+    '@types/react':
+      specifier: ^19
+      version: 19.2.14
+    '@types/react-dom':
+      specifier: ^19
+      version: 19.2.3
     '@uni-helper/eslint-config':
       specifier: ^0.7.3
       version: 0.7.3
@@ -147,6 +153,12 @@ catalogs:
     jest:
       specifier: 29.2.2
       version: 29.2.2
+    jsdom:
+      specifier: ^26
+      version: 26.1.0
+    lucide-react:
+      specifier: ^0.460
+      version: 0.460.0
     lucide-vue-next:
       specifier: ^1.0.0
       version: 1.0.0
@@ -156,6 +168,12 @@ catalogs:
     mwtsc:
       specifier: 1.16.0
       version: 1.16.0
+    react:
+      specifier: ^19
+      version: 19.2.6
+    react-dom:
+      specifier: ^19
+      version: 19.2.6
     reka-ui:
       specifier: ^2.9.6
       version: 2.9.7
@@ -198,6 +216,9 @@ catalogs:
     vue-sonner:
       specifier: ^2.0.9
       version: 2.0.9
+    zustand:
+      specifier: ^5
+      version: 5.0.13
 
 importers:
 
@@ -297,6 +318,70 @@ importers:
       tw-animate-css:
         specifier: 'catalog:'
         version: 1.4.0
+
+  packages/jacc:
+    dependencies:
+      '@tauri-apps/api':
+        specifier: 'catalog:'
+        version: 2.11.0
+      '@tauri-apps/plugin-dialog':
+        specifier: ^2.7.1
+        version: 2.7.1
+      '@tauri-apps/plugin-shell':
+        specifier: ^2.3.5
+        version: 2.3.5
+      class-variance-authority:
+        specifier: 'catalog:'
+        version: 0.7.1
+      clsx:
+        specifier: 'catalog:'
+        version: 2.1.1
+      lucide-react:
+        specifier: 'catalog:'
+        version: 0.460.0(react@19.2.6)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.6
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.6(react@19.2.6)
+      tailwind-merge:
+        specifier: 'catalog:'
+        version: 3.6.0
+      zustand:
+        specifier: 'catalog:'
+        version: 5.0.13(@types/react@19.2.14)(react@19.2.6)
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: 'catalog:'
+        version: 4.3.0(vite@6.4.2(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(stylus@0.57.0)(yaml@2.9.0))
+      '@tauri-apps/cli':
+        specifier: 'catalog:'
+        version: 2.11.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.14)
+      '@vitejs/plugin-react':
+        specifier: 'catalog:'
+        version: 4.7.0(vite@6.4.2(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(stylus@0.57.0)(yaml@2.9.0))
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 6.4.2(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(stylus@0.57.0)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@24.12.4)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(stylus@0.57.0)(yaml@2.9.0)
 
   packages/jackcom:
     dependencies:
