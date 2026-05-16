@@ -8,6 +8,7 @@ import { General } from '@/pages/General'
 import { EnvVars } from '@/pages/EnvVars'
 import { Permissions } from '@/pages/Permissions'
 import { McpServers } from '@/pages/McpServers'
+import { Models } from '@/pages/Models'
 
 // 页面组件占位（后续计划实现）
 function PagePlaceholder({ name }: { name: string }) {
@@ -47,7 +48,7 @@ export function Layout() {
       case 'mcp':
         return <McpServers />
       case 'models':
-        return <PagePlaceholder name="模型库" />
+        return <Models />
       case 'skills':
         return <PagePlaceholder name="Skills" />
       case 'agents':
