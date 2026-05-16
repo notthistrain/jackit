@@ -72,7 +72,7 @@ export function EnvVars() {
         {/* 普通变量 */}
         {regularEntries.map(([key, value]) => (
           <div key={key} className="flex items-center px-3.5 py-2.5 border-b border-border-light/50">
-            <div className="flex-[2] text-xs font-mono font-medium text-foreground">{key}</div>
+            <div className="flex-[2] text-xs font-mono font-medium text-foreground truncate pr-2" title={key}>{key}</div>
             <div className="flex-[3]">
               <input
                 defaultValue={value}

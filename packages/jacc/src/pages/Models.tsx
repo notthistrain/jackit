@@ -2,14 +2,15 @@ import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Fab } from '@/components/Fab'
 import { AddModelDialog } from '@/components/dialogs/AddModelDialog'
-import { useModels } from '@/hooks/useModels'
+import { useModels, type Model } from '@/hooks/useModels'
 
 type Slot = 'opus' | 'sonnet' | 'haiku'
 
 export function Models() {
-  const { models, add, activate, test, remove } = useModels()
+  const { models, add, activate, test, remove, update } = useModels()
   const [currentSlot, setCurrentSlot] = useState<Slot>('opus')
   const [showAdd, setShowAdd] = useState(false)
+  const [editing, setEditing] = useState<Model | null>(null)
   const [testing, setTesting] = useState<number | null>(null)
   const [testResult, setTestResult] = useState<{ id: number; msg: string; ok: boolean } | null>(null)
   const [menuOpen, setMenuOpen] = useState<number | null>(null)
@@ -114,6 +115,12 @@ export function Models() {
                   {menuOpen === model.id && (
                     <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-[4px] shadow-lg z-10 py-1 min-w-[80px]">
                       <button
+                        onClick={() => { setEditing(model); setMenuOpen(null) }}
+                        className="w-full text-left px-3 py-1.5 text-[11px] text-foreground hover:bg-sidebar"
+                      >
+                        编辑
+                      </button>
+                      <button
                         onClick={() => { remove(model.id); setMenuOpen(null) }}
                         className="w-full text-left px-3 py-1.5 text-[11px] text-danger hover:bg-sidebar"
                       >
@@ -129,6 +136,27 @@ export function Models() {
 
       <Fab onClick={() => setShowAdd(true)} />
       <AddModelDialog open={showAdd} onClose={() => setShowAdd(false)} onSubmit={add} />
+      <AddModelDialog
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        onSubmit={async (input) => {
+          if (editing) {
+            await update(editing.id, {
+              alias: input.alias,
+              base_url: input.base_url,
+              api_key: input.api_key,
+              model_name: input.model_name,
+            })
+          }
+        }}
+        initialValues={editing ? {
+          alias: editing.alias,
+          base_url: editing.base_url,
+          api_key: '',
+          model_name: editing.model_name,
+          slot: editing.slot || '',
+        } : undefined}
+      />
     </div>
   )
 }

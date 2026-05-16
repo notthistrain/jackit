@@ -1,14 +1,21 @@
 import { Eye, EyeOff } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CreateModelInput } from '@/hooks/useModels'
 
 interface AddModelDialogProps {
   open: boolean
   onClose: () => void
   onSubmit: (input: CreateModelInput) => Promise<void>
+  initialValues?: {
+    alias: string
+    base_url: string
+    api_key: string
+    model_name: string
+    slot: string
+  }
 }
 
-export function AddModelDialog({ open, onClose, onSubmit }: AddModelDialogProps) {
+export function AddModelDialog({ open, onClose, onSubmit, initialValues }: AddModelDialogProps) {
   const [alias, setAlias] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -17,10 +24,29 @@ export function AddModelDialog({ open, onClose, onSubmit }: AddModelDialogProps)
   const [showKey, setShowKey] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  useEffect(() => {
+    if (open && initialValues) {
+      setAlias(initialValues.alias)
+      setBaseUrl(initialValues.base_url)
+      setApiKey(initialValues.api_key)
+      setModelName(initialValues.model_name)
+      setSlot(initialValues.slot)
+    } else if (!open) {
+      setAlias('')
+      setBaseUrl('')
+      setApiKey('')
+      setModelName('')
+      setSlot('')
+    }
+  }, [open, initialValues])
+
   if (!open) return null
 
+  const isEdit = !!initialValues
+
   async function handleSubmit() {
-    if (!alias || !baseUrl || !apiKey || !modelName) return
+    if (!alias || !baseUrl || !modelName) return
+    if (!isEdit && !apiKey) return
     setSubmitting(true)
     try {
       await onSubmit({
@@ -30,12 +56,6 @@ export function AddModelDialog({ open, onClose, onSubmit }: AddModelDialogProps)
         model_name: modelName,
         slot: slot || null,
       })
-      // 重置表单
-      setAlias('')
-      setBaseUrl('')
-      setApiKey('')
-      setModelName('')
-      setSlot('')
       onClose()
     } finally {
       setSubmitting(false)
@@ -45,7 +65,9 @@ export function AddModelDialog({ open, onClose, onSubmit }: AddModelDialogProps)
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
       <div className="bg-card border border-border rounded-[4px] p-6 w-[400px] shadow-xl">
-        <h3 className="text-[15px] font-medium text-foreground mb-5">添加模型配置</h3>
+        <h3 className="text-[15px] font-medium text-foreground mb-5">
+          {isEdit ? '编辑模型配置' : '添加模型配置'}
+        </h3>
 
         <div className="flex flex-col gap-3.5">
           <div>
@@ -67,13 +89,13 @@ export function AddModelDialog({ open, onClose, onSubmit }: AddModelDialogProps)
             />
           </div>
           <div>
-            <div className="text-[11px] text-muted mb-1">API Key *</div>
+            <div className="text-[11px] text-muted mb-1">API Key {isEdit ? '(留空不修改)' : '*'}</div>
             <div className="relative">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-..."
+                placeholder={isEdit ? '留空保持不变' : 'sk-ant-...'}
                 className="w-full bg-sidebar border border-border px-3 py-2 pr-9 rounded-[4px] text-xs text-foreground"
               />
               <button
@@ -117,7 +139,7 @@ export function AddModelDialog({ open, onClose, onSubmit }: AddModelDialogProps)
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !alias || !baseUrl || !apiKey || !modelName}
+            disabled={submitting || !alias || !baseUrl || !modelName || (!isEdit && !apiKey)}
             className="px-4 py-2 bg-primary text-white text-xs rounded-[4px] disabled:opacity-50"
           >
             {submitting ? '保存中...' : '保存'}
