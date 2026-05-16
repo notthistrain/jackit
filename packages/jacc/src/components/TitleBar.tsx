@@ -5,13 +5,11 @@ export function TitleBar() {
   const appWindow = getCurrentWindow()
 
   return (
-    <div
-      data-tauri-drag-region
-      className="h-8 flex items-center justify-between bg-sidebar border-b border-border select-none"
-    >
+    <div className="h-8 flex items-center bg-sidebar border-b border-border select-none">
       <div className="pl-3 text-xs text-muted" data-tauri-drag-region>
         jacc
       </div>
+      <div data-tauri-drag-region className="flex-1 h-full" />
       <div className="flex h-full">
         <button
           onClick={() => appWindow.minimize()}

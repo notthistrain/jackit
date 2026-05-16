@@ -164,7 +164,7 @@ export function Models() {
             await update(editing.id, {
               alias: input.alias,
               base_url: input.base_url,
-              api_key: input.api_key,
+              api_key: input.api_key || undefined,
               model_name: input.model_name,
             })
           }
