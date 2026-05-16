@@ -59,5 +59,13 @@ async fn migrate(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    // 迁移：添加 context_size 字段
+    sqlx::query(
+        "ALTER TABLE models ADD COLUMN context_size TEXT DEFAULT NULL",
+    )
+    .execute(pool)
+    .await
+    .ok(); // 忽略 "duplicate column" 错误（已迁移过的数据库）
+
     Ok(())
 }
