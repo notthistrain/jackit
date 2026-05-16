@@ -100,7 +100,7 @@ export function General() {
           </div>
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
-              {((enabledPlugins?.value as string[]) || []).map((p) => (
+              {(Array.isArray(enabledPlugins?.value) ? enabledPlugins.value as string[] : []).map((p) => (
                 <span key={p} className="text-[11px] px-2 py-0.5 bg-success-light text-success rounded-[2px]">
                   {p}
                 </span>

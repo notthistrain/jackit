@@ -25,7 +25,11 @@ pub struct MergedConfig {
 #[tauri::command]
 pub async fn read_merged_config(project_path: String) -> AppResult<MergedConfig> {
     let global = read_settings_file(&get_global_settings_path());
-    let project = read_settings_file(&get_project_settings_path(&project_path));
+    let project = if project_path.is_empty() {
+        serde_json::json!({})
+    } else {
+        read_settings_file(&get_project_settings_path(&project_path))
+    };
 
     let mut items: Vec<MergedConfigItem> = vec![];
 

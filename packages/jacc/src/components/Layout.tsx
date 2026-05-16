@@ -26,10 +26,6 @@ export function Layout() {
   }
 
   function renderPage() {
-    if (!currentProject) {
-      return <EmptyState onSelectProject={handleSelectProject} />
-    }
-
     switch (currentPage) {
       case 'general':
         return <General />
@@ -42,8 +38,10 @@ export function Layout() {
       case 'models':
         return <Models />
       case 'skills':
+        if (!currentProject) return <EmptyState onSelectProject={handleSelectProject} />
         return <Skills />
       case 'agents':
+        if (!currentProject) return <EmptyState onSelectProject={handleSelectProject} />
         return <Agents />
       default:
         return null

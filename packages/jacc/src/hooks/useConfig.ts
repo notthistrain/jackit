@@ -18,11 +18,10 @@ export function useConfig() {
   const [loading, setLoading] = useState(false)
 
   const refresh = useCallback(async () => {
-    if (!currentProject) return
     setLoading(true)
     try {
       const result = await invoke<MergedConfig>('read_merged_config', {
-        projectPath: currentProject,
+        projectPath: currentProject || '',
       })
       setConfig(result)
     } finally {
