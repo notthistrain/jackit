@@ -12,6 +12,7 @@ pub struct Model {
     pub api_key: String,
     pub model_name: String,
     pub slot: Option<String>,
+    pub context_size: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -25,6 +26,7 @@ pub struct ModelView {
     pub api_key_masked: String,
     pub model_name: String,
     pub slot: Option<String>,
+    pub context_size: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -43,6 +45,7 @@ impl From<&Model> for ModelView {
             api_key_masked: masked,
             model_name: m.model_name.clone(),
             slot: m.slot.clone(),
+            context_size: m.context_size.clone(),
             created_at: m.created_at.clone(),
             updated_at: m.updated_at.clone(),
         }
@@ -56,6 +59,7 @@ pub struct CreateModelInput {
     pub api_key: String,
     pub model_name: String,
     pub slot: Option<String>,
+    pub context_size: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -64,12 +68,13 @@ pub struct UpdateModelInput {
     pub base_url: Option<String>,
     pub api_key: Option<String>,
     pub model_name: Option<String>,
+    pub context_size: Option<String>,
 }
 
 #[tauri::command]
 pub async fn list_models(pool: State<'_, SqlitePool>) -> AppResult<Vec<ModelView>> {
     let models = sqlx::query_as::<_, Model>(
-        "SELECT id, alias, base_url, api_key, model_name, slot, created_at, updated_at
+        "SELECT id, alias, base_url, api_key, model_name, slot, context_size, created_at, updated_at
          FROM models ORDER BY created_at DESC",
     )
     .fetch_all(pool.inner())
@@ -80,13 +85,14 @@ pub async fn list_models(pool: State<'_, SqlitePool>) -> AppResult<Vec<ModelView
 #[tauri::command]
 pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> AppResult<Model> {
     let id = sqlx::query(
-        "INSERT INTO models (alias, base_url, api_key, model_name, slot) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO models (alias, base_url, api_key, model_name, slot, context_size) VALUES (?, ?, ?, ?, ?, ?)",
     )
     .bind(&input.alias)
     .bind(&input.base_url)
     .bind(&input.api_key)
     .bind(&input.model_name)
     .bind(&input.slot)
+    .bind(&input.context_size)
     .execute(pool.inner())
     .await?
     .last_insert_rowid();
@@ -119,6 +125,10 @@ pub async fn update_model(pool: State<'_, SqlitePool>, id: i64, input: UpdateMod
         query.push_str(", model_name = ?");
         binds.push(model_name.clone());
     }
+    if let Some(ref context_size) = input.context_size {
+        query.push_str(", context_size = ?");
+        binds.push(context_size.clone());
+    }
 
     query.push_str(" WHERE id = ?");
 
@@ -141,14 +151,14 @@ pub async fn delete_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()>
 }
 
 #[tauri::command]
-pub async fn activate_model(pool: State<'_, SqlitePool>, id: i64, slot: String) -> AppResult<()> {
-    // 清除该槽位的旧激活
+pub async fn bind_model(pool: State<'_, SqlitePool>, id: i64, slot: String) -> AppResult<()> {
+    // 清除该槽位的旧绑定
     sqlx::query("UPDATE models SET slot = NULL WHERE slot = ?")
         .bind(&slot)
         .execute(pool.inner())
         .await?;
 
-    // 激活新模型到该槽位
+    // 绑定新模型到该槽位
     sqlx::query("UPDATE models SET slot = ?, updated_at = datetime('now') WHERE id = ?")
         .bind(&slot)
         .bind(id)
@@ -188,14 +198,14 @@ pub async fn test_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<Strin
         .body(body.to_string())
         .send()
         .await
-        .map_err(|e| AppError::Custom(format!("连接失败: {}", e)))?;
+        .map_err(|e| AppError::Custom(format!("CONNECTION_FAILED:{}", e)))?;
 
     if resp.status().is_success() || resp.status().as_u16() == 400 {
-        Ok("连接成功".to_string())
+        Ok("CONNECTION_SUCCESS".to_string())
     } else {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        Err(AppError::Custom(format!("HTTP {}: {}", status, body)))
+        Err(AppError::Custom(format!("HTTP_ERROR:{}:{}", status.as_u16(), body)))
     }
 }
 

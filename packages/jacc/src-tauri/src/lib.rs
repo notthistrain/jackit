@@ -30,7 +30,7 @@ pub fn run() {
             commands::models::add_model,
             commands::models::update_model,
             commands::models::delete_model,
-            commands::models::activate_model,
+            commands::models::bind_model,
             commands::models::test_model,
             // config
             commands::config::read_merged_config,
