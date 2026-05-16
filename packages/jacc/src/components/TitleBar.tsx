@@ -1,13 +1,15 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Minus, Square, X } from 'lucide-react'
+import { useT } from '@/i18n'
 
 export function TitleBar() {
   const appWindow = getCurrentWindow()
+  const { t } = useT()
 
   return (
     <div className="h-8 flex items-center bg-sidebar border-b border-border select-none">
       <div className="pl-3 text-xs text-muted" data-tauri-drag-region>
-        jacc
+        {t('app.title')}
       </div>
       <div data-tauri-drag-region className="flex-1 h-full" />
       <div className="flex h-full">
