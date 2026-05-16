@@ -83,7 +83,9 @@ pub async fn list_models(pool: State<'_, SqlitePool>) -> AppResult<Vec<ModelView
 }
 
 #[tauri::command]
-pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> AppResult<Model> {
+pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> AppResult<ModelView> {
+    let context_size = input.context_size.as_deref().filter(|s| !s.is_empty());
+
     let id = sqlx::query(
         "INSERT INTO models (alias, base_url, api_key, model_name, slot, context_size) VALUES (?, ?, ?, ?, ?, ?)",
     )
@@ -92,7 +94,7 @@ pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> 
     .bind(&input.api_key)
     .bind(&input.model_name)
     .bind(&input.slot)
-    .bind(&input.context_size)
+    .bind(&context_size)
     .execute(pool.inner())
     .await?
     .last_insert_rowid();
@@ -101,7 +103,7 @@ pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> 
         .bind(id)
         .fetch_one(pool.inner())
         .await?;
-    Ok(model)
+    Ok(ModelView::from(&model))
 }
 
 #[tauri::command]
@@ -126,8 +128,12 @@ pub async fn update_model(pool: State<'_, SqlitePool>, id: i64, input: UpdateMod
         binds.push(model_name.clone());
     }
     if let Some(ref context_size) = input.context_size {
-        query.push_str(", context_size = ?");
-        binds.push(context_size.clone());
+        if context_size.is_empty() {
+            query.push_str(", context_size = NULL");
+        } else {
+            query.push_str(", context_size = ?");
+            binds.push(context_size.clone());
+        }
     }
 
     query.push_str(" WHERE id = ?");

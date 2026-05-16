@@ -61,7 +61,7 @@ export function AddModelDialog({ open, onClose, onSubmit, initialValues }: AddMo
         api_key: apiKey,
         model_name: modelName,
         slot: slot || null,
-        context_size: contextSize || null,
+        context_size: contextSize,
       })
       onClose()
     } finally {

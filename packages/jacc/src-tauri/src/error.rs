@@ -2,13 +2,13 @@ use serde::Serialize;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
-    #[error("数据库错误: {0}")]
+    #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
-    #[error("IO 错误: {0}")]
+    #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("JSON 错误: {0}")]
+    #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
     #[error("{0}")]

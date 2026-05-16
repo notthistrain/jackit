@@ -1,5 +1,5 @@
 import { MoreHorizontal } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Fab } from '@/components/Fab'
 import { AddModelDialog } from '@/components/dialogs/AddModelDialog'
 import { useModels, type Model } from '@/hooks/useModels'
@@ -16,6 +16,19 @@ export function Models() {
   const [testing, setTesting] = useState<number | null>(null)
   const [testResult, setTestResult] = useState<{ id: number; msg: string; ok: boolean } | null>(null)
   const [menuOpen, setMenuOpen] = useState<number | null>(null)
+
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (menuOpen === null) return
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpen])
 
   const boundModel = models.find((m) => m.slot === currentSlot)
 
@@ -133,7 +146,7 @@ export function Models() {
                 >
                   {testing === model.id ? '...' : t('models.test')}
                 </button>
-                <div className="relative">
+                <div className="relative" ref={menuOpen === model.id ? menuRef : undefined}>
                   <button
                     onClick={() => setMenuOpen(menuOpen === model.id ? null : model.id)}
                     className="text-[11px] px-2 py-1 bg-card border border-border rounded-[2px] text-muted hover:bg-sidebar cursor-pointer"
@@ -174,7 +187,7 @@ export function Models() {
               base_url: input.base_url,
               api_key: input.api_key || undefined,
               model_name: input.model_name,
-              context_size: input.context_size || undefined,
+              context_size: input.context_size === null ? undefined : input.context_size,
             })
           }
         }}
