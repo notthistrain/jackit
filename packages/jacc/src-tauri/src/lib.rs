@@ -32,6 +32,11 @@ pub fn run() {
             commands::config::read_merged_config,
             commands::config::write_config,
             commands::config::delete_config,
+            commands::skills::list_skills,
+            commands::skills::toggle_skill,
+            commands::skills::import_skill,
+            commands::skills::install_skill_from_github,
+            commands::skills::confirm_install_skill,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
