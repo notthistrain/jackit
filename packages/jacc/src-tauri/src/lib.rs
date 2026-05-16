@@ -16,22 +16,27 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // preferences
             commands::preferences::get_preference,
             commands::preferences::set_preference,
+            // projects
             commands::projects::list_projects,
             commands::projects::add_project,
             commands::projects::open_project,
             commands::projects::remove_project,
             commands::projects::pin_project,
+            // models
             commands::models::list_models,
             commands::models::add_model,
             commands::models::update_model,
             commands::models::delete_model,
             commands::models::activate_model,
             commands::models::test_model,
+            // config
             commands::config::read_merged_config,
             commands::config::write_config,
             commands::config::delete_config,
+            // skills
             commands::skills::list_skills,
             commands::skills::toggle_skill,
             commands::skills::import_skill,
