@@ -1,41 +1,68 @@
+import { useState } from 'react'
 import { useConfig } from '@/hooks/useConfig'
+import { useModels } from '@/hooks/useModels'
 import { useAppStore } from '@/stores/useAppStore'
+import { usePreferences } from '@/hooks/usePreferences'
 import { SourceBadge } from '@/components/SourceBadge'
+import { useT, type Locale } from '@/i18n'
+
+type Slot = 'opus' | 'sonnet' | 'haiku'
 
 export function General() {
+  const { t, locale, setLocale } = useT()
   const { config, loading, writeConfig } = useConfig()
+  const { models } = useModels()
   const { setPage } = useAppStore()
+  const { set: setPreference } = usePreferences()
+  const [viewSlot, setViewSlot] = useState<Slot>('opus')
 
   if (loading || !config) {
-    return <div className="p-6 text-xs text-muted">加载中...</div>
+    return <div className="p-6 text-xs text-muted">{t('common.loading')}</div>
   }
 
   const getItem = (key: string) => config.items.find((i) => i.key === key)
 
-  const model = getItem('model')
   const effortLevel = getItem('effortLevel')
   const skipDangerous = getItem('skipDangerousModePermissionPrompt')
 
+  const boundModel = models.find((m) => m.slot === viewSlot)
+
+  function handleLocaleChange(newLocale: Locale) {
+    setLocale(newLocale)
+    setPreference('locale', newLocale)
+  }
+
   return (
     <div className="p-6">
-      <h2 className="text-base font-medium text-foreground mb-5">通用设置</h2>
+      <h2 className="text-base font-medium text-foreground mb-5">{t('general.title')}</h2>
 
       <div className="flex flex-col gap-2.5">
         {/* 模型 */}
         <div className="flex items-center justify-between p-3 bg-card border border-border-light rounded-[4px]">
           <div>
-            <div className="text-[13px] font-medium text-foreground">模型</div>
-            <div className="text-[11px] text-muted">当前激活的模型，在「模型库」中管理</div>
+            <div className="text-[13px] font-medium text-foreground">{t('general.model')}</div>
+            <div className="text-[11px] text-muted">{t('general.model.desc')}</div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-foreground bg-sidebar px-2.5 py-1 rounded-[2px] border border-border">
-              {(model?.value as string) || '未设置'}
+            <select
+              value={viewSlot}
+              onChange={(e) => setViewSlot(e.target.value as Slot)}
+              className="bg-sidebar border border-border text-foreground px-2 py-1 rounded-[2px] text-xs"
+            >
+              <option value="opus">Opus</option>
+              <option value="sonnet">Sonnet</option>
+              <option value="haiku">Haiku</option>
+            </select>
+            <span className="text-xs text-foreground bg-sidebar px-2.5 py-1 rounded-[2px] border border-border max-w-[160px] truncate">
+              {boundModel
+                ? `${boundModel.alias}${boundModel.context_size ? ` · ${boundModel.context_size}` : ''}`
+                : t('general.model.unbound')}
             </span>
             <button
               onClick={() => setPage('models')}
               className="text-[11px] text-primary hover:underline"
             >
-              管理
+              {t('general.model.manage')}
             </button>
           </div>
         </div>
@@ -43,8 +70,8 @@ export function General() {
         {/* Effort Level */}
         <div className="flex items-center justify-between p-3 bg-card border border-border-light rounded-[4px]">
           <div>
-            <div className="text-[13px] font-medium text-foreground">Effort Level</div>
-            <div className="text-[11px] text-muted">推理努力程度</div>
+            <div className="text-[13px] font-medium text-foreground">{t('general.effortLevel')}</div>
+            <div className="text-[11px] text-muted">{t('general.effortLevel.desc')}</div>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -65,8 +92,8 @@ export function General() {
         {/* 跳过危险模式确认 */}
         <div className="flex items-center justify-between p-3 bg-card border border-border-light rounded-[4px]">
           <div>
-            <div className="text-[13px] font-medium text-foreground">跳过危险模式确认</div>
-            <div className="text-[11px] text-muted">启用后不再弹出危险操作确认提示</div>
+            <div className="text-[13px] font-medium text-foreground">{t('general.skipDangerous')}</div>
+            <div className="text-[11px] text-muted">{t('general.skipDangerous.desc')}</div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -88,6 +115,24 @@ export function General() {
               />
             </button>
             {skipDangerous && <SourceBadge scope={skipDangerous.scope} />}
+          </div>
+        </div>
+
+        {/* 语言 */}
+        <div className="flex items-center justify-between p-3 bg-card border border-border-light rounded-[4px]">
+          <div>
+            <div className="text-[13px] font-medium text-foreground">{t('general.language')}</div>
+            <div className="text-[11px] text-muted">{t('general.language.desc')}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={locale}
+              onChange={(e) => handleLocaleChange(e.target.value as Locale)}
+              className="bg-sidebar border border-border text-foreground px-2.5 py-1 rounded-[2px] text-xs"
+            >
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
           </div>
         </div>
       </div>
