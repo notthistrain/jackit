@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { SkillInfo } from '@/hooks/useSkills'
+import { useT } from '@/i18n'
 
 interface GithubInstallResult {
   temp_dir: string
@@ -14,6 +15,7 @@ interface InstallSkillDialogProps {
 }
 
 export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: InstallSkillDialogProps) {
+  const { t } = useT()
   const [repoUrl, setRepoUrl] = useState('')
   const [fetching, setFetching] = useState(false)
   const [available, setAvailable] = useState<SkillInfo[]>([])
@@ -35,7 +37,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
       setTempDir(result.temp_dir)
       setAvailable(result.skills)
       if (result.skills.length === 0) {
-        setError('未在仓库中找到 skill（需包含 SKILL.md 文件的目录）')
+        setError(t('skills.install.noSkills'))
       }
     } catch (e) {
       setError(String(e))
@@ -71,15 +73,15 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
       <div className="bg-card border border-border rounded-[4px] p-6 w-[420px] shadow-xl">
-        <h3 className="text-[15px] font-medium text-foreground mb-4">从 GitHub 安装</h3>
+        <h3 className="text-[15px] font-medium text-foreground mb-4">{t('skills.install.title')}</h3>
 
         <div className="mb-4">
-          <div className="text-[11px] text-muted mb-1">GitHub 仓库地址</div>
+          <div className="text-[11px] text-muted mb-1">{t('skills.install.repoLabel')}</div>
           <div className="flex gap-2">
             <input
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="https://github.com/user/repo"
+              placeholder={t('skills.install.repoPlaceholder')}
               className="flex-1 bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
             />
             <button
@@ -87,19 +89,17 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
               disabled={fetching || !repoUrl.trim()}
               className="px-3 py-2 bg-primary text-white text-[11px] rounded-[4px] disabled:opacity-50 whitespace-nowrap"
             >
-              {fetching ? '获取中...' : '获取'}
+              {fetching ? t('skills.install.fetching') : t('skills.install.fetch')}
             </button>
           </div>
         </div>
 
-        {/* 进度提示 */}
         {fetching && (
           <div className="mb-4 px-3.5 py-2.5 bg-sidebar border border-border-light rounded-[4px] text-[11px] text-muted">
-            正在克隆仓库并扫描 skills，请稍候...
+            {t('skills.install.cloning')}
           </div>
         )}
 
-        {/* 错误提示 */}
         {error && (
           <div className="mb-4 px-3.5 py-2.5 bg-danger-light border border-danger/30 rounded-[4px] text-[11px] text-danger">
             {error}
@@ -108,7 +108,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
 
         {available.length > 0 && (
           <div className="mb-4">
-            <div className="text-[11px] text-muted mb-2">选择要安装的 skill：</div>
+            <div className="text-[11px] text-muted mb-2">{t('skills.install.selectLabel')}</div>
             <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
               {available.map((skill) => (
                 <label
@@ -140,7 +140,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
             onClick={onClose}
             className="px-4 py-2 border border-border text-xs text-muted-foreground rounded-[4px]"
           >
-            取消
+            {t('skills.install.cancel')}
           </button>
           {available.length > 0 && (
             <button
@@ -148,7 +148,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
               disabled={installing || selected.size === 0}
               className="px-4 py-2 bg-success text-white text-xs rounded-[4px] disabled:opacity-50"
             >
-              {installing ? '安装中...' : `安装 (${selected.size})`}
+              {installing ? t('skills.install.installing') : t('skills.install.install', { count: String(selected.size) })}
             </button>
           )}
         </div>
