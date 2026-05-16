@@ -23,6 +23,12 @@ pub fn run() {
             commands::projects::open_project,
             commands::projects::remove_project,
             commands::projects::pin_project,
+            commands::models::list_models,
+            commands::models::add_model,
+            commands::models::update_model,
+            commands::models::delete_model,
+            commands::models::activate_model,
+            commands::models::test_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
