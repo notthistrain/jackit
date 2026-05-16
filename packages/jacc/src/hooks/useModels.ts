@@ -8,6 +8,7 @@ export interface Model {
   api_key_masked: string
   model_name: string
   slot: string | null
+  context_size: string | null
   created_at: string
   updated_at: string
 }
@@ -18,6 +19,7 @@ export interface CreateModelInput {
   api_key: string
   model_name: string
   slot: string | null
+  context_size: string | null
 }
 
 export interface UpdateModelInput {
@@ -25,6 +27,7 @@ export interface UpdateModelInput {
   base_url?: string
   api_key?: string
   model_name?: string
+  context_size?: string
 }
 
 export function useModels() {
@@ -56,8 +59,8 @@ export function useModels() {
     await refresh()
   }, [refresh])
 
-  const activate = useCallback(async (id: number, slot: string) => {
-    await invoke('activate_model', { id, slot })
+  const bind = useCallback(async (id: number, slot: string) => {
+    await invoke('bind_model', { id, slot })
     await refresh()
   }, [refresh])
 
@@ -69,5 +72,5 @@ export function useModels() {
     refresh()
   }, [refresh])
 
-  return { models, loading, refresh, add, update, remove, activate, test }
+  return { models, loading, refresh, add, update, remove, bind, test }
 }
