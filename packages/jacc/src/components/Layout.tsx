@@ -9,16 +9,8 @@ import { EnvVars } from '@/pages/EnvVars'
 import { Permissions } from '@/pages/Permissions'
 import { McpServers } from '@/pages/McpServers'
 import { Models } from '@/pages/Models'
-
-// 页面组件占位（后续计划实现）
-function PagePlaceholder({ name }: { name: string }) {
-  return (
-    <div className="p-6">
-      <h2 className="text-base font-medium text-foreground">{name}</h2>
-      <p className="text-xs text-muted mt-2">页面开发中...</p>
-    </div>
-  )
-}
+import { Skills } from '@/pages/Skills'
+import { Agents } from '@/pages/Agents'
 
 export function Layout() {
   const { currentPage, currentProject, setProject } = useAppStore()
@@ -50,9 +42,9 @@ export function Layout() {
       case 'models':
         return <Models />
       case 'skills':
-        return <PagePlaceholder name="Skills" />
+        return <Skills />
       case 'agents':
-        return <PagePlaceholder name="Agents" />
+        return <Agents />
       default:
         return null
     }
