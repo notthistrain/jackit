@@ -52,16 +52,36 @@ export function Models() {
       {/* 当前激活模型 */}
       {activeModel && (
         <div className="flex items-center justify-between px-4 py-3 bg-primary-light border border-primary/30 rounded-[4px] mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-2 h-2 bg-primary rounded-full" />
-            <div>
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-3">
+            <div className="w-2 h-2 bg-primary rounded-full shrink-0" />
+            <div className="min-w-0">
               <div className="text-[13px] font-semibold text-foreground">{activeModel.alias}</div>
-              <div className="text-[11px] text-muted">
+              <div className="text-[11px] text-muted truncate">
                 {activeModel.base_url} · {activeModel.model_name}
               </div>
+              {testResult?.id === activeModel.id && (
+                <div className={`text-[10px] mt-1 truncate ${testResult.ok ? 'text-success' : 'text-danger'}`} title={testResult.msg}>
+                  {testResult.msg}
+                </div>
+              )}
             </div>
           </div>
-          <span className="text-[11px] px-2.5 py-1 bg-primary text-white rounded-[12px]">已激活</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => handleTest(activeModel.id)}
+              disabled={testing === activeModel.id}
+              className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar disabled:opacity-50"
+            >
+              {testing === activeModel.id ? '...' : '测试'}
+            </button>
+            <button
+              onClick={() => setEditing(activeModel)}
+              className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar"
+            >
+              编辑
+            </button>
+            <span className="text-[11px] px-2.5 py-1 bg-primary text-white rounded-[12px] ml-1">已激活</span>
+          </div>
         </div>
       )}
 
