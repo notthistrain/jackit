@@ -29,6 +29,9 @@ pub fn run() {
             commands::models::delete_model,
             commands::models::activate_model,
             commands::models::test_model,
+            commands::config::read_merged_config,
+            commands::config::write_config,
+            commands::config::delete_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
