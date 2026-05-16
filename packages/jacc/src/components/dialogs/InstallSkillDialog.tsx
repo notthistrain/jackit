@@ -20,6 +20,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [installing, setInstalling] = useState(false)
   const [tempDir, setTempDir] = useState('')
+  const [error, setError] = useState('')
 
   if (!open) return null
 
@@ -28,10 +29,16 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
     setFetching(true)
     setAvailable([])
     setSelected(new Set())
+    setError('')
     try {
       const result = await onFetch(repoUrl)
       setTempDir(result.temp_dir)
       setAvailable(result.skills)
+      if (result.skills.length === 0) {
+        setError('未在仓库中找到 skill（需包含 SKILL.md 文件的目录）')
+      }
+    } catch (e) {
+      setError(String(e))
     } finally {
       setFetching(false)
     }
@@ -84,6 +91,20 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
             </button>
           </div>
         </div>
+
+        {/* 进度提示 */}
+        {fetching && (
+          <div className="mb-4 px-3.5 py-2.5 bg-sidebar border border-border-light rounded-[4px] text-[11px] text-muted">
+            正在克隆仓库并扫描 skills，请稍候...
+          </div>
+        )}
+
+        {/* 错误提示 */}
+        {error && (
+          <div className="mb-4 px-3.5 py-2.5 bg-danger-light border border-danger/30 rounded-[4px] text-[11px] text-danger">
+            {error}
+          </div>
+        )}
 
         {available.length > 0 && (
           <div className="mb-4">

@@ -28,6 +28,7 @@ export function SkillList({
   const [search, setSearch] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const [showInstall, setShowInstall] = useState(false)
+  const [toggling, setToggling] = useState<string | null>(null)
 
   const filtered = skills.filter(
     (s) =>
@@ -37,6 +38,15 @@ export function SkillList({
 
   const enabledCount = skills.filter((s) => s.enabled).length
   const disabledCount = skills.filter((s) => !s.enabled).length
+
+  async function handleToggle(name: string, enabled: boolean) {
+    setToggling(name)
+    try {
+      await onToggle(name, enabled)
+    } finally {
+      setToggling(null)
+    }
+  }
 
   async function handleImport() {
     const selected = await open({ directory: true })
@@ -51,7 +61,7 @@ export function SkillList({
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 pb-20">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-medium text-foreground">{title}</h2>
         <div className="relative">
@@ -92,18 +102,23 @@ export function SkillList({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <SourceBadge scope={skill.source as 'project' | 'user' | 'plugin'} />
-              <button
-                onClick={() => onToggle(skill.name, !skill.enabled)}
-                className={`w-9 h-5 rounded-full relative transition-colors ${
-                  skill.enabled ? 'bg-success' : 'bg-border'
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${
-                    skill.enabled ? 'right-0.5' : 'left-0.5'
-                  }`}
-                />
-              </button>
+              {skill.source === 'user' ? (
+                <span className="text-[10px] text-muted">只读</span>
+              ) : (
+                <button
+                  onClick={() => handleToggle(skill.name, !skill.enabled)}
+                  disabled={toggling === skill.name}
+                  className={`w-9 h-5 rounded-full relative transition-colors ${
+                    skill.enabled ? 'bg-success' : 'bg-border'
+                  } ${toggling === skill.name ? 'opacity-50' : ''}`}
+                >
+                  <div
+                    className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${
+                      skill.enabled ? 'right-0.5' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              )}
             </div>
           </div>
         ))}

@@ -14,7 +14,7 @@ export function Fab({ onClick, className }: FabProps) {
         'fixed bottom-5 right-6 w-11 h-11 rounded-full',
         'bg-primary text-white shadow-lg',
         'flex items-center justify-center',
-        'hover:opacity-90 transition-opacity cursor-pointer',
+        'opacity-40 hover:opacity-100 transition-opacity cursor-pointer',
         className,
       )}
     >
