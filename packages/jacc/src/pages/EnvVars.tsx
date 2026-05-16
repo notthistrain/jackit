@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useConfig } from '@/hooks/useConfig'
 import { SourceBadge } from '@/components/SourceBadge'
 import { Fab } from '@/components/Fab'
@@ -10,6 +10,7 @@ export function EnvVars() {
   const [showAdd, setShowAdd] = useState(false)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
+  const pendingRef = useRef<Record<string, string>>({})
 
   const envItem = config?.items.find((i) => i.key === 'env')
   const envObj = (envItem?.value as Record<string, string>) || {}
@@ -34,9 +35,16 @@ export function EnvVars() {
     await writeConfig(envScope, 'env', updated)
   }
 
-  async function handleChange(key: string, value: string) {
-    const updated = { ...envObj, [key]: value }
-    await writeConfig(envScope, 'env', updated)
+  function handleLocalChange(key: string, value: string) {
+    pendingRef.current[key] = value
+  }
+
+  async function handleBlur(key: string) {
+    if (key in pendingRef.current) {
+      const updated = { ...envObj, [key]: pendingRef.current[key] }
+      delete pendingRef.current[key]
+      await writeConfig(envScope, 'env', updated)
+    }
   }
 
   return (
@@ -67,8 +75,9 @@ export function EnvVars() {
             <div className="flex-[2] text-xs font-mono font-medium text-foreground">{key}</div>
             <div className="flex-[3]">
               <input
-                value={value}
-                onChange={(e) => handleChange(key, e.target.value)}
+                defaultValue={value}
+                onChange={(e) => handleLocalChange(key, e.target.value)}
+                onBlur={() => handleBlur(key)}
                 className="w-[90%] bg-sidebar border border-border px-2 py-1 rounded-[2px] text-[11px] font-mono text-foreground"
               />
             </div>

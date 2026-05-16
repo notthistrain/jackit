@@ -5,7 +5,7 @@ export interface Model {
   id: number
   alias: string
   base_url: string
-  api_key: string
+  api_key_masked: string
   model_name: string
   slot: string | null
   created_at: string

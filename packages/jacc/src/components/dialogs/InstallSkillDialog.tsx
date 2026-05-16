@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import type { SkillInfo } from '@/hooks/useSkills'
 
+interface GithubInstallResult {
+  temp_dir: string
+  skills: SkillInfo[]
+}
+
 interface InstallSkillDialogProps {
   open: boolean
   onClose: () => void
-  onFetch: (repoUrl: string) => Promise<SkillInfo[]>
+  onFetch: (repoUrl: string) => Promise<GithubInstallResult>
   onConfirm: (tempDir: string, skillNames: string[]) => Promise<void>
 }
 
@@ -24,20 +29,9 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
     setAvailable([])
     setSelected(new Set())
     try {
-      const skills = await onFetch(repoUrl)
-      setAvailable(skills)
-      if (skills.length > 0 && skills[0].description.includes('|')) {
-        const parts = skills[0].description.split('|')
-        setTempDir(parts[0])
-        setAvailable(
-          skills.map((s) => ({
-            ...s,
-            description: s.description.includes('|')
-              ? s.description.split('|').slice(1).join('|')
-              : s.description,
-          })),
-        )
-      }
+      const result = await onFetch(repoUrl)
+      setTempDir(result.temp_dir)
+      setAvailable(result.skills)
     } finally {
       setFetching(false)
     }

@@ -6,7 +6,12 @@ export interface SkillInfo {
   name: string
   description: string
   enabled: boolean
-  source: string // "project" | "user" | "plugin"
+  source: string
+}
+
+interface GithubInstallResult {
+  temp_dir: string
+  skills: SkillInfo[]
 }
 
 export function useSkills() {
@@ -44,9 +49,9 @@ export function useSkills() {
   )
 
   const installFromGithub = useCallback(
-    async (repoUrl: string): Promise<SkillInfo[]> => {
-      if (!currentProject) return []
-      return invoke<SkillInfo[]>('install_skill_from_github', {
+    async (repoUrl: string): Promise<GithubInstallResult> => {
+      if (!currentProject) return { temp_dir: '', skills: [] }
+      return invoke<GithubInstallResult>('install_skill_from_github', {
         projectPath: currentProject,
         repoUrl,
       })

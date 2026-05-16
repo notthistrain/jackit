@@ -8,7 +8,13 @@ pub struct SkillInfo {
     pub name: String,
     pub description: String,
     pub enabled: bool,
-    pub source: String, // "project" | "user" | "plugin"
+    pub source: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GithubInstallResult {
+    pub temp_dir: String,
+    pub skills: Vec<SkillInfo>,
 }
 
 #[tauri::command]
@@ -87,7 +93,7 @@ pub async fn import_skill(project_path: String, source_path: String) -> AppResul
 pub async fn install_skill_from_github(
     _project_path: String,
     repo_url: String,
-) -> AppResult<Vec<SkillInfo>> {
+) -> AppResult<GithubInstallResult> {
     // Clone 到临时目录
     let temp_dir = std::env::temp_dir().join(format!(
         "jacc-skill-{}",
@@ -115,12 +121,10 @@ pub async fn install_skill_from_github(
     let mut available_skills = vec![];
     scan_for_skills(&temp_dir, &mut available_skills)?;
 
-    // 将临时目录路径存入 skill info 的 description 中以便后续使用
-    for skill in &mut available_skills {
-        skill.description = format!("{}|{}", temp_dir.display(), skill.description);
-    }
-
-    Ok(available_skills)
+    Ok(GithubInstallResult {
+        temp_dir: temp_dir.to_string_lossy().to_string(),
+        skills: available_skills,
+    })
 }
 
 #[tauri::command]

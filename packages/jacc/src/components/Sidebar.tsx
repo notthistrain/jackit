@@ -10,6 +10,7 @@ import {
   Sun,
 } from 'lucide-react'
 import { useAppStore, type Page } from '@/stores/useAppStore'
+import { usePreferences } from '@/hooks/usePreferences'
 import { ProjectSwitcher } from './ProjectSwitcher'
 import { cn } from '@/lib/utils'
 
@@ -34,10 +35,12 @@ const extensionsNav: NavItem[] = [
 
 export function Sidebar() {
   const { currentPage, setPage, theme, setTheme } = useAppStore()
+  const { set: setPreference } = usePreferences()
 
   function toggleTheme() {
     const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
     setTheme(next)
+    setPreference('theme', next)
   }
 
   return (

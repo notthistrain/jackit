@@ -16,6 +16,39 @@ pub struct Model {
     pub updated_at: String,
 }
 
+/// 返回给前端的模型信息，API key 做掩码处理
+#[derive(Debug, Serialize)]
+pub struct ModelView {
+    pub id: i64,
+    pub alias: String,
+    pub base_url: String,
+    pub api_key_masked: String,
+    pub model_name: String,
+    pub slot: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<&Model> for ModelView {
+    fn from(m: &Model) -> Self {
+        let masked = if m.api_key.len() > 8 {
+            format!("{}***", &m.api_key[..8])
+        } else {
+            "***".to_string()
+        };
+        Self {
+            id: m.id,
+            alias: m.alias.clone(),
+            base_url: m.base_url.clone(),
+            api_key_masked: masked,
+            model_name: m.model_name.clone(),
+            slot: m.slot.clone(),
+            created_at: m.created_at.clone(),
+            updated_at: m.updated_at.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateModelInput {
     pub alias: String,
@@ -34,14 +67,14 @@ pub struct UpdateModelInput {
 }
 
 #[tauri::command]
-pub async fn list_models(pool: State<'_, SqlitePool>) -> AppResult<Vec<Model>> {
+pub async fn list_models(pool: State<'_, SqlitePool>) -> AppResult<Vec<ModelView>> {
     let models = sqlx::query_as::<_, Model>(
         "SELECT id, alias, base_url, api_key, model_name, slot, created_at, updated_at
          FROM models ORDER BY created_at DESC",
     )
     .fetch_all(pool.inner())
     .await?;
-    Ok(models)
+    Ok(models.iter().map(ModelView::from).collect())
 }
 
 #[tauri::command]
@@ -142,12 +175,17 @@ pub async fn test_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<Strin
     // 简单的 HTTP 请求测试连接
     let client = reqwest::Client::new();
     let url = format!("{}/v1/messages", model.base_url.trim_end_matches('/'));
+    let body = serde_json::json!({
+        "model": model.model_name,
+        "max_tokens": 1,
+        "messages": [{"role": "user", "content": "hi"}]
+    });
     let resp = client
         .post(&url)
         .header("x-api-key", &model.api_key)
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
-        .body(r#"{"model":"claude-haiku-4-5-20251001","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}"#)
+        .body(body.to_string())
         .send()
         .await
         .map_err(|e| AppError::Custom(format!("连接失败: {}", e)))?;

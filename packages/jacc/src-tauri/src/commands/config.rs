@@ -77,9 +77,11 @@ pub async fn write_config(
     };
 
     let mut settings = read_settings_file(&path);
-    if let Some(obj) = settings.as_object_mut() {
-        obj.insert(key, value);
+    // 如果文件内容不是 JSON object，重新初始化为空 object
+    if !settings.is_object() {
+        settings = serde_json::json!({});
     }
+    settings.as_object_mut().unwrap().insert(key, value);
 
     write_settings_file(&path, &settings)?;
     Ok(())

@@ -10,8 +10,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            let pool = rt.block_on(db::init_pool()).expect("failed to init database");
+            let pool = tauri::async_runtime::block_on(db::init_pool())
+                .expect("failed to init database");
             app.manage(pool);
             Ok(())
         })
