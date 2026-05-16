@@ -146,9 +146,37 @@ impl Default for Config {
 }
 
 pub fn config_dir() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".tbox")
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let new_dir = home.join(".jackit").join("toolbox");
+
+    // 迁移旧数据
+    let old_dir = home.join(".tbox");
+    if old_dir.exists() && !new_dir.exists() {
+        std::fs::create_dir_all(new_dir.parent().unwrap_or(&home)).ok();
+        // 尝试移动整个目录
+        if std::fs::rename(&old_dir, &new_dir).is_err() {
+            // 如果跨盘符无法 rename，逐文件拷贝
+            copy_dir_recursive(&old_dir, &new_dir).ok();
+        }
+    }
+
+    std::fs::create_dir_all(&new_dir).ok();
+    new_dir
+}
+
+fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if src_path.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            std::fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
 }
 
 pub fn config_path() -> PathBuf {
