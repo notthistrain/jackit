@@ -4,6 +4,10 @@ import { TitleBar } from './TitleBar'
 import { EmptyState } from './EmptyState'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useProjects } from '@/hooks/useProjects'
+import { General } from '@/pages/General'
+import { EnvVars } from '@/pages/EnvVars'
+import { Permissions } from '@/pages/Permissions'
+import { McpServers } from '@/pages/McpServers'
 
 // 页面组件占位（后续计划实现）
 function PagePlaceholder({ name }: { name: string }) {
@@ -35,13 +39,13 @@ export function Layout() {
 
     switch (currentPage) {
       case 'general':
-        return <PagePlaceholder name="通用设置" />
+        return <General />
       case 'envvars':
-        return <PagePlaceholder name="环境变量" />
+        return <EnvVars />
       case 'permissions':
-        return <PagePlaceholder name="权限" />
+        return <Permissions />
       case 'mcp':
-        return <PagePlaceholder name="MCP 服务器" />
+        return <McpServers />
       case 'models':
         return <PagePlaceholder name="模型库" />
       case 'skills':
