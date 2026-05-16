@@ -18,6 +18,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::preferences::get_preference,
             commands::preferences::set_preference,
+            commands::projects::list_projects,
+            commands::projects::add_project,
+            commands::projects::open_project,
+            commands::projects::remove_project,
+            commands::projects::pin_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
