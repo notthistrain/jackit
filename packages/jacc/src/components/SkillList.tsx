@@ -10,7 +10,6 @@ import { useT } from '@/i18n'
 type Tab = 'enabled' | 'disabled'
 
 interface SkillListProps {
-  title: string
   skills: SkillInfo[]
   loading: boolean
   onToggle: (name: string, enabled: boolean) => Promise<void>

@@ -6,7 +6,6 @@ export function Skills() {
 
   return (
     <SkillList
-      title="Skills"
       skills={skills}
       loading={loading}
       onToggle={toggle}
