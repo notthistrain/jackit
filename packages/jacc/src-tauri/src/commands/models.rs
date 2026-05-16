@@ -182,6 +182,19 @@ pub async fn bind_model(pool: State<'_, SqlitePool>, id: i64, slot: String) -> A
 }
 
 #[tauri::command]
+pub async fn activate_slot(pool: State<'_, SqlitePool>, slot: String) -> AppResult<()> {
+    let model = sqlx::query_as::<_, Model>("SELECT * FROM models WHERE slot = ?")
+        .bind(&slot)
+        .fetch_optional(pool.inner())
+        .await?;
+
+    match model {
+        Some(m) => write_model_to_settings(&m),
+        None => Err(AppError::Custom(format!("SLOT_UNBOUND:{}", slot))),
+    }
+}
+
+#[tauri::command]
 pub async fn test_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<String> {
     let model = sqlx::query_as::<_, Model>("SELECT * FROM models WHERE id = ?")
         .bind(id)

@@ -28,7 +28,7 @@
   "models.currentBound": "当前绑定",
   "models.bound": "已绑定",
   "models.unbound": "当前槽位未绑定模型",
-  "models.bind": "绑定到 {slot}",
+  "models.bind": "绑定",
   "models.test": "测试",
   "models.edit": "编辑",
   "models.delete": "删除",

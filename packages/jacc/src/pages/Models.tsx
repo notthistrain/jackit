@@ -137,7 +137,7 @@ export function Models() {
                   onClick={() => bind(model.id, currentSlot)}
                   className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar cursor-pointer"
                 >
-                  {t('models.bind', { slot: currentSlot })}
+                  {t('models.bind')}
                 </button>
                 <button
                   onClick={() => handleTest(model.id)}

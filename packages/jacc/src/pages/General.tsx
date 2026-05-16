@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { invoke } from '@tauri-apps/api/core'
 import { useConfig } from '@/hooks/useConfig'
 import { useModels } from '@/hooks/useModels'
 import { useAppStore } from '@/stores/useAppStore'
@@ -32,6 +33,16 @@ export function General() {
     setPreference('locale', newLocale)
   }
 
+  async function handleSlotChange(slot: Slot) {
+    setViewSlot(slot)
+    // 激活该槽位的模型（写入 settings.json）
+    try {
+      await invoke('activate_slot', { slot })
+    } catch {
+      // 槽位未绑定模型时忽略
+    }
+  }
+
   return (
     <div className="p-6">
       <h2 className="text-base font-medium text-foreground mb-5">{t('general.title')}</h2>
@@ -46,7 +57,7 @@ export function General() {
           <div className="flex items-center gap-2">
             <select
               value={viewSlot}
-              onChange={(e) => setViewSlot(e.target.value as Slot)}
+              onChange={(e) => handleSlotChange(e.target.value as Slot)}
               className="bg-sidebar border border-border text-foreground px-2 py-1 rounded-[2px] text-xs"
             >
               <option value="opus">Opus</option>
@@ -84,6 +95,8 @@ export function General() {
               <option value="low">low</option>
               <option value="medium">medium</option>
               <option value="high">high</option>
+              <option value="max">max</option>
+              <option value="auto">auto</option>
             </select>
             {effortLevel && <SourceBadge scope={effortLevel.scope} />}
           </div>

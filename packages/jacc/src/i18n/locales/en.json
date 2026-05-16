@@ -28,7 +28,7 @@
   "models.currentBound": "Currently Bound",
   "models.bound": "Bound",
   "models.unbound": "No model bound to this slot",
-  "models.bind": "Bind to {slot}",
+  "models.bind": "Bind",
   "models.test": "Test",
   "models.edit": "Edit",
   "models.delete": "Delete",
