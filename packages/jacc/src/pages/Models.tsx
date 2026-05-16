@@ -80,35 +80,35 @@ export function Models() {
               key={model.id}
               className="flex items-center justify-between px-4 py-3 bg-card border border-border-light rounded-[4px]"
             >
-              <div>
+              <div className="min-w-0 flex-1 mr-3">
                 <div className="text-[13px] font-medium text-foreground">{model.alias}</div>
-                <div className="text-[11px] text-muted">
+                <div className="text-[11px] text-muted truncate">
                   {model.base_url} · {model.model_name}
                 </div>
                 {testResult?.id === model.id && (
-                  <div className={`text-[10px] mt-1 ${testResult.ok ? 'text-success' : 'text-danger'}`}>
+                  <div className={`text-[10px] mt-1 truncate ${testResult.ok ? 'text-success' : 'text-danger'}`} title={testResult.msg}>
                     {testResult.msg}
                   </div>
                 )}
               </div>
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5 shrink-0">
                 <button
                   onClick={() => activate(model.id, currentSlot)}
-                  className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar"
+                  className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar cursor-pointer"
                 >
                   激活
                 </button>
                 <button
                   onClick={() => handleTest(model.id)}
                   disabled={testing === model.id}
-                  className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar disabled:opacity-50"
+                  className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar disabled:opacity-50 cursor-pointer"
                 >
                   {testing === model.id ? '...' : '测试'}
                 </button>
                 <div className="relative">
                   <button
                     onClick={() => setMenuOpen(menuOpen === model.id ? null : model.id)}
-                    className="text-[11px] px-2 py-1 bg-card border border-border rounded-[2px] text-muted hover:bg-sidebar"
+                    className="text-[11px] px-2 py-1 bg-card border border-border rounded-[2px] text-muted hover:bg-sidebar cursor-pointer"
                   >
                     <MoreHorizontal size={14} />
                   </button>

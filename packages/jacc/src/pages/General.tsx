@@ -1,8 +1,10 @@
 import { useConfig } from '@/hooks/useConfig'
+import { useAppStore } from '@/stores/useAppStore'
 import { SourceBadge } from '@/components/SourceBadge'
 
 export function General() {
   const { config, loading, writeConfig } = useConfig()
+  const { setPage } = useAppStore()
 
   if (loading || !config) {
     return <div className="p-6 text-xs text-muted">加载中...</div>
@@ -13,31 +15,28 @@ export function General() {
   const model = getItem('model')
   const effortLevel = getItem('effortLevel')
   const skipDangerous = getItem('skipDangerousModePermissionPrompt')
-  const enabledPlugins = getItem('enabledPlugins')
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-base font-medium text-foreground">通用设置</h2>
-        <div className="flex gap-1.5 items-center text-[10px] text-muted">
-          图例:
-          <SourceBadge scope="project" />
-          <SourceBadge scope="global" />
-        </div>
-      </div>
+      <h2 className="text-base font-medium text-foreground mb-5">通用设置</h2>
 
       <div className="flex flex-col gap-2.5">
         {/* 模型 */}
         <div className="flex items-center justify-between p-3 bg-card border border-border-light rounded-[4px]">
           <div>
             <div className="text-[13px] font-medium text-foreground">模型</div>
-            <div className="text-[11px] text-muted">当前激活的模型配置</div>
+            <div className="text-[11px] text-muted">当前激活的模型，在「模型库」中管理</div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-foreground bg-sidebar px-2.5 py-1 rounded-[2px] border border-border">
               {(model?.value as string) || '未设置'}
             </span>
-            {model && <SourceBadge scope={model.scope} />}
+            <button
+              onClick={() => setPage('models')}
+              className="text-[11px] text-primary hover:underline"
+            >
+              管理
+            </button>
           </div>
         </div>
 
@@ -67,7 +66,7 @@ export function General() {
         <div className="flex items-center justify-between p-3 bg-card border border-border-light rounded-[4px]">
           <div>
             <div className="text-[13px] font-medium text-foreground">跳过危险模式确认</div>
-            <div className="text-[11px] text-muted">skipDangerousModePermissionPrompt</div>
+            <div className="text-[11px] text-muted">启用后不再弹出危险操作确认提示</div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -89,24 +88,6 @@ export function General() {
               />
             </button>
             {skipDangerous && <SourceBadge scope={skipDangerous.scope} />}
-          </div>
-        </div>
-
-        {/* 启用的插件 */}
-        <div className="flex items-center justify-between p-3 bg-card border border-border-light rounded-[4px]">
-          <div>
-            <div className="text-[13px] font-medium text-foreground">启用的插件</div>
-            <div className="text-[11px] text-muted">enabledPlugins</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {(Array.isArray(enabledPlugins?.value) ? enabledPlugins.value as string[] : []).map((p) => (
-                <span key={p} className="text-[11px] px-2 py-0.5 bg-success-light text-success rounded-[2px]">
-                  {p}
-                </span>
-              ))}
-            </div>
-            {enabledPlugins && <SourceBadge scope={enabledPlugins.scope} />}
           </div>
         </div>
       </div>
