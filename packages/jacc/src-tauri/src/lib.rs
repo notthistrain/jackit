@@ -49,11 +49,6 @@ pub fn run() {
             commands::models::update_model,
             commands::models::delete_model,
             commands::models::test_model,
-            // slot bindings
-            commands::models::get_slot_bindings,
-            commands::models::bind_slot,
-            commands::models::unbind_slot,
-            commands::models::set_current_model,
             // config
             commands::config::read_merged_config,
             commands::config::write_config,
