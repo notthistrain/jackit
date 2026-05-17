@@ -19,7 +19,7 @@ use channel::PortEvent;
 use protocol::frame::{bytes_to_hex, DisplayFrame, ParsedFrame};
 use serial::manager::SerialManager;
 
-struct LogGuard(WorkerGuard);
+struct LogGuard(#[allow(dead_code)] WorkerGuard);
 
 /// 将 ParsedFrame 转换为前端 DisplayFrame
 fn parsed_to_display(frame: &ParsedFrame, id: i64) -> DisplayFrame {
@@ -125,6 +125,7 @@ pub fn run() {
             commands::config::save_config,
             commands::config::list_recent_sessions,
             // log commands
+            commands::log::log_debug,
             commands::log::log_info,
             commands::log::log_warn,
             commands::log::log_error,

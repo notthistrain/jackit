@@ -1,4 +1,9 @@
 #[tauri::command]
+pub fn log_debug(module: String, message: String) {
+    tracing::debug!(target: "frontend", "[{}] {}", module, message);
+}
+
+#[tauri::command]
 pub fn log_info(module: String, message: String) {
     tracing::info!(target: "frontend", "[{}] {}", module, message);
 }
@@ -18,6 +23,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn log_debug_does_not_panic() {
+        log_debug("test-module".to_string(), "debug message".to_string());
+    }
+
+    #[test]
     fn log_info_does_not_panic() {
         log_info("test-module".to_string(), "info message".to_string());
     }
@@ -34,6 +44,7 @@ mod tests {
 
     #[test]
     fn log_commands_handle_empty_strings() {
+        log_debug(String::new(), String::new());
         log_info(String::new(), String::new());
         log_warn(String::new(), String::new());
         log_error(String::new(), String::new());

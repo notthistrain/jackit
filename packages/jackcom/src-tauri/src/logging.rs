@@ -34,14 +34,18 @@ pub fn init(app_name: &str, log_dir: &Path) -> WorkerGuard {
         .with(env_filter)
         .with(file_layer)
         .with(stdout_layer)
-        .init();
+        .try_init()
+        .ok();
 
     guard
 }
 
 /// 获取 jackcom 日志目录: ~/.jackit/toolbox/tools/jackcom/log/
 pub fn get_log_dir() -> std::path::PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+    let home = dirs::home_dir().unwrap_or_else(|| {
+        eprintln!("warning: could not determine home directory, using current directory for logs");
+        std::path::PathBuf::from(".")
+    });
     home.join(".jackit").join("toolbox").join("tools").join("jackcom").join("log")
 }
 

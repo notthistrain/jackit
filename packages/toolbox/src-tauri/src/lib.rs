@@ -8,11 +8,16 @@ mod updater;
 use tauri::{Emitter, Manager};
 use tracing_appender::non_blocking::WorkerGuard;
 
-struct LogGuard(WorkerGuard);
+struct LogGuard(#[allow(dead_code)] WorkerGuard);
 
 struct AppState {
     db: db::Database,
     cfg: config::Config,
+}
+
+#[tauri::command]
+fn log_debug(module: String, message: String) {
+    tracing::debug!(target: "frontend", "[{}] {}", module, message);
 }
 
 #[tauri::command]
@@ -241,6 +246,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn log_debug_does_not_panic() {
+        log_debug("test-module".into(), "hello debug".into());
+    }
+
+    #[test]
     fn log_info_does_not_panic() {
         log_info("test-module".into(), "hello info".into());
     }
@@ -256,6 +266,11 @@ mod tests {
     }
 
     #[test]
+    fn log_debug_empty_strings() {
+        log_debug(String::new(), String::new());
+    }
+
+    #[test]
     fn log_info_empty_strings() {
         log_info(String::new(), String::new());
     }
@@ -268,6 +283,11 @@ mod tests {
     #[test]
     fn log_error_empty_strings() {
         log_error(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_debug_unicode() {
+        log_debug("模块".into(), "调试信息 🔍".into());
     }
 
     #[test]
@@ -323,6 +343,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            log_debug,
             log_info,
             log_warn,
             log_error,

@@ -7,7 +7,7 @@ use tracing_appender::non_blocking::WorkerGuard;
 use tauri::Manager;
 
 /// 持有日志 guard，防止被 drop
-struct LogGuard(WorkerGuard);
+struct LogGuard(#[allow(dead_code)] WorkerGuard);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -30,6 +30,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             // log
+            commands::log::log_debug,
             commands::log::log_info,
             commands::log::log_warn,
             commands::log::log_error,
