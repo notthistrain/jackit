@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Layout } from '@/components/Layout'
 import { useAppStore } from '@/stores/useAppStore'
 import { usePreferences } from '@/hooks/usePreferences'
@@ -32,6 +33,11 @@ export default function App() {
       root.setAttribute('data-theme', theme)
     }
   }, [theme])
+
+  // 渲染完成后显示窗口，避免白屏
+  useEffect(() => {
+    getCurrentWindow().show()
+  }, [])
 
   return <Layout />
 }
