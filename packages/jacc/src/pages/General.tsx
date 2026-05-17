@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useConfig } from '@/hooks/useConfig'
-import { useModels } from '@/hooks/useModels'
-import { useSlotBindings } from '@/hooks/useModels'
+import { useSlotBindings } from '@/hooks/useSlotBindings'
 import { usePreferences } from '@/hooks/usePreferences'
 import { SourceBadge } from '@/components/SourceBadge'
+import { TreeSelect } from '@/components/TreeSelect'
 import { useT, type Locale } from '@/i18n'
 
 type Slot = 'opus' | 'sonnet' | 'haiku'
@@ -17,7 +17,6 @@ const CONTEXT_OPTIONS = ['', '1m']
 export function General() {
   const { t, locale, setLocale } = useT()
   const { config, loading, writeConfig } = useConfig()
-  const { models } = useModels()
   const { bindings, bind, unbind, setCurrentModel } = useSlotBindings()
   const { set: setPreference } = usePreferences()
 
@@ -38,14 +37,10 @@ export function General() {
     return bindings.find((b) => b.slot === slot)
   }
 
-  async function handleSlotModelChange(slot: Slot, modelIdStr: string) {
+  async function handleSlotModelChange(slot: Slot, modelId: number) {
     setSlotError(null)
     try {
-      if (modelIdStr === '') {
-        await unbind(slot)
-      } else {
-        await bind(slot, Number(modelIdStr))
-      }
+      await bind(slot, modelId)
     } catch (e) {
       setSlotError(e instanceof Error ? e.message : String(e))
     }
@@ -84,18 +79,13 @@ export function General() {
               return (
                 <div key={slot} className="flex items-center gap-2">
                   <span className="text-xs font-medium text-muted w-[52px]">{SLOT_LABELS[slot]}</span>
-                  <select
-                    value={binding?.model_id ?? ''}
-                    onChange={(e) => handleSlotModelChange(slot, e.target.value)}
-                    className="flex-1 bg-sidebar border border-border text-foreground px-2 py-1.5 rounded-[2px] text-xs"
-                  >
-                    <option value="">{t('general.slot.unbound')}</option>
-                    {models.map((m) => (
-                      <option key={m.id} value={m.id}>{m.alias} ({m.model_name})</option>
-                    ))}
-                  </select>
+                  <TreeSelect
+                    value={binding?.model_id ?? null}
+                    onChange={(modelId) => handleSlotModelChange(slot, modelId)}
+                    placeholder={t('general.slot.unbound')}
+                  />
                   <span className={`text-[10px] w-[40px] text-center ${binding ? 'text-success' : 'text-muted'}`}>
-                    {binding ? t('general.slot.bound') : t('general.slot.unboundLabel')}
+                    {binding ? binding.provider_name : t('general.slot.unboundLabel')}
                   </span>
                 </div>
               )
