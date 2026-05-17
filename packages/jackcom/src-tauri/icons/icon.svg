@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="#4d7c0f" stroke-linecap="round" stroke-linejoin="round" stroke-width="17">
+  <!-- 波形（上方） -->
+  <path d="M16 76L54 76L70 40L86 112L102 58L118 94L134 46L150 90L166 68L182 68L198 40L214 104L230 68L246 68"/>
+  <!-- 串口（下方） -->
+  <rect x="38" y="144" width="180" height="86" rx="10"/>
+  <circle cx="76" cy="172" r="9" fill="#4d7c0f" stroke="none"/>
+  <circle cx="128" cy="172" r="9" fill="#4d7c0f" stroke="none"/>
+  <circle cx="180" cy="172" r="9" fill="#4d7c0f" stroke="none"/>
+  <circle cx="102" cy="204" r="9" fill="#4d7c0f" stroke="none"/>
+  <circle cx="154" cy="204" r="9" fill="#4d7c0f" stroke="none"/>
+</svg>
