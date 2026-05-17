@@ -6,3 +6,4 @@ pub mod preferences;
 pub mod projects;
 pub mod providers;
 pub mod skills;
+pub mod slots;
