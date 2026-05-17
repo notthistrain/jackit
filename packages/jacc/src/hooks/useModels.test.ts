@@ -1,194 +1,207 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { vi, describe, test, expect, beforeEach } from 'vitest'
+import { vi } from 'vitest'
 
-// Mock tauri invoke
-const mockInvoke = vi.fn()
+// Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: vi.fn(),
 }))
 
-import { useModels, useSlotBindings } from './useModels'
+import { invoke } from '@tauri-apps/api/core'
+import { useProviders } from './useProviders'
+import { useApiKeys } from './useApiKeys'
+import { useModels } from './useModels'
+import { useSlotBindings } from './useSlotBindings'
 
-describe('useModels', () => {
-  beforeEach(() => {
-    mockInvoke.mockReset()
-  })
+// -- useProviders tests --
 
-  test('useModels calls list_models on mount', async () => {
-    const fakeModels = [
-      {
-        id: 1,
-        alias: 'test-model',
-        base_url: 'http://localhost',
-        api_key_masked: 'sk-***',
-        model_name: 'gpt-4',
-        context_size: '4096',
-        created_at: '2026-01-01',
-        updated_at: '2026-01-01',
-      },
+describe('useProviders', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  test('mounts and calls list_providers', async () => {
+    const mockProviders = [
+      { id: 1, name: 'Anthropic', base_url: 'https://api.anthropic.com', notes: null, created_at: '', updated_at: '' },
     ]
-    mockInvoke.mockResolvedValue(fakeModels)
+    vi.mocked(invoke).mockResolvedValueOnce(mockProviders)
 
-    const { result } = renderHook(() => useModels())
+    const { result } = renderHook(() => useProviders())
 
     await waitFor(() => {
-      expect(result.current.models).toEqual(fakeModels)
+      expect(result.current.providers).toEqual(mockProviders)
     })
-
-    expect(mockInvoke).toHaveBeenCalledWith('list_models')
-    expect(result.current.loading).toBe(false)
+    expect(invoke).toHaveBeenCalledWith('list_providers')
   })
 
-  test('useModels.add calls add_model invoke', async () => {
-    const input = {
-      alias: 'new-model',
-      base_url: 'http://localhost',
-      api_key: 'sk-test',
-      model_name: 'gpt-4',
-      context_size: '4096',
-    }
+  test('.add() calls add_provider then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial list
+      .mockResolvedValueOnce({ id: 1, name: 'New', base_url: 'https://new.com', notes: null, created_at: '', updated_at: '' }) // add
+      .mockResolvedValueOnce([{ id: 1, name: 'New', base_url: 'https://new.com', notes: null, created_at: '', updated_at: '' }]) // refresh
 
-    // mount: list_models, then add_model, then refresh list_models
-    mockInvoke.mockResolvedValueOnce([]) // list_models (mount)
-    mockInvoke.mockResolvedValueOnce(undefined) // add_model
-    mockInvoke.mockResolvedValueOnce([]) // list_models (refresh after add)
-
-    const { result } = renderHook(() => useModels())
-
-    // Wait for initial mount refresh
-    await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('list_models')
-    })
+    const { result } = renderHook(() => useProviders())
+    await waitFor(() => expect(result.current.providers).toEqual([]))
 
     await act(async () => {
-      await result.current.add(input)
+      await result.current.add({ name: 'New', base_url: 'https://new.com', notes: null })
     })
 
-    expect(mockInvoke).toHaveBeenCalledWith('add_model', { input })
+    expect(invoke).toHaveBeenCalledWith('add_provider', {
+      input: { name: 'New', base_url: 'https://new.com', notes: null },
+    })
   })
 
-  test('useModels.remove calls delete_model invoke', async () => {
-    mockInvoke.mockResolvedValueOnce([]) // list_models (mount)
-    mockInvoke.mockResolvedValueOnce(undefined) // delete_model
-    mockInvoke.mockResolvedValueOnce([]) // list_models (refresh)
+  test('.remove() calls delete_provider then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial list
+      .mockResolvedValueOnce(undefined) // delete
+      .mockResolvedValueOnce([]) // refresh
 
-    const { result } = renderHook(() => useModels())
-
-    await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('list_models')
-    })
+    const { result } = renderHook(() => useProviders())
+    await waitFor(() => expect(result.current.providers).toEqual([]))
 
     await act(async () => {
-      await result.current.remove(42)
+      await result.current.remove(1)
     })
 
-    expect(mockInvoke).toHaveBeenCalledWith('delete_model', { id: 42 })
-  })
-
-  test('useModels.test calls test_model invoke', async () => {
-    mockInvoke.mockResolvedValueOnce([]) // list_models (mount)
-    mockInvoke.mockResolvedValueOnce('ok') // test_model
-
-    const { result } = renderHook(() => useModels())
-
-    await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('list_models')
-    })
-
-    let testResult: string | undefined
-    await act(async () => {
-      testResult = await result.current.test(7)
-    })
-
-    expect(mockInvoke).toHaveBeenCalledWith('test_model', { id: 7 })
-    expect(testResult).toBe('ok')
+    expect(invoke).toHaveBeenCalledWith('delete_provider', { id: 1 })
   })
 })
 
+// -- useApiKeys tests --
+
+describe('useApiKeys', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  test('calls list_api_keys with provider_id on mount', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce([
+      { id: 1, provider_id: 10, name: 'Main', api_key_masked: 'sk-ant-1***', notes: null, created_at: '', updated_at: '' },
+    ])
+
+    const { result } = renderHook(() => useApiKeys(10))
+
+    await waitFor(() => {
+      expect(result.current.apiKeys).toHaveLength(1)
+    })
+    expect(invoke).toHaveBeenCalledWith('list_api_keys', { provider_id: 10 })
+  })
+
+  test('.add() calls add_api_key then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial
+      .mockResolvedValueOnce(undefined) // add
+      .mockResolvedValueOnce([]) // refresh
+
+    const { result } = renderHook(() => useApiKeys(10))
+    await waitFor(() => expect(result.current.apiKeys).toEqual([]))
+
+    await act(async () => {
+      await result.current.add({ provider_id: 10, name: 'Key', api_key: 'sk-test', notes: null })
+    })
+
+    expect(invoke).toHaveBeenCalledWith('add_api_key', {
+      input: { provider_id: 10, name: 'Key', api_key: 'sk-test', notes: null },
+    })
+  })
+})
+
+// -- useModels tests --
+
+describe('useModels', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  test('calls list_models with api_key_id on mount', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce([
+      { id: 1, api_key_id: 5, model_name: 'claude-opus-4-6', context_size: '200k', created_at: '', updated_at: '' },
+    ])
+
+    const { result } = renderHook(() => useModels(5))
+
+    await waitFor(() => {
+      expect(result.current.models).toHaveLength(1)
+    })
+    expect(invoke).toHaveBeenCalledWith('list_models', { api_key_id: 5 })
+  })
+
+  test('.add() calls add_model then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial
+      .mockResolvedValueOnce(undefined) // add
+      .mockResolvedValueOnce([]) // refresh
+
+    const { result } = renderHook(() => useModels(5))
+    await waitFor(() => expect(result.current.models).toEqual([]))
+
+    await act(async () => {
+      await result.current.add({ api_key_id: 5, model_name: 'test', context_size: null })
+    })
+
+    expect(invoke).toHaveBeenCalledWith('add_model', {
+      input: { api_key_id: 5, model_name: 'test', context_size: null },
+    })
+  })
+
+  test('.test() calls test_model and returns result', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial list
+      .mockResolvedValueOnce('CONNECTION_SUCCESS')
+
+    const { result } = renderHook(() => useModels(5))
+    await waitFor(() => expect(result.current.models).toEqual([]))
+
+    let res: string = ''
+    await act(async () => {
+      res = await result.current.test(1)
+    })
+    expect(res).toBe('CONNECTION_SUCCESS')
+    expect(invoke).toHaveBeenCalledWith('test_model', { id: 1 })
+  })
+})
+
+// -- useSlotBindings tests --
+
 describe('useSlotBindings', () => {
-  beforeEach(() => {
-    mockInvoke.mockReset()
-  })
+  beforeEach(() => { vi.clearAllMocks() })
 
-  test('useSlotBindings calls get_slot_bindings on mount', async () => {
-    const fakeBindings = [
-      {
-        slot: 'default',
-        model_id: 1,
-        alias: 'test-model',
-        base_url: 'http://localhost',
-        model_name: 'gpt-4',
-        context_size: '4096',
-      },
-    ]
-    mockInvoke.mockResolvedValue(fakeBindings)
+  test('calls get_slot_bindings on mount', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce([
+      { slot: 'opus', model_id: 1, model_name: 'claude-opus-4-6', context_size: null, api_key: 'sk-ant-aaa', base_url: 'https://api.anthropic.com', provider_name: 'Anthropic' },
+    ])
 
     const { result } = renderHook(() => useSlotBindings())
 
     await waitFor(() => {
-      expect(result.current.bindings).toEqual(fakeBindings)
+      expect(result.current.bindings).toHaveLength(1)
     })
-
-    expect(mockInvoke).toHaveBeenCalledWith('get_slot_bindings')
-    expect(result.current.loading).toBe(false)
+    expect(invoke).toHaveBeenCalledWith('get_slot_bindings')
   })
 
-  test('useSlotBindings.bind calls bind_slot invoke', async () => {
-    mockInvoke.mockResolvedValueOnce([]) // get_slot_bindings (mount)
-    mockInvoke.mockResolvedValueOnce(undefined) // bind_slot
-    mockInvoke.mockResolvedValueOnce([]) // get_slot_bindings (refresh)
+  test('.bind() calls bind_slot with slot + modelId', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial
+      .mockResolvedValueOnce(undefined) // bind
+      .mockResolvedValueOnce([]) // refresh
 
     const { result } = renderHook(() => useSlotBindings())
-
-    await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('get_slot_bindings')
-    })
+    await waitFor(() => expect(result.current.bindings).toEqual([]))
 
     await act(async () => {
-      await result.current.bind('default', 5)
+      await result.current.bind('opus', 1)
     })
 
-    expect(mockInvoke).toHaveBeenCalledWith('bind_slot', {
-      slot: 'default',
-      modelId: 5,
-    })
+    expect(invoke).toHaveBeenCalledWith('bind_slot', { slot: 'opus', modelId: 1 })
   })
 
-  test('useSlotBindings.unbind calls unbind_slot invoke', async () => {
-    mockInvoke.mockResolvedValueOnce([]) // get_slot_bindings (mount)
-    mockInvoke.mockResolvedValueOnce(undefined) // unbind_slot
-    mockInvoke.mockResolvedValueOnce([]) // get_slot_bindings (refresh)
+  test('.setCurrentModel() calls set_current_model with slot + contextSize', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial
+      .mockResolvedValueOnce(undefined) // set_current_model
 
     const { result } = renderHook(() => useSlotBindings())
-
-    await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('get_slot_bindings')
-    })
+    await waitFor(() => expect(result.current.bindings).toEqual([]))
 
     await act(async () => {
-      await result.current.unbind('default')
+      await result.current.setCurrentModel('opus', '1m')
     })
 
-    expect(mockInvoke).toHaveBeenCalledWith('unbind_slot', { slot: 'default' })
-  })
-
-  test('useSlotBindings.setCurrentModel calls set_current_model invoke', async () => {
-    mockInvoke.mockResolvedValueOnce([]) // get_slot_bindings (mount)
-    mockInvoke.mockResolvedValueOnce(undefined) // set_current_model
-
-    const { result } = renderHook(() => useSlotBindings())
-
-    await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('get_slot_bindings')
-    })
-
-    await act(async () => {
-      await result.current.setCurrentModel('default', '8192')
-    })
-
-    expect(mockInvoke).toHaveBeenCalledWith('set_current_model', {
-      slot: 'default',
-      contextSize: '8192',
-    })
+    expect(invoke).toHaveBeenCalledWith('set_current_model', { slot: 'opus', contextSize: '1m' })
   })
 })
