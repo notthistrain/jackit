@@ -259,6 +259,19 @@ fn write_model_to_settings(model: &Model) -> AppResult<()> {
         serde_json::Value::String(model.model_name.clone()),
     );
 
+    // 写入顶层 model 字段（Claude Code 用此字段决定 context 大小）
+    // 格式：slot 名 + 可选 [context_size]，如 "opus[1m]"、"sonnet"
+    if let Some(ref slot) = model.slot {
+        let model_value = match &model.context_size {
+            Some(ctx) if !ctx.is_empty() => format!("{}[{}]", slot, ctx),
+            _ => slot.clone(),
+        };
+        settings
+            .as_object_mut()
+            .unwrap()
+            .insert("model".to_string(), serde_json::Value::String(model_value));
+    }
+
     let content = serde_json::to_string_pretty(&settings)?;
     if let Some(parent) = settings_path.parent() {
         std::fs::create_dir_all(parent)?;
