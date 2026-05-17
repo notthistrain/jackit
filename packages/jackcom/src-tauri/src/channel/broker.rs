@@ -35,7 +35,7 @@ impl BrokerHandle {
             port_id: port_id.to_string(),
             frames,
         }) {
-            log::warn!("Broker: 数据事件发布失败 (port={}): {}", port_id, e);
+            tracing::warn!("Broker: 数据事件发布失败 (port={}): {}", port_id, e);
         }
     }
 
@@ -45,7 +45,7 @@ impl BrokerHandle {
             port_id: port_id.to_string(),
             config: config.clone(),
         }) {
-            log::warn!("Broker: 端口打开事件发布失败 (port={}): {}", port_id, e);
+            tracing::warn!("Broker: 端口打开事件发布失败 (port={}): {}", port_id, e);
         }
     }
 
@@ -55,7 +55,7 @@ impl BrokerHandle {
             port_id: port_id.to_string(),
             reason,
         }) {
-            log::warn!("Broker: 端口关闭事件发布失败 (port={}): {}", port_id, e);
+            tracing::warn!("Broker: 端口关闭事件发布失败 (port={}): {}", port_id, e);
         }
     }
 
@@ -65,14 +65,14 @@ impl BrokerHandle {
             port_id: port_id.to_string(),
             error: error.to_string(),
         }) {
-            log::warn!("Broker: 端口错误事件发布失败 (port={}): {}", port_id, e);
+            tracing::warn!("Broker: 端口错误事件发布失败 (port={}): {}", port_id, e);
         }
     }
 
     /// 发布端口列表变更事件
     pub fn publish_change(&self, arrived: Vec<String>, removed: Vec<String>) {
         if let Err(e) = self.tx.try_send(PortEvent::Change { arrived, removed }) {
-            log::warn!("Broker: 端口变更事件发布失败: {}", e);
+            tracing::warn!("Broker: 端口变更事件发布失败: {}", e);
         }
     }
 }
@@ -247,7 +247,7 @@ impl Broker {
 
         // 清理已关闭的 subscriber
         if !closed_ids.is_empty() {
-            log::debug!("Broker: 清理 {} 个已关闭的 subscriber", closed_ids.len());
+            tracing::debug!("Broker: 清理 {} 个已关闭的 subscriber", closed_ids.len());
             for id in &closed_ids {
                 self.subscribers.remove(id);
             }

@@ -17,6 +17,7 @@
         "width": 1280,
         "height": 800,
         "center": true,
+        "visible": false,
         "decorations": false,
         "backgroundColor": "#1E1E1E"
       }
@@ -41,7 +42,6 @@
     }
   },
   "plugins": {
-    "log": null,
     "dialog": null,
     "shell": {
       "open": true

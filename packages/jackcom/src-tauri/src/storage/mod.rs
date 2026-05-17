@@ -41,11 +41,25 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
 
 /// 获取数据库文件路径
 fn get_db_path() -> PathBuf {
-    let app_data = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."));
-    let dir = app_data.join("jackcom");
-    std::fs::create_dir_all(&dir).ok();
-    dir.join("jackcom.db")
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let new_dir = home.join(".jackit").join("toolbox").join("tools").join("jackcom").join("data");
+    let new_path = new_dir.join("jackcom.db");
+
+    // 迁移旧数据
+    if !new_path.exists() {
+        let old_dir = dirs::data_local_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("jackcom");
+        let old_path = old_dir.join("jackcom.db");
+        if old_path.exists() {
+            std::fs::create_dir_all(&new_dir).ok();
+            std::fs::copy(&old_path, &new_path).ok();
+            // 保留旧文件作为备份，不删除
+        }
+    }
+
+    std::fs::create_dir_all(&new_dir).ok();
+    new_path
 }
 
 /// 创建新会话

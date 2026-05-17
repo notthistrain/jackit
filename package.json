@@ -8,6 +8,7 @@
     "dev:admin": "pnpm --filter @upgrade/admin dev",
     "dev:toolbox": "pnpm --filter @app/toolbox dev",
     "dev:jackcom": "pnpm --filter @app/jackcom dev",
+    "dev:jacc": "pnpm --filter @app/jacc tauri dev",
     "build": "pnpm -r build",
     "build:jackcom": "pnpm --filter @app/jackcom build",
     "test": "pnpm --filter @upgrade/server test",

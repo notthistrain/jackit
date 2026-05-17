@@ -1,14 +1,38 @@
 mod config;
 mod db;
 mod fs;
+mod logging;
 mod sync;
 mod updater;
 
 use tauri::{Emitter, Manager};
+use tracing_appender::non_blocking::WorkerGuard;
+
+struct LogGuard(#[allow(dead_code)] WorkerGuard);
 
 struct AppState {
     db: db::Database,
     cfg: config::Config,
+}
+
+#[tauri::command]
+fn log_debug(module: String, message: String) {
+    tracing::debug!(target: "frontend", "[{}] {}", module, message);
+}
+
+#[tauri::command]
+fn log_info(module: String, message: String) {
+    tracing::info!(target: "frontend", "[{}] {}", module, message);
+}
+
+#[tauri::command]
+fn log_warn(module: String, message: String) {
+    tracing::warn!(target: "frontend", "[{}] {}", module, message);
+}
+
+#[tauri::command]
+fn log_error(module: String, message: String) {
+    tracing::error!(target: "frontend", "[{}] {}", module, message);
 }
 
 #[tauri::command]
@@ -217,12 +241,82 @@ fn chrono_now() -> String {
     format!("{}", now.as_secs())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn log_debug_does_not_panic() {
+        log_debug("test-module".into(), "hello debug".into());
+    }
+
+    #[test]
+    fn log_info_does_not_panic() {
+        log_info("test-module".into(), "hello info".into());
+    }
+
+    #[test]
+    fn log_warn_does_not_panic() {
+        log_warn("test-module".into(), "hello warn".into());
+    }
+
+    #[test]
+    fn log_error_does_not_panic() {
+        log_error("test-module".into(), "hello error".into());
+    }
+
+    #[test]
+    fn log_debug_empty_strings() {
+        log_debug(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_info_empty_strings() {
+        log_info(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_warn_empty_strings() {
+        log_warn(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_error_empty_strings() {
+        log_error(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_debug_unicode() {
+        log_debug("模块".into(), "调试信息 🔍".into());
+    }
+
+    #[test]
+    fn log_info_unicode() {
+        log_info("模块".into(), "你好世界 🌍".into());
+    }
+
+    #[test]
+    fn log_warn_unicode() {
+        log_warn("模块".into(), "警告信息 ⚠️".into());
+    }
+
+    #[test]
+    fn log_error_unicode() {
+        log_error("模块".into(), "错误信息 ❌".into());
+    }
+}
+
 pub fn run() {
+    let log_dir = logging::get_log_dir();
+    let guard = logging::init("toolbox", &log_dir);
+    tracing::info!("app started");
+
     let cfg = config::load().expect("failed to load config");
     let db = db::Database::new(&cfg).expect("failed to init database");
+    tracing::info!("database initialized");
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_log::Builder::new().build())
+        .manage(LogGuard(guard))
         .manage(AppState { db, cfg })
         .setup(|app| {
             let _state = app.state::<AppState>();
@@ -249,6 +343,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            log_debug,
+            log_info,
+            log_warn,
+            log_error,
             config_get,
             config_set,
             db_query_tools,

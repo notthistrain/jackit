@@ -1,10 +1,10 @@
 [package]
-name = "jackit-jackcom"
+name = "jackcom"
 version = "1.0.0"
 edition = "2021"
 
 [lib]
-name = "app_jackcom_lib"
+name = "jackcom_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -12,7 +12,6 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["devtools"] }
-tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 tokio = { version = "1", features = ["full"] }
@@ -25,9 +24,12 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-log = "0.4"
-dirs = "5"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+dirs = "6"
 tokio-util = "0.7"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util", "macros"] }
+tempfile = "3"
