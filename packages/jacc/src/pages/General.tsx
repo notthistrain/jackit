@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useConfig } from '@/hooks/useConfig'
 import { useModels } from '@/hooks/useModels'
 import { useSlotBindings } from '@/hooks/useModels'
-import { useAppStore } from '@/stores/useAppStore'
 import { usePreferences } from '@/hooks/usePreferences'
 import { SourceBadge } from '@/components/SourceBadge'
 import { useT, type Locale } from '@/i18n'
@@ -20,12 +19,12 @@ export function General() {
   const { config, loading, writeConfig } = useConfig()
   const { models } = useModels()
   const { bindings, bind, unbind, setCurrentModel } = useSlotBindings()
-  const { setPage } = useAppStore()
   const { set: setPreference } = usePreferences()
 
   // 当前模型状态
   const [currentSlot, setCurrentSlot] = useState<Slot>('opus')
   const [currentCtx, setCurrentCtx] = useState('')
+  const [slotError, setSlotError] = useState<string | null>(null)
 
   if (loading || !config) {
     return <div className="p-6 text-xs text-muted">{t('common.loading')}</div>
@@ -40,15 +39,25 @@ export function General() {
   }
 
   async function handleSlotModelChange(slot: Slot, modelIdStr: string) {
-    if (modelIdStr === '') {
-      await unbind(slot)
-    } else {
-      await bind(slot, Number(modelIdStr))
+    setSlotError(null)
+    try {
+      if (modelIdStr === '') {
+        await unbind(slot)
+      } else {
+        await bind(slot, Number(modelIdStr))
+      }
+    } catch (e) {
+      setSlotError(e instanceof Error ? e.message : String(e))
     }
   }
 
   async function handleApplyCurrentModel() {
-    await setCurrentModel(currentSlot, currentCtx || null)
+    setSlotError(null)
+    try {
+      await setCurrentModel(currentSlot, currentCtx || null)
+    } catch (e) {
+      setSlotError(e instanceof Error ? e.message : String(e))
+    }
   }
 
   function handleLocaleChange(newLocale: Locale) {
@@ -65,6 +74,11 @@ export function General() {
         <div className="p-3 bg-card border border-border-light rounded-[4px]">
           <div className="text-[13px] font-medium text-foreground mb-2.5">{t('general.slots')}</div>
           <div className="flex flex-col gap-2">
+            {slotError && (
+              <div className="text-[11px] text-red-500 bg-red-500/10 px-2 py-1 rounded-[2px]">
+                {slotError}
+              </div>
+            )}
             {SLOTS.map((slot) => {
               const binding = getBinding(slot)
               return (

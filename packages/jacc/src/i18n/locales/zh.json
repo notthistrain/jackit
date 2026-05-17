@@ -21,7 +21,6 @@
   "general.currentModel.desc": "设置 Claude Code 使用的模型和上下文大小",
   "general.ctxDefault": "默认",
   "general.apply": "应用",
-  "general.model.manage": "管理",
   "general.effortLevel": "Effort Level",
   "general.effortLevel.desc": "推理努力程度",
   "general.skipDangerous": "跳过危险模式确认",

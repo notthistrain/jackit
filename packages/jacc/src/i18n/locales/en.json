@@ -21,7 +21,6 @@
   "general.currentModel.desc": "Set the model and context size for Claude Code",
   "general.ctxDefault": "Default",
   "general.apply": "Apply",
-  "general.model.manage": "Manage",
   "general.effortLevel": "Effort Level",
   "general.effortLevel.desc": "Reasoning effort level",
   "general.skipDangerous": "Skip Dangerous Mode Prompt",
