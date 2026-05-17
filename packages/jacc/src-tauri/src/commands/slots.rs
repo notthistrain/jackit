@@ -163,7 +163,7 @@ pub(crate) async fn set_current_model_at(
     .await
     .map_err(|_| AppError::Custom(format!("SLOT_NOT_BOUND:{}", slot)))?;
 
-    let (_model_name, _slot_ctx, api_key, base_url) = row;
+    let (model_name, _slot_ctx, api_key, base_url) = row;
 
     let model_value = match context_size {
         Some(ctx) if !ctx.is_empty() => format!("{}[{}]", slot, ctx),
@@ -198,6 +198,18 @@ pub(crate) async fn set_current_model_at(
         serde_json::Value::String(api_key),
     );
 
+    // 同时更新 DEFAULT_*_MODEL，让 Claude Code 知道 slot 对应的模型名
+    let default_key = match slot {
+        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
+        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
+        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+        _ => "ANTHROPIC_MODEL",
+    };
+    env_obj.insert(
+        default_key.to_string(),
+        serde_json::Value::String(model_name),
+    );
+
     let content = serde_json::to_string_pretty(&settings)?;
     if let Some(parent) = settings_path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -218,8 +230,7 @@ pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<Slo
 
 #[tauri::command]
 pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64) -> AppResult<()> {
-    let binding = bind_slot_inner(pool.inner(), &slot, model_id).await?;
-    write_slot_to_settings_at(&slot, &binding, &get_global_settings_path())?;
+    bind_slot_inner(pool.inner(), &slot, model_id).await?;
     Ok(())
 }
 

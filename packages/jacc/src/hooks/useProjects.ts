@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/toast/ToastProvider'
 
 export interface Project {
   id: number
@@ -11,31 +12,56 @@ export interface Project {
 
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([])
+  const { error } = useToast()
 
   const refresh = useCallback(async () => {
-    const list = await invoke<Project[]>('list_projects')
-    setProjects(list)
-  }, [])
+    try {
+      const list = await invoke<Project[]>('list_projects')
+      setProjects(list)
+    } catch (e) {
+      error(String(e))
+    }
+  }, [error])
 
   const add = useCallback(async (path: string, name?: string) => {
-    await invoke('add_project', { path, name })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('add_project', { path, name })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const open = useCallback(async (path: string) => {
-    await invoke('open_project', { path })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('open_project', { path })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const remove = useCallback(async (id: number) => {
-    await invoke('remove_project', { id })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('remove_project', { id })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const pin = useCallback(async (id: number, pinned: boolean) => {
-    await invoke('pin_project', { id, pinned })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('pin_project', { id, pinned })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   useEffect(() => {
     refresh()

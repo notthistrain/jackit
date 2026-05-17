@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
+import { useToast } from '@/components/toast/ToastProvider'
 
 export interface MergedConfigItem {
   key: string
@@ -16,6 +17,7 @@ export function useConfig() {
   const { currentProject } = useAppStore()
   const [config, setConfig] = useState<MergedConfig | null>(null)
   const [loading, setLoading] = useState(false)
+  const { error } = useToast()
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -24,34 +26,46 @@ export function useConfig() {
         projectPath: currentProject || '',
       })
       setConfig(result)
+    } catch (e) {
+      error(String(e))
     } finally {
       setLoading(false)
     }
-  }, [currentProject])
+  }, [currentProject, error])
 
   const writeConfig = useCallback(
     async (scope: 'global' | 'project', key: string, value: unknown) => {
-      await invoke('write_config', {
-        scope,
-        projectPath: currentProject,
-        key,
-        value,
-      })
-      await refresh()
+      try {
+        await invoke('write_config', {
+          scope,
+          projectPath: currentProject,
+          key,
+          value,
+        })
+        await refresh()
+      } catch (e) {
+        error(String(e))
+        throw e
+      }
     },
-    [currentProject, refresh],
+    [currentProject, refresh, error],
   )
 
   const deleteConfig = useCallback(
     async (scope: 'global' | 'project', key: string) => {
-      await invoke('delete_config', {
-        scope,
-        projectPath: currentProject,
-        key,
-      })
-      await refresh()
+      try {
+        await invoke('delete_config', {
+          scope,
+          projectPath: currentProject,
+          key,
+        })
+        await refresh()
+      } catch (e) {
+        error(String(e))
+        throw e
+      }
     },
-    [currentProject, refresh],
+    [currentProject, refresh, error],
   )
 
   useEffect(() => {

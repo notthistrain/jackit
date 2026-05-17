@@ -136,3 +136,19 @@ button {
 button:disabled {
   cursor: not-allowed;
 }
+
+/* Toast animations */
+@keyframes slide-in-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-in.slide-in-from-right {
+  animation: slide-in-from-right 0.2s ease-out;
+}

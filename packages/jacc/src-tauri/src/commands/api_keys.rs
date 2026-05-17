@@ -66,19 +66,13 @@ pub(crate) async fn add_api_key_inner(
 ) -> AppResult<ApiKey> {
     let notes = input.notes.as_deref().filter(|s| !s.is_empty());
 
-    sqlx::query(
-        "INSERT INTO api_keys (provider_id, name, api_key, notes) VALUES (?, ?, ?, ?)",
+    let ak = sqlx::query_as::<_, ApiKey>(
+        "INSERT INTO api_keys (provider_id, name, api_key, notes) VALUES (?, ?, ?, ?) RETURNING *",
     )
     .bind(input.provider_id)
     .bind(&input.name)
     .bind(&input.api_key)
     .bind(&notes)
-    .execute(pool)
-    .await?;
-
-    let ak = sqlx::query_as::<_, ApiKey>(
-        "SELECT * FROM api_keys WHERE id = last_insert_rowid()",
-    )
     .fetch_one(pool)
     .await?;
     Ok(ak)

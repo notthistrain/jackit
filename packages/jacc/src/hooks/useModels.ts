@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/toast/ToastProvider'
 
 export interface Model {
   id: number
@@ -24,32 +25,50 @@ export interface UpdateModelInput {
 export function useModels(apiKeyId: number) {
   const [models, setModels] = useState<Model[]>([])
   const [loading, setLoading] = useState(false)
+  const { error } = useToast()
 
   const refresh = useCallback(async () => {
     if (!apiKeyId) return
     setLoading(true)
     try {
-      const list = await invoke<Model[]>('list_models', { api_key_id: apiKeyId })
+      const list = await invoke<Model[]>('list_models', { apiKeyId })
       setModels(list)
+    } catch (e) {
+      error(String(e))
     } finally {
       setLoading(false)
     }
-  }, [apiKeyId])
+  }, [apiKeyId, error])
 
   const add = useCallback(async (input: CreateModelInput) => {
-    await invoke('add_model', { input })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('add_model', { input })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const update = useCallback(async (id: number, input: UpdateModelInput) => {
-    await invoke('update_model', { id, input })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('update_model', { id, input })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const remove = useCallback(async (id: number) => {
-    await invoke('delete_model', { id })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('delete_model', { id })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const test = useCallback(async (id: number): Promise<string> => {
     return invoke<string>('test_model', { id })

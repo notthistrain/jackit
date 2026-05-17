@@ -67,12 +67,12 @@ export function AddApiKeyDialog({ open, onClose, onSubmit, providerId, initialVa
           </div>
           <div>
             <div className="text-[11px] text-muted mb-1">
-              {isEdit ? t('models.dialog.apiKeyEdit') : t('models.dialog.apiKey')} {!isEdit && '*'}
+              {isEdit ? t('apiKeys.dialog.apiKeyEdit') : t('apiKeys.dialog.apiKey')} {!isEdit && '*'}
             </div>
             <div className="relative">
               <input type={showKey ? 'text' : 'password'} value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder={isEdit ? t('models.dialog.apiKeyEditPlaceholder') : t('models.dialog.apiKeyPlaceholder')}
+                placeholder={isEdit ? t('apiKeys.dialog.apiKeyEditPlaceholder') : t('apiKeys.dialog.apiKeyPlaceholder')}
                 className="w-full bg-sidebar border border-border px-3 py-2 pr-9 rounded-[4px] text-xs text-foreground" />
               <button onClick={() => setShowKey(!showKey)}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">

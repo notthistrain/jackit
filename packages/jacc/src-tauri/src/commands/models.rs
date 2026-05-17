@@ -33,18 +33,12 @@ pub(crate) async fn add_model_inner(
 ) -> AppResult<Model> {
     let context_size = input.context_size.as_deref().filter(|s| !s.is_empty());
 
-    sqlx::query(
-        "INSERT INTO models (api_key_id, model_name, context_size) VALUES (?, ?, ?)",
+    let model = sqlx::query_as::<_, Model>(
+        "INSERT INTO models (api_key_id, model_name, context_size) VALUES (?, ?, ?) RETURNING *",
     )
     .bind(input.api_key_id)
     .bind(&input.model_name)
     .bind(&context_size)
-    .execute(pool)
-    .await?;
-
-    let model = sqlx::query_as::<_, Model>(
-        "SELECT * FROM models WHERE id = last_insert_rowid()",
-    )
     .fetch_one(pool)
     .await?;
     Ok(model)

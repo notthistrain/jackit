@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Layout } from '@/components/Layout'
+import { ToastProvider } from '@/components/toast/ToastProvider'
 import { useAppStore } from '@/stores/useAppStore'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useT } from '@/i18n'
@@ -39,5 +40,9 @@ export default function App() {
     getCurrentWindow().show()
   }, [])
 
-  return <Layout />
+  return (
+    <ToastProvider>
+      <Layout />
+    </ToastProvider>
+  )
 }

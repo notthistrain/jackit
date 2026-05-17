@@ -6,6 +6,12 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }))
 
+// Mock toast (stable references to avoid infinite re-renders)
+const mockToast = { success: vi.fn(), error: vi.fn() }
+vi.mock('@/components/toast/ToastProvider', () => ({
+  useToast: () => mockToast,
+}))
+
 import { invoke } from '@tauri-apps/api/core'
 import { useProviders } from './useProviders'
 import { useApiKeys } from './useApiKeys'
@@ -81,7 +87,7 @@ describe('useApiKeys', () => {
     await waitFor(() => {
       expect(result.current.apiKeys).toHaveLength(1)
     })
-    expect(invoke).toHaveBeenCalledWith('list_api_keys', { provider_id: 10 })
+    expect(invoke).toHaveBeenCalledWith('list_api_keys', { providerId: 10 })
   })
 
   test('.add() calls add_api_key then refreshes', async () => {
@@ -118,7 +124,7 @@ describe('useModels', () => {
     await waitFor(() => {
       expect(result.current.models).toHaveLength(1)
     })
-    expect(invoke).toHaveBeenCalledWith('list_models', { api_key_id: 5 })
+    expect(invoke).toHaveBeenCalledWith('list_models', { apiKeyId: 5 })
   })
 
   test('.add() calls add_model then refreshes', async () => {

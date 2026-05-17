@@ -34,16 +34,12 @@ pub(crate) async fn add_provider_inner(
 ) -> AppResult<Provider> {
     let notes = input.notes.as_deref().filter(|s| !s.is_empty());
 
-    sqlx::query("INSERT INTO providers (name, base_url, notes) VALUES (?, ?, ?)")
-        .bind(&input.name)
-        .bind(&input.base_url)
-        .bind(&notes)
-        .execute(pool)
-        .await?;
-
     let provider = sqlx::query_as::<_, Provider>(
-        "SELECT * FROM providers WHERE id = last_insert_rowid()",
+        "INSERT INTO providers (name, base_url, notes) VALUES (?, ?, ?) RETURNING *",
     )
+    .bind(&input.name)
+    .bind(&input.base_url)
+    .bind(&notes)
     .fetch_one(pool)
     .await?;
     Ok(provider)

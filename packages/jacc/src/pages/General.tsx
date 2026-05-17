@@ -64,9 +64,9 @@ export function General() {
     }
   }
 
-  async function handleApply(slot: Slot) {
+  async function handleApply(slot: Slot, ctx?: string) {
     try {
-      await setCurrentModel(slot, slotContexts[slot] || null)
+      await setCurrentModel(slot, (ctx ?? slotContexts[slot]) || null)
       await refreshConfig()
     } catch {
       // error handled by toast in hook
@@ -124,7 +124,11 @@ export function General() {
                   {/* Context size */}
                   <select
                     value={slotContexts[slot]}
-                    onChange={(e) => setSlotContexts(prev => ({ ...prev, [slot]: e.target.value }))}
+                    onChange={(e) => {
+                      const newCtx = e.target.value
+                      setSlotContexts(prev => ({ ...prev, [slot]: newCtx }))
+                      if (isCurrent) handleApply(slot, newCtx)
+                    }}
                     disabled={!isBound}
                     className={`text-[11px] px-1.5 py-1 rounded-[2px] border border-border bg-sidebar text-foreground w-[55px] ${
                       !isBound ? 'opacity-40 cursor-not-allowed' : ''
@@ -136,8 +140,8 @@ export function General() {
                     ))}
                   </select>
 
-                  {/* Apply button — hover only */}
-                  {isBound && (
+                  {/* Apply button — hover only, hidden for current slot */}
+                  {isBound && !isCurrent && (
                     <button
                       onClick={() => handleApply(slot)}
                       className="text-[11px] px-2.5 py-1 rounded-[2px] bg-primary text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"

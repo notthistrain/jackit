@@ -1,5 +1,6 @@
-import { ChevronDown, ChevronRight, MoreHorizontal } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Fab } from '@/components/Fab'
 import { AddApiKeyDialog } from '@/components/dialogs/AddApiKeyDialog'
 import { AddModelDialog } from '@/components/dialogs/AddModelDialog'
@@ -9,45 +10,10 @@ import { useModels, type Model } from '@/hooks/useModels'
 import { useProviders, type Provider } from '@/hooks/useProviders'
 import { useT } from '@/i18n'
 
-// ---------------------------------------------------------------------------
-// DropdownMenu — shared click-outside-aware menu for edit/delete actions
-// ---------------------------------------------------------------------------
-function DropdownMenu({
-  open,
-  onClose,
-  items,
-}: {
-  open: boolean
-  onClose: () => void
-  items: { label: string; danger?: boolean; onClick: () => void }[]
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open, onClose])
-
-  if (!open) return null
-
-  return (
-    <div ref={ref} className="absolute right-0 top-full mt-1 bg-card border border-border rounded-[4px] shadow-lg z-10 py-1 min-w-[80px]">
-      {items.map((item, i) => (
-        <button
-          key={i}
-          onClick={() => { item.onClick(); onClose() }}
-          className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-sidebar ${item.danger ? 'text-danger' : 'text-foreground'}`}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  )
-}
+// shared button styles
+const btnBase = 'text-[11px] px-2 py-1 border border-border rounded-[2px] cursor-pointer'
+const btnGhost = `${btnBase} text-muted hover:bg-sidebar hover:text-foreground`
+const btnDanger = `${btnBase} text-muted hover:bg-danger/10 hover:text-danger`
 
 // ---------------------------------------------------------------------------
 // ModelNode — leaf node: displays model_name + context_size
@@ -69,10 +35,10 @@ function ModelNode({
   testResult: { id: number; msg: string; ok: boolean } | null
   t: (key: string, params?: Record<string, string>) => string
 }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <div className="flex items-center justify-between pl-8 pr-3 py-2 hover:bg-sidebar/50 rounded-[4px] group">
+    <div className="flex items-center justify-between pl-24 pr-3 py-2 hover:bg-sidebar/50 rounded-[4px]">
       <div className="min-w-0 flex-1 mr-3">
         <div className="flex items-center gap-2">
           <span className="text-[12px] text-foreground font-medium">{model.model_name}</span>
@@ -89,31 +55,30 @@ function ModelNode({
           </div>
         )}
       </div>
-      <div className="flex gap-1.5 shrink-0">
+      <div className="flex gap-1 shrink-0">
         <button
           onClick={() => onTest(model.id)}
           disabled={testing === model.id}
-          className="text-[11px] px-2.5 py-1 bg-card border border-border rounded-[2px] text-foreground hover:bg-sidebar disabled:opacity-50 cursor-pointer"
+          className={`${btnBase} bg-card text-foreground hover:bg-sidebar disabled:opacity-50`}
         >
           {testing === model.id ? '...' : t('models.test')}
         </button>
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen(v => !v)}
-            className="text-[11px] px-2 py-1 bg-card border border-border rounded-[2px] text-muted hover:bg-sidebar cursor-pointer"
-          >
-            <MoreHorizontal size={14} />
-          </button>
-          <DropdownMenu
-            open={menuOpen}
-            onClose={() => setMenuOpen(false)}
-            items={[
-              { label: t('models.edit'), onClick: () => onEdit(model) },
-              { label: t('models.delete'), danger: true, onClick: () => onRemove(model.id) },
-            ]}
-          />
-        </div>
+        <button onClick={() => onEdit(model)} className={btnGhost}>
+          {t('models.edit')}
+        </button>
+        <button onClick={() => setConfirmDelete(true)} className={btnDanger}>
+          {t('models.delete')}
+        </button>
       </div>
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t('confirm.deleteModel.title')}
+        message={t('confirm.deleteModel.message', { name: model.model_name })}
+        confirmLabel={t('models.delete')}
+        danger
+        onConfirm={() => { setConfirmDelete(false); onRemove(model.id) }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }
@@ -134,12 +99,12 @@ function ApiKeyNode({
 }) {
   const { models, add, update, remove, test } = useModels(apiKey.id)
   const [expanded, setExpanded] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [showAddModel, setShowAddModel] = useState(false)
   const [editingModel, setEditingModel] = useState<Model | null>(null)
   const [showEditKey, setShowEditKey] = useState(false)
   const [testing, setTesting] = useState<number | null>(null)
   const [testResult, setTestResult] = useState<{ id: number; msg: string; ok: boolean } | null>(null)
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState(false)
 
   function formatTestResult(raw: string): string {
     if (raw === 'CONNECTION_SUCCESS') return t('models.testSuccess')
@@ -180,7 +145,7 @@ function ApiKeyNode({
     <div>
       {/* Key header row */}
       <div
-        className="flex items-center justify-between px-3 py-2.5 hover:bg-sidebar/50 rounded-[4px] cursor-pointer group"
+        className="flex items-center justify-between pl-12 pr-3 py-2.5 hover:bg-sidebar/50 rounded-[4px] cursor-pointer"
         onClick={() => setExpanded(v => !v)}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -193,29 +158,22 @@ function ApiKeyNode({
             <div className="text-[11px] text-muted truncate">{apiKey.api_key_masked}</div>
           </div>
         </div>
-        <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen(v => !v)}
-              className="text-[11px] px-2 py-1 bg-card border border-border rounded-[2px] text-muted hover:bg-sidebar cursor-pointer"
-            >
-              <MoreHorizontal size={14} />
-            </button>
-            <DropdownMenu
-              open={menuOpen}
-              onClose={() => setMenuOpen(false)}
-              items={[
-                { label: t('models.edit'), onClick: () => setShowEditKey(true) },
-                { label: t('models.delete'), danger: true, onClick: () => onRemoveKey(apiKey.id) },
-              ]}
-            />
-          </div>
+        <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => setShowAddModel(true)} className={btnGhost}>
+            <Plus size={12} className="inline -mt-0.5 mr-0.5" />{t('models.addBtn')}
+          </button>
+          <button onClick={() => setShowEditKey(true)} className={btnGhost}>
+            {t('models.edit')}
+          </button>
+          <button onClick={() => setConfirmDeleteKey(true)} className={btnDanger}>
+            {t('models.delete')}
+          </button>
         </div>
       </div>
 
       {/* Expanded: models list */}
       {expanded && (
-        <div className="ml-4 mt-0.5 mb-1 flex flex-col gap-0.5">
+        <div className="mt-0.5 mb-1 flex flex-col gap-0.5">
           {models.map((model) => (
             <ModelNode
               key={model.id}
@@ -229,14 +187,8 @@ function ApiKeyNode({
             />
           ))}
           {models.length === 0 && (
-            <div className="pl-8 pr-3 py-2 text-[11px] text-muted">{t('models.empty')}</div>
+            <div className="pl-24 pr-3 py-2 text-[11px] text-muted">{t('models.empty')}</div>
           )}
-          <button
-            onClick={() => setShowAddModel(true)}
-            className="ml-8 text-[11px] text-muted hover:text-foreground py-1 cursor-pointer"
-          >
-            + {t('models.dialog.addTitle')}
-          </button>
         </div>
       )}
 
@@ -279,6 +231,15 @@ function ApiKeyNode({
           }}
         />
       )}
+      <ConfirmDialog
+        open={confirmDeleteKey}
+        title={t('confirm.deleteApiKey.title')}
+        message={t('confirm.deleteApiKey.message', { name: apiKey.name })}
+        confirmLabel={t('models.delete')}
+        danger
+        onConfirm={() => { setConfirmDeleteKey(false); onRemoveKey(apiKey.id) }}
+        onCancel={() => setConfirmDeleteKey(false)}
+      />
     </div>
   )
 }
@@ -299,9 +260,9 @@ function ProviderNode({
 }) {
   const { apiKeys, add, update, remove } = useApiKeys(provider.id)
   const [expanded, setExpanded] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [showAddKey, setShowAddKey] = useState(false)
   const [showEditProvider, setShowEditProvider] = useState(false)
+  const [confirmDeleteProvider, setConfirmDeleteProvider] = useState(false)
 
   async function handleAddKey(input: { provider_id: number; name: string; api_key: string; notes: string | null }) {
     await add(input)
@@ -325,29 +286,22 @@ function ProviderNode({
             <div className="text-[11px] text-muted truncate">{provider.base_url}</div>
           </div>
         </div>
-        <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen(v => !v)}
-              className="text-[11px] px-2 py-1 bg-card border border-border rounded-[2px] text-muted hover:bg-sidebar cursor-pointer"
-            >
-              <MoreHorizontal size={14} />
-            </button>
-            <DropdownMenu
-              open={menuOpen}
-              onClose={() => setMenuOpen(false)}
-              items={[
-                { label: t('models.edit'), onClick: () => setShowEditProvider(true) },
-                { label: t('models.delete'), danger: true, onClick: () => onRemoveProvider(provider.id) },
-              ]}
-            />
-          </div>
+        <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => setShowAddKey(true)} className={btnGhost}>
+            <Plus size={12} className="inline -mt-0.5 mr-0.5" />{t('apiKeys.addBtn')}
+          </button>
+          <button onClick={() => setShowEditProvider(true)} className={btnGhost}>
+            {t('models.edit')}
+          </button>
+          <button onClick={() => setConfirmDeleteProvider(true)} className={btnDanger}>
+            <Trash2 size={12} className="inline -mt-0.5" />
+          </button>
         </div>
       </div>
 
       {/* Expanded: api keys list */}
       {expanded && (
-        <div className="px-2 pb-2 flex flex-col gap-0.5">
+        <div className="pb-2 flex flex-col gap-0.5">
           {apiKeys.map((ak) => (
             <ApiKeyNode
               key={ak.id}
@@ -358,14 +312,8 @@ function ProviderNode({
             />
           ))}
           {apiKeys.length === 0 && (
-            <div className="px-3 py-2 text-[11px] text-muted">{t('apiKeys.dialog.addTitle')}</div>
+            <div className="pl-12 pr-3 py-2 text-[11px] text-muted">{t('models.empty')}</div>
           )}
-          <button
-            onClick={() => setShowAddKey(true)}
-            className="ml-3 text-[11px] text-muted hover:text-foreground py-1 cursor-pointer"
-          >
-            + {t('apiKeys.dialog.addTitle')}
-          </button>
         </div>
       )}
 
@@ -395,6 +343,15 @@ function ProviderNode({
           }}
         />
       )}
+      <ConfirmDialog
+        open={confirmDeleteProvider}
+        title={t('confirm.deleteProvider.title')}
+        message={t('confirm.deleteProvider.message', { name: provider.name })}
+        confirmLabel={t('models.delete')}
+        danger
+        onConfirm={() => { setConfirmDeleteProvider(false); onRemoveProvider(provider.id) }}
+        onCancel={() => setConfirmDeleteProvider(false)}
+      />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/toast/ToastProvider'
 
 export interface ApiKeyView {
   id: number
@@ -27,32 +28,50 @@ export interface UpdateApiKeyInput {
 export function useApiKeys(providerId: number) {
   const [apiKeys, setApiKeys] = useState<ApiKeyView[]>([])
   const [loading, setLoading] = useState(false)
+  const { error } = useToast()
 
   const refresh = useCallback(async () => {
     if (!providerId) return
     setLoading(true)
     try {
-      const list = await invoke<ApiKeyView[]>('list_api_keys', { provider_id: providerId })
+      const list = await invoke<ApiKeyView[]>('list_api_keys', { providerId })
       setApiKeys(list)
+    } catch (e) {
+      error(String(e))
     } finally {
       setLoading(false)
     }
-  }, [providerId])
+  }, [providerId, error])
 
   const add = useCallback(async (input: CreateApiKeyInput) => {
-    await invoke('add_api_key', { input })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('add_api_key', { input })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const update = useCallback(async (id: number, input: UpdateApiKeyInput) => {
-    await invoke('update_api_key', { id, input })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('update_api_key', { id, input })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   const remove = useCallback(async (id: number) => {
-    await invoke('delete_api_key', { id })
-    await refresh()
-  }, [refresh])
+    try {
+      await invoke('delete_api_key', { id })
+      await refresh()
+    } catch (e) {
+      error(String(e))
+      throw e
+    }
+  }, [refresh, error])
 
   useEffect(() => { refresh() }, [refresh])
 
