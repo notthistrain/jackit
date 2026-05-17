@@ -12,7 +12,6 @@ interface AddModelDialogProps {
     base_url: string
     api_key: string
     model_name: string
-    slot: string
     context_size: string
   }
 }
@@ -23,7 +22,6 @@ export function AddModelDialog({ open, onClose, onSubmit, initialValues }: AddMo
   const [baseUrl, setBaseUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [modelName, setModelName] = useState('')
-  const [slot, setSlot] = useState<string>('')
   const [contextSize, setContextSize] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -34,14 +32,12 @@ export function AddModelDialog({ open, onClose, onSubmit, initialValues }: AddMo
       setBaseUrl(initialValues.base_url)
       setApiKey(initialValues.api_key)
       setModelName(initialValues.model_name)
-      setSlot(initialValues.slot)
       setContextSize(initialValues.context_size)
     } else if (!open) {
       setAlias('')
       setBaseUrl('')
       setApiKey('')
       setModelName('')
-      setSlot('')
       setContextSize('')
     }
   }, [open, initialValues])
@@ -60,8 +56,7 @@ export function AddModelDialog({ open, onClose, onSubmit, initialValues }: AddMo
         base_url: baseUrl,
         api_key: apiKey,
         model_name: modelName,
-        slot: slot || null,
-        context_size: contextSize,
+        context_size: contextSize || null,
       })
       onClose()
     } finally {
@@ -132,19 +127,6 @@ export function AddModelDialog({ open, onClose, onSubmit, initialValues }: AddMo
               placeholder={t('models.dialog.contextSizePlaceholder')}
               className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
             />
-          </div>
-          <div>
-            <div className="text-[11px] text-muted mb-1">{t('models.dialog.slot')}</div>
-            <select
-              value={slot}
-              onChange={(e) => setSlot(e.target.value)}
-              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
-            >
-              <option value="">{t('models.dialog.slotNone')}</option>
-              <option value="opus">Opus</option>
-              <option value="sonnet">Sonnet</option>
-              <option value="haiku">Haiku</option>
-            </select>
           </div>
         </div>
 

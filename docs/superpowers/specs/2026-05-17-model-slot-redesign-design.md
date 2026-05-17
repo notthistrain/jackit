@@ -25,7 +25,7 @@
 CREATE TABLE IF NOT EXISTS model_slots (
     slot        TEXT PRIMARY KEY,      -- 'opus', 'sonnet', 'haiku'
     model_id    INTEGER NOT NULL,      -- FK → models.id
-    context_size TEXT,                 -- 该 slot 的上下文大小，如 '1m', '200k'
+    context_size TEXT,                 -- 该 slot 的上下文大小，如 '1m'
     updated_at  TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (model_id) REFERENCES models(id) ON DELETE CASCADE
 );
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS model_slots (
 **新增：当前模型区**
 
 - Slot 下拉框（opus / sonnet / haiku）
-- Context size 输入（预设：默认 / 200k / 1m）
+- Context size 输入（预设：默认 / 1m）
 - 选择后调用 `set_current_model`
 
 **移除：**

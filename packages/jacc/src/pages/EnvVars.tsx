@@ -4,7 +4,14 @@ import { SourceBadge } from '@/components/SourceBadge'
 import { Fab } from '@/components/Fab'
 import { useT } from '@/i18n'
 
-const MODEL_ENV_KEYS = ['ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_MODEL']
+const MODEL_ENV_KEYS = [
+  'ANTHROPIC_BASE_URL',
+  'ANTHROPIC_AUTH_TOKEN',
+  'ANTHROPIC_MODEL',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+]
 
 export function EnvVars() {
   const { t } = useT()
