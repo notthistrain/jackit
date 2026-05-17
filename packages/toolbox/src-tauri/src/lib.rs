@@ -236,6 +236,56 @@ fn chrono_now() -> String {
     format!("{}", now.as_secs())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn log_info_does_not_panic() {
+        log_info("test-module".into(), "hello info".into());
+    }
+
+    #[test]
+    fn log_warn_does_not_panic() {
+        log_warn("test-module".into(), "hello warn".into());
+    }
+
+    #[test]
+    fn log_error_does_not_panic() {
+        log_error("test-module".into(), "hello error".into());
+    }
+
+    #[test]
+    fn log_info_empty_strings() {
+        log_info(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_warn_empty_strings() {
+        log_warn(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_error_empty_strings() {
+        log_error(String::new(), String::new());
+    }
+
+    #[test]
+    fn log_info_unicode() {
+        log_info("模块".into(), "你好世界 🌍".into());
+    }
+
+    #[test]
+    fn log_warn_unicode() {
+        log_warn("模块".into(), "警告信息 ⚠️".into());
+    }
+
+    #[test]
+    fn log_error_unicode() {
+        log_error("模块".into(), "错误信息 ❌".into());
+    }
+}
+
 pub fn run() {
     let log_dir = logging::get_log_dir();
     let guard = logging::init("toolbox", &log_dir);

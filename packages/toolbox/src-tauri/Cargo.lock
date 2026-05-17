@@ -3957,6 +3957,7 @@ dependencies = [
  "serde_yaml",
  "tauri",
  "tauri-build",
+ "tempfile",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
