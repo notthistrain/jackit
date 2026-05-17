@@ -44,3 +44,46 @@ pub fn get_log_dir() -> std::path::PathBuf {
     let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
     home.join(".jackit").join("toolbox").join("tools").join("jackcom").join("log")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn get_log_dir_returns_correct_path() {
+        let log_dir = get_log_dir();
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(
+            log_dir,
+            home.join(".jackit").join("toolbox").join("tools").join("jackcom").join("log")
+        );
+    }
+
+    #[test]
+    fn get_log_dir_ends_with_log() {
+        let log_dir = get_log_dir();
+        assert_eq!(log_dir.file_name().unwrap(), "log");
+    }
+
+    #[test]
+    fn init_creates_dir_and_writes_log_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log_dir = tmp.path().join("log");
+        assert!(!log_dir.exists());
+
+        let guard = init("jackcom-test", &log_dir);
+
+        assert!(log_dir.exists());
+        assert!(log_dir.is_dir());
+
+        tracing::info!("test message");
+        drop(guard);
+
+        let entries: Vec<_> = fs::read_dir(&log_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .collect();
+        assert!(!entries.is_empty(), "log directory should contain at least one file");
+    }
+}

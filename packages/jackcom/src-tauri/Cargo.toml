@@ -32,3 +32,4 @@ tokio-util = "0.7"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util", "macros"] }
+tempfile = "3"
