@@ -44,3 +44,51 @@ pub fn get_log_dir() -> std::path::PathBuf {
     let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
     home.join(".jackit").join("toolbox").join("tools").join("jacc").join("log")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn get_log_dir_returns_correct_path() {
+        let log_dir = get_log_dir();
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(
+            log_dir,
+            home.join(".jackit").join("toolbox").join("tools").join("jacc").join("log")
+        );
+    }
+
+    #[test]
+    fn get_log_dir_ends_with_log() {
+        let log_dir = get_log_dir();
+        assert_eq!(log_dir.file_name().unwrap(), "log");
+    }
+
+    #[test]
+    fn init_creates_dir_and_writes_log_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log_dir = tmp.path().join("log");
+        assert!(!log_dir.exists());
+
+        let guard = init("jacc-test", &log_dir);
+
+        // 验证目录被创建
+        assert!(log_dir.exists());
+        assert!(log_dir.is_dir());
+
+        // 写一条日志
+        tracing::info!("test message");
+
+        // flush by dropping guard
+        drop(guard);
+
+        // 验证日志文件被创建
+        let entries: Vec<_> = fs::read_dir(&log_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .collect();
+        assert!(!entries.is_empty(), "log directory should contain at least one file");
+    }
+}
