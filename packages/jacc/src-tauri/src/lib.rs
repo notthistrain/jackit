@@ -43,12 +43,27 @@ pub fn run() {
             commands::projects::open_project,
             commands::projects::remove_project,
             commands::projects::pin_project,
+            // providers
+            commands::providers::add_provider,
+            commands::providers::list_providers,
+            commands::providers::update_provider,
+            commands::providers::delete_provider,
+            // api_keys
+            commands::api_keys::add_api_key,
+            commands::api_keys::list_api_keys,
+            commands::api_keys::update_api_key,
+            commands::api_keys::delete_api_key,
             // models
-            commands::models::list_models,
             commands::models::add_model,
+            commands::models::list_models,
             commands::models::update_model,
             commands::models::delete_model,
             commands::models::test_model,
+            // slot bindings
+            commands::slots::get_slot_bindings,
+            commands::slots::bind_slot,
+            commands::slots::unbind_slot,
+            commands::slots::set_current_model,
             // config
             commands::config::read_merged_config,
             commands::config::write_config,
