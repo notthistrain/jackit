@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@tauri-apps/api": "catalog:",
-    "@tauri-apps/plugin-log": "catalog:",
     "@vueuse/core": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
