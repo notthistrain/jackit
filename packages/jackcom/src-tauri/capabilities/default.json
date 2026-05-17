@@ -15,7 +15,6 @@
     "core:window:allow-start-dragging",
     "core:window:allow-show",
     "core:event:default",
-    "log:default",
     "shell:allow-open"
   ]
 }

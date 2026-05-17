@@ -41,7 +41,6 @@
     }
   },
   "plugins": {
-    "log": null,
     "dialog": null,
     "shell": {
       "open": true

@@ -1,6 +1,7 @@
 pub mod channel;
 mod commands;
 mod error;
+mod logging;
 pub mod protocol;
 mod serial;
 mod state;
@@ -11,11 +12,14 @@ use std::sync::Arc;
 use state::AppState;
 use storage::init_db;
 use tauri::{Emitter, Manager};
+use tracing_appender::non_blocking::WorkerGuard;
 
 use channel::broker::{Broker, BrokerHandle};
 use channel::PortEvent;
 use protocol::frame::{bytes_to_hex, DisplayFrame, ParsedFrame};
 use serial::manager::SerialManager;
+
+struct LogGuard(WorkerGuard);
 
 /// 将 ParsedFrame 转换为前端 DisplayFrame
 fn parsed_to_display(frame: &ParsedFrame, id: i64) -> DisplayFrame {
@@ -59,6 +63,10 @@ fn ping() -> Result<&'static str, error::AppError> {
 }
 
 pub fn run() {
+    let log_dir = logging::get_log_dir();
+    let guard = logging::init("jackcom", &log_dir);
+    tracing::info!("app started");
+
     // 创建 Broker 通道：事件从 SerialManager → Broker → 订阅者
     let (event_tx, event_rx) = tokio::sync::mpsc::channel(256);
     let broker_handle = BrokerHandle::new(event_tx);
@@ -71,7 +79,6 @@ pub fn run() {
     let serial_manager = Arc::new(SerialManager::new(broker_handle.clone()));
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
@@ -91,15 +98,16 @@ pub fn run() {
                 match init_db().await {
                     Ok(pool) => {
                         *state.db.write().await = Some(pool);
-                        log::info!("数据库初始化成功");
+                        tracing::info!("database initialized");
                     }
                     Err(e) => {
-                        log::error!("数据库初始化失败: {}", e);
+                        tracing::error!("database init failed: {}", e);
                     }
                 }
             });
             Ok(())
         })
+        .manage(LogGuard(guard))
         .manage(AppState::new(serial_manager, broker_handle))
         .invoke_handler(tauri::generate_handler![
             ping,
@@ -116,6 +124,10 @@ pub fn run() {
             commands::config::get_config,
             commands::config::save_config,
             commands::config::list_recent_sessions,
+            // log commands
+            commands::log::log_info,
+            commands::log::log_warn,
+            commands::log::log_error,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -205,5 +217,5 @@ async fn run_tauri_bridge(
             let _ = app_handle.emit(event_name, payload);
         }
     }
-    log::info!("Tauri event bridge stopped");
+    tracing::info!("tauri event bridge stopped");
 }
