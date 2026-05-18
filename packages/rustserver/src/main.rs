@@ -35,9 +35,15 @@ async fn main() {
             middleware::auth::require_token,
         ));
 
+    let tools_routes = Router::new()
+        .route("/", get(handler::tools::list_software))
+        .route("/download/{id}", get(handler::tools::download_by_id))
+        .route("/download-latest/{name}", get(handler::tools::download_latest));
+
     let app = Router::new()
         .route("/api/health", get(handler::health::health))
         .nest("/api/publish", publish_routes)
+        .nest("/api/tools", tools_routes)
         .with_state(pool);
 
     let addr = format!("127.0.0.1:{}", port);
