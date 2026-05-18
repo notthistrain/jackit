@@ -1,11 +1,9 @@
-mod config;
-mod db;
-mod error;
-mod handler;
-mod middleware;
-mod model;
+use rustserver::config;
+use rustserver::db;
+use rustserver::handler;
+use rustserver::middleware;
 
-use axum::{middleware as axum_mw, routing::{get, post}, Router};
+use axum::{routing::{get, post}, Router, middleware as axum_mw};
 
 #[tokio::main]
 async fn main() {
