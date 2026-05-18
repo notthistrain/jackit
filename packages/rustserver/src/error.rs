@@ -23,6 +23,12 @@ impl ResDTO<()> {
     }
 }
 
+impl ResDTO<serde_json::Value> {
+    pub fn fail_value(msg: impl Into<String>) -> ResDTO<serde_json::Value> {
+        ResDTO { code: 1, msg: msg.into(), data: None }
+    }
+}
+
 /// 应用错误类型
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
