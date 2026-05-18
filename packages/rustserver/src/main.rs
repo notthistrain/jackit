@@ -1,9 +1,4 @@
-use rustserver::config;
-use rustserver::db;
-use rustserver::handler;
-use rustserver::middleware;
-
-use axum::{routing::{get, post}, Router, middleware as axum_mw};
+use rustserver::{config, db, handler};
 
 #[tokio::main]
 async fn main() {
@@ -21,31 +16,10 @@ async fn main() {
     let pool = db::init_pool(&config.database.path)
         .await
         .expect("Failed to initialize database");
-    tracing::info!("Database initialized");
 
-    let publish_token = config.publish.token.clone();
-    let port = config.server.port;
+    let app = handler::app(pool, config.publish.token.clone());
 
-    let publish_routes = Router::new()
-        .route("/github", post(handler::publish::github))
-        .layer(axum_mw::from_fn_with_state(
-            publish_token,
-            middleware::auth::require_token,
-        ));
-
-    let tools_routes = Router::new()
-        .route("/", get(handler::tools::list_software))
-        .route("/download/{id}", get(handler::tools::download_by_id))
-        .route("/download-latest/{name}", get(handler::tools::download_latest));
-
-    let app = Router::new()
-        .route("/api/health", get(handler::health::health))
-        .nest("/api/publish", publish_routes)
-        .nest("/api/tools", tools_routes)
-        .layer(axum_mw::from_fn(middleware::log::request_log))
-        .with_state(pool);
-
-    let addr = format!("127.0.0.1:{}", port);
+    let addr = format!("127.0.0.1:{}", config.server.port);
     tracing::info!("Listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
