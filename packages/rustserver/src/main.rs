@@ -44,6 +44,7 @@ async fn main() {
         .route("/api/health", get(handler::health::health))
         .nest("/api/publish", publish_routes)
         .nest("/api/tools", tools_routes)
+        .layer(axum_mw::from_fn(middleware::log::request_log))
         .with_state(pool);
 
     let addr = format!("127.0.0.1:{}", port);
