@@ -1,0 +1,8 @@
+[server]
+port = 7001
+
+[database]
+path = "./data/rustserver.db"
+
+[publish]
+token = "change-me-to-a-secret-token"
