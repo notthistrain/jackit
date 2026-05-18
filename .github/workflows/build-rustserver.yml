@@ -37,7 +37,7 @@ jobs:
 
       - name: Run tests
         working-directory: packages/rustserver
-        run: cargo test
+        run: cargo test --features test-utils
 
       - name: Build release (musl static)
         working-directory: packages/rustserver
