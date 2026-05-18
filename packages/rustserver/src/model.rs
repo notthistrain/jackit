@@ -234,7 +234,7 @@ pub async fn get_latest_version(pool: &SqlitePool, name: &str) -> AppResult<(Sof
     Ok((software, version))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "test-utils"))]
 mod tests {
     use super::*;
     use crate::db::setup_test_db;

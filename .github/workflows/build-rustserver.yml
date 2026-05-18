@@ -2,11 +2,8 @@ name: Build Rustserver
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'packages/rustserver/**'
-      - '.github/workflows/build-rustserver.yml'
-  workflow_dispatch:
+    tags:
+      - 'rustserver-v*'
 
 jobs:
   build:
@@ -56,18 +53,11 @@ jobs:
           cd /tmp/rustserver-release
           tar czf rustserver-linux-x86_64.tar.gz rustserver rustserver.service install.sh config.toml
 
-      - name: Determine version
-        id: version
-        run: |
-          VERSION=$(grep '^version' packages/rustserver/Cargo.toml | head -1 | sed 's/.*=.*"\(.*\)".*/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=rustserver-v$VERSION" >> $GITHUB_OUTPUT
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: Rustserver ${{ steps.version.outputs.tag }}
+          tag_name: ${{ github.ref_name }}
+          name: Rustserver ${{ github.ref_name }}
           files: /tmp/rustserver-release/rustserver-linux-x86_64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

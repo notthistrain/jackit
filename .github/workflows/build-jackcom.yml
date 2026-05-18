@@ -1,0 +1,19 @@
+name: Build Jackcom
+
+on:
+  push:
+    tags:
+      - 'jackcom-v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: ./.github/actions/build-tauri
+        with:
+          app-name: jackcom
+          rustserver-url: ${{ secrets.JACKIT_RUSTSERVER_URL }}
+          rustserver-token: ${{ secrets.JACKIT_RUSTSERVER_TOKEN }}

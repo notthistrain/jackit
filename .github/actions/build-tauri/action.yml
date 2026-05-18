@@ -1,0 +1,102 @@
+name: 'Build Tauri App'
+description: 'Build a Tauri desktop app, upload release assets, and publish to rustserver'
+
+inputs:
+  app-name:
+    description: 'App name (toolbox, jackcom, jacc)'
+    required: true
+  rustserver-url:
+    description: 'Rustserver URL'
+    required: false
+  rustserver-token:
+    description: 'Rustserver token'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: packages/${{ inputs.app-name }}/src-tauri -> target
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Build Tauri app
+      shell: bash
+      run: pnpm --filter @app/${{ inputs.app-name }} tauri build
+
+    - name: Verify build output
+      shell: bash
+      run: |
+        if ! ls packages/${{ inputs.app-name }}/src-tauri/target/release/bundle/nsis/*-setup.exe 1>/dev/null 2>&1; then
+          echo "::error::No setup.exe found in NSIS bundle directory"
+          exit 1
+        fi
+
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+        files: |
+          packages/${{ inputs.app-name }}/src-tauri/target/release/bundle/nsis/*-setup.exe
+          packages/${{ inputs.app-name }}/src-tauri/target/release/bundle/msi/*.msi
+
+    - name: Publish software info to rustserver
+      if: ${{ inputs.rustserver-url != '' && inputs.rustserver-token != '' }}
+      shell: bash
+      env:
+        RUSTSERVER_URL: ${{ inputs.rustserver-url }}
+        RUSTSERVER_TOKEN: ${{ inputs.rustserver-token }}
+        TAG: ${{ github.ref_name }}
+        APP: ${{ inputs.app-name }}
+      run: |
+        VERSION="${TAG#*-v}"
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+          echo "::error::Invalid version extracted from tag '${TAG}': '${VERSION}'"
+          exit 1
+        fi
+
+        DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/"
+
+        # 查找实际文件名
+        EXE_FILE=$(ls packages/${APP}/src-tauri/target/release/bundle/nsis/*-setup.exe 2>/dev/null | head -1)
+        if [ -n "$EXE_FILE" ]; then
+          FILENAME=$(basename "$EXE_FILE")
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
+        fi
+
+        if ! curl -sf -X POST "${RUSTSERVER_URL}/api/publish/github" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${RUSTSERVER_TOKEN}" \
+          -d "{
+            \"name\": \"${APP}\",
+            \"version\": \"${VERSION}\",
+            \"downloadUrl\": \"${DOWNLOAD_URL}\",
+            \"display\": \"${APP}\",
+            \"identifier\": \"com.jackit.${APP}\"
+          }"; then
+          echo "::warning::Publish to rustserver failed for ${APP} ${VERSION}"
+        else
+          echo "Published ${APP} ${VERSION} to rustserver"
+        fi
