@@ -11,18 +11,27 @@ pub async fn require_token(
     req: Request,
     next: Next,
 ) -> Result<Response, AppError> {
+    let path = req.uri().path().to_string();
+
     let auth_header = req
         .headers()
         .get(AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| AppError::Unauthorized("Missing Authorization header".to_string()))?;
+        .ok_or_else(|| {
+            tracing::warn!(path = %path, "auth failed: missing Authorization header");
+            AppError::Unauthorized("Missing Authorization header".to_string())
+        })?;
 
     let provided = auth_header
         .strip_prefix("Bearer ")
-        .ok_or_else(|| AppError::Unauthorized("Invalid Authorization format".to_string()))?;
+        .ok_or_else(|| {
+            tracing::warn!(path = %path, "auth failed: invalid Authorization format");
+            AppError::Unauthorized("Invalid Authorization format".to_string())
+        })?;
 
     // timing-safe 比较
     if !constant_time_eq(provided.as_bytes(), token.as_bytes()) {
+        tracing::warn!(path = %path, "auth failed: invalid token");
         return Err(AppError::Unauthorized("Invalid token".to_string()));
     }
 

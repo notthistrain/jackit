@@ -6,6 +6,7 @@ pub async fn init_pool(db_path: &str) -> Result<SqlitePool, sqlx::Error> {
         std::fs::create_dir_all(parent).ok();
     }
 
+    tracing::info!(path = %db_path, "opening database");
     let url = format!("sqlite:{}?mode=rwc", db_path);
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
@@ -13,6 +14,7 @@ pub async fn init_pool(db_path: &str) -> Result<SqlitePool, sqlx::Error> {
         .await?;
 
     migrate(&pool).await?;
+    tracing::info!("database schema initialized");
     Ok(pool)
 }
 

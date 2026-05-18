@@ -77,6 +77,7 @@ pub async fn save_version(pool: &SqlitePool, input: &GithubPublishInput) -> AppR
     .await?;
 
     let software = if let Some(s) = software {
+        tracing::debug!(id = s.id, name = %s.name, "software found, updating");
         // 更新可选字段
         if input.display.is_some() || input.identifier.is_some() || input.description.is_some() {
             sqlx::query(
@@ -100,6 +101,7 @@ pub async fn save_version(pool: &SqlitePool, input: &GithubPublishInput) -> AppR
             s
         }
     } else {
+        tracing::info!(name = %input.name, "creating new software");
         sqlx::query_as::<_, Software>(
             "INSERT INTO software (name, display_name, description, ext, identifier)
              VALUES (?, ?, ?, '', ?) RETURNING *",
@@ -122,6 +124,12 @@ pub async fn save_version(pool: &SqlitePool, input: &GithubPublishInput) -> AppR
     .await?;
 
     if let Some(v) = existing {
+        tracing::info!(
+            software = %input.name,
+            version = %input.version,
+            version_id = v.id,
+            "updating existing version"
+        );
         // 更新已有版本时，如果 force 为 false，保留原有 size
         sqlx::query(
             "UPDATE software_version SET key = ?, size = ?, force = ?, changelog = ?
@@ -139,6 +147,11 @@ pub async fn save_version(pool: &SqlitePool, input: &GithubPublishInput) -> AppR
             .fetch_one(pool)
             .await?)
     } else {
+        tracing::info!(
+            software = %input.name,
+            version = %input.version,
+            "creating new version"
+        );
         sqlx::query_as::<_, SoftwareVersion>(
             "INSERT INTO software_version (software_id, sequence, key, size, force, changelog)
              VALUES (?, ?, ?, 0, ?, ?) RETURNING *",
