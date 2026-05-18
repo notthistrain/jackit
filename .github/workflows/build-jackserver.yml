@@ -1,0 +1,71 @@
+name: Build Jackserver
+
+on:
+  push:
+    tags:
+      - 'jackserver-v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/jackserver -> target
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Add musl target
+        run: rustup target add x86_64-unknown-linux-musl
+
+      - name: Run tests
+        working-directory: packages/jackserver
+        run: cargo test --features test-utils
+
+      - name: Build release (musl static)
+        working-directory: packages/jackserver
+        run: cargo build --release --target x86_64-unknown-linux-musl
+
+      - name: Strip binary
+        run: strip packages/jackserver/target/x86_64-unknown-linux-musl/release/jackserver
+
+      - name: Prepare release package
+        run: |
+          mkdir -p /tmp/jackserver-release
+          cp packages/jackserver/target/x86_64-unknown-linux-musl/release/jackserver /tmp/jackserver-release/
+          cp packages/jackserver/deploy/jackserver.service /tmp/jackserver-release/
+          cp packages/jackserver/deploy/install.sh /tmp/jackserver-release/
+          cp packages/jackserver/deploy/uninstall.sh /tmp/jackserver-release/
+          cp packages/jackserver/deploy/jackserver.conf /tmp/jackserver-release/
+          cp packages/jackserver/config.example.toml /tmp/jackserver-release/config.toml
+          cd /tmp/jackserver-release
+          tar czf jackserver-linux-x86_64.tar.gz jackserver jackserver.service jackserver.conf config.toml
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Jackserver ${{ github.ref_name }}
+          files: |
+            /tmp/jackserver-release/jackserver-linux-x86_64.tar.gz
+            /tmp/jackserver-release/install.sh
+            /tmp/jackserver-release/uninstall.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show binary size
+        run: ls -lh /tmp/jackserver-release/jackserver

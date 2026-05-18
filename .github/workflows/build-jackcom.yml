@@ -15,5 +15,5 @@ jobs:
       - uses: ./.github/actions/build-tauri
         with:
           app-name: jackcom
-          rustserver-url: ${{ secrets.JACKIT_RUSTSERVER_URL }}
-          rustserver-token: ${{ secrets.JACKIT_RUSTSERVER_TOKEN }}
+          jackserver-url: ${{ secrets.JACKIT_JACKSERVER_URL }}
+          jackserver-token: ${{ secrets.JACKIT_JACKSERVER_TOKEN }}

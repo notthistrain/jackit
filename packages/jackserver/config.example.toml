@@ -2,7 +2,7 @@
 port = 7001
 
 [database]
-path = "./data/rustserver.db"
+path = "./data/jackserver.db"
 
 [publish]
 token = "change-me-to-a-secret-token"

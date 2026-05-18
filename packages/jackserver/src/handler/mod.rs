@@ -19,10 +19,13 @@ pub fn app(pool: SqlitePool, publish_token: String) -> Router {
         .route("/download/{id}", get(tools::download_by_id))
         .route("/download-latest/{name}", get(tools::download_latest));
 
+    let api_routes = Router::new()
+        .route("/health", get(health::health))
+        .nest("/publish", publish_routes)
+        .nest("/tools", tools_routes);
+
     Router::new()
-        .route("/api/health", get(health::health))
-        .nest("/api/publish", publish_routes)
-        .nest("/api/tools", tools_routes)
+        .nest("/api", api_routes)
         .layer(axum_mw::from_fn(crate::middleware::log::request_log))
         .with_state(pool)
 }

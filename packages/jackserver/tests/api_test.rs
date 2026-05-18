@@ -1,4 +1,4 @@
-use rustserver::{db, test_app};
+use jackserver::{db, test_app};
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use tower::ServiceExt;

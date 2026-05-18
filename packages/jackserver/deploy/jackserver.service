@@ -1,13 +1,13 @@
 [Unit]
-Description=RustServer - Software Package Info Service
+Description=JackServer - Software Package Info Service
 After=network.target
 
 [Service]
 Type=simple
-User=rustserver
-Group=rustserver
-WorkingDirectory=/opt/rustserver
-ExecStart=/opt/rustserver/rustserver --config /etc/rustserver/config.toml
+User=jackserver
+Group=jackserver
+WorkingDirectory=/opt/jackserver
+ExecStart=/opt/jackserver/jackserver --config /etc/jackserver/config.toml
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -16,13 +16,13 @@ LimitNOFILE=65536
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/rustserver/data
+ReadWritePaths=/opt/jackserver/data
 PrivateTmp=true
 
 # 日志输出到 journald
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=rustserver
+SyslogIdentifier=jackserver
 
 [Install]
 WantedBy=multi-user.target

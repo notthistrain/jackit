@@ -1,10 +1,10 @@
 [package]
-name = "rustserver"
+name = "jackserver"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "rustserver"
+name = "jackserver"
 path = "src/lib.rs"
 
 [features]
@@ -21,7 +21,6 @@ toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
-chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 tempfile = "3"

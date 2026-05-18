@@ -1,15 +1,15 @@
 name: 'Build Tauri App'
-description: 'Build a Tauri desktop app, upload release assets, and publish to rustserver'
+description: 'Build a Tauri desktop app, upload release assets, and publish to jackserver'
 
 inputs:
   app-name:
     description: 'App name (toolbox, jackcom, jacc)'
     required: true
-  rustserver-url:
-    description: 'Rustserver URL'
+  jackserver-url:
+    description: 'Jackserver URL'
     required: false
-  rustserver-token:
-    description: 'Rustserver token'
+  jackserver-token:
+    description: 'Jackserver token'
     required: false
 
 runs:
@@ -62,12 +62,12 @@ runs:
           packages/${{ inputs.app-name }}/src-tauri/target/release/bundle/nsis/*-setup.exe
           packages/${{ inputs.app-name }}/src-tauri/target/release/bundle/msi/*.msi
 
-    - name: Publish software info to rustserver
-      if: ${{ inputs.rustserver-url != '' && inputs.rustserver-token != '' }}
+    - name: Publish software info to jackserver
+      if: ${{ inputs.jackserver-url != '' && inputs.jackserver-token != '' }}
       shell: bash
       env:
-        RUSTSERVER_URL: ${{ inputs.rustserver-url }}
-        RUSTSERVER_TOKEN: ${{ inputs.rustserver-token }}
+        JACKSERVER_URL: ${{ inputs.jackserver-url }}
+        JACKSERVER_TOKEN: ${{ inputs.jackserver-token }}
         TAG: ${{ github.ref_name }}
         APP: ${{ inputs.app-name }}
       run: |
@@ -86,9 +86,9 @@ runs:
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
         fi
 
-        if ! curl -sf -X POST "${RUSTSERVER_URL}/api/publish/github" \
+        if ! curl -sf -X POST "${JACKSERVER_URL}/api/publish/github" \
           -H "Content-Type: application/json" \
-          -H "Authorization: Bearer ${RUSTSERVER_TOKEN}" \
+          -H "Authorization: Bearer ${JACKSERVER_TOKEN}" \
           -d "{
             \"name\": \"${APP}\",
             \"version\": \"${VERSION}\",
@@ -96,7 +96,7 @@ runs:
             \"display\": \"${APP}\",
             \"identifier\": \"com.jackit.${APP}\"
           }"; then
-          echo "::warning::Publish to rustserver failed for ${APP} ${VERSION}"
+          echo "::warning::Publish to jackserver failed for ${APP} ${VERSION}"
         else
-          echo "Published ${APP} ${VERSION} to rustserver"
+          echo "Published ${APP} ${VERSION} to jackserver"
         fi

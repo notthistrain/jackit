@@ -1,4 +1,4 @@
-use rustserver::{config, db, handler};
+use jackserver::{config, db, handler};
 
 #[tokio::main]
 async fn main() {
@@ -7,11 +7,11 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "rustserver=info".into()),
+                .unwrap_or_else(|_| "jackserver=info".into()),
         )
         .init();
 
-    tracing::info!("Starting rustserver...");
+    tracing::info!("Starting jackserver...");
 
     let pool = db::init_pool(&config.database.path)
         .await
@@ -23,11 +23,6 @@ async fn main() {
     tracing::info!("Listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-
-    tokio::spawn(async {
-        tokio::signal::ctrl_c().await.unwrap();
-        tracing::info!("Shutdown signal received");
-    });
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
