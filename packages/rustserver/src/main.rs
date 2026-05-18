@@ -1,5 +1,7 @@
 mod config;
+mod db;
 mod error;
+mod model;
 
 use axum::{routing::get, Router};
 use error::ResDTO;
