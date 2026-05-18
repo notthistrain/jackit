@@ -103,12 +103,18 @@ pub async fn add_provider(
     pool: State<'_, SqlitePool>,
     input: CreateProviderInput,
 ) -> AppResult<Provider> {
-    add_provider_inner(pool.inner(), input).await
+    log_command!("add_provider", {
+        let provider = add_provider_inner(pool.inner(), input).await?;
+        tracing::info!(id = provider.id, name = %provider.name, "provider created");
+        Ok(provider)
+    })
 }
 
 #[tauri::command]
 pub async fn list_providers(pool: State<'_, SqlitePool>) -> AppResult<Vec<Provider>> {
-    list_providers_inner(pool.inner()).await
+    log_command!("list_providers", {
+        list_providers_inner(pool.inner()).await
+    })
 }
 
 #[tauri::command]
@@ -117,12 +123,20 @@ pub async fn update_provider(
     id: i64,
     input: UpdateProviderInput,
 ) -> AppResult<()> {
-    update_provider_inner(pool.inner(), id, input).await
+    log_command!("update_provider", {
+        update_provider_inner(pool.inner(), id, input).await?;
+        tracing::info!(id, "provider updated");
+        Ok(())
+    })
 }
 
 #[tauri::command]
 pub async fn delete_provider(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
-    delete_provider_inner(pool.inner(), id).await
+    log_command!("delete_provider", {
+        delete_provider_inner(pool.inner(), id).await?;
+        tracing::info!(id, "provider deleted");
+        Ok(())
+    })
 }
 
 #[cfg(test)]

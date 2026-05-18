@@ -140,8 +140,11 @@ pub async fn add_api_key(
     pool: State<'_, SqlitePool>,
     input: CreateApiKeyInput,
 ) -> AppResult<ApiKeyView> {
-    let ak = add_api_key_inner(pool.inner(), input).await?;
-    Ok(ApiKeyView::from_api_key(&ak))
+    log_command!("add_api_key", {
+        let ak = add_api_key_inner(pool.inner(), input).await?;
+        tracing::info!(id = ak.id, provider_id = ak.provider_id, name = %ak.name, "api_key created");
+        Ok(ApiKeyView::from_api_key(&ak))
+    })
 }
 
 #[tauri::command]
@@ -149,7 +152,9 @@ pub async fn list_api_keys(
     pool: State<'_, SqlitePool>,
     provider_id: i64,
 ) -> AppResult<Vec<ApiKeyView>> {
-    list_api_keys_inner(pool.inner(), provider_id).await
+    log_command!("list_api_keys", {
+        list_api_keys_inner(pool.inner(), provider_id).await
+    })
 }
 
 #[tauri::command]
@@ -158,12 +163,20 @@ pub async fn update_api_key(
     id: i64,
     input: UpdateApiKeyInput,
 ) -> AppResult<()> {
-    update_api_key_inner(pool.inner(), id, input).await
+    log_command!("update_api_key", {
+        update_api_key_inner(pool.inner(), id, input).await?;
+        tracing::info!(id, "api_key updated");
+        Ok(())
+    })
 }
 
 #[tauri::command]
 pub async fn delete_api_key(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
-    delete_api_key_inner(pool.inner(), id).await
+    log_command!("delete_api_key", {
+        delete_api_key_inner(pool.inner(), id).await?;
+        tracing::info!(id, "api_key deleted");
+        Ok(())
+    })
 }
 
 #[cfg(test)]

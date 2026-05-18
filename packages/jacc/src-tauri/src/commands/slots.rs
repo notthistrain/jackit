@@ -225,18 +225,27 @@ fn get_global_settings_path() -> std::path::PathBuf {
 
 #[tauri::command]
 pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<SlotBinding>> {
-    get_slot_bindings_inner(pool.inner()).await
+    log_command!("get_slot_bindings", {
+        get_slot_bindings_inner(pool.inner()).await
+    })
 }
 
 #[tauri::command]
 pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64) -> AppResult<()> {
-    bind_slot_inner(pool.inner(), &slot, model_id).await?;
-    Ok(())
+    log_command!("bind_slot", {
+        bind_slot_inner(pool.inner(), &slot, model_id).await?;
+        tracing::info!(slot = %slot, model_id, "slot bound");
+        Ok(())
+    })
 }
 
 #[tauri::command]
 pub async fn unbind_slot(pool: State<'_, SqlitePool>, slot: String) -> AppResult<()> {
-    unbind_slot_inner(pool.inner(), &slot).await
+    log_command!("unbind_slot", {
+        unbind_slot_inner(pool.inner(), &slot).await?;
+        tracing::info!(slot = %slot, "slot unbound");
+        Ok(())
+    })
 }
 
 #[tauri::command]
@@ -245,7 +254,11 @@ pub async fn set_current_model(
     slot: String,
     context_size: Option<String>,
 ) -> AppResult<()> {
-    set_current_model_at(pool.inner(), &slot, context_size.as_deref(), &get_global_settings_path()).await
+    log_command!("set_current_model", {
+        set_current_model_at(pool.inner(), &slot, context_size.as_deref(), &get_global_settings_path()).await?;
+        tracing::info!(slot = %slot, context_size = ?context_size, "current model set");
+        Ok(())
+    })
 }
 
 #[cfg(test)]

@@ -24,43 +24,43 @@ pub struct MergedConfig {
 
 #[tauri::command]
 pub async fn read_merged_config(project_path: String) -> AppResult<MergedConfig> {
-    let global = read_settings_file(&get_global_settings_path());
-    let project = if project_path.is_empty() {
-        serde_json::json!({})
-    } else {
-        read_settings_file(&get_project_settings_path(&project_path))
-    };
+    log_command!("read_merged_config", {
+        let global = read_settings_file(&get_global_settings_path());
+        let project = if project_path.is_empty() {
+            serde_json::json!({})
+        } else {
+            read_settings_file(&get_project_settings_path(&project_path))
+        };
 
-    let mut items: Vec<MergedConfigItem> = vec![];
+        let mut items: Vec<MergedConfigItem> = vec![];
 
-    // 先加载全局配置
-    if let Some(global_obj) = global.as_object() {
-        for (key, value) in global_obj {
-            items.push(MergedConfigItem {
-                key: key.clone(),
-                value: value.clone(),
-                scope: ConfigScope::Global,
-            });
-        }
-    }
-
-    // 项目配置覆盖全局
-    if let Some(project_obj) = project.as_object() {
-        for (key, value) in project_obj {
-            if let Some(existing) = items.iter_mut().find(|i| i.key == *key) {
-                existing.value = value.clone();
-                existing.scope = ConfigScope::Project;
-            } else {
+        if let Some(global_obj) = global.as_object() {
+            for (key, value) in global_obj {
                 items.push(MergedConfigItem {
                     key: key.clone(),
                     value: value.clone(),
-                    scope: ConfigScope::Project,
+                    scope: ConfigScope::Global,
                 });
             }
         }
-    }
 
-    Ok(MergedConfig { items })
+        if let Some(project_obj) = project.as_object() {
+            for (key, value) in project_obj {
+                if let Some(existing) = items.iter_mut().find(|i| i.key == *key) {
+                    existing.value = value.clone();
+                    existing.scope = ConfigScope::Project;
+                } else {
+                    items.push(MergedConfigItem {
+                        key: key.clone(),
+                        value: value.clone(),
+                        scope: ConfigScope::Project,
+                    });
+                }
+            }
+        }
+
+        Ok(MergedConfig { items })
+    })
 }
 
 #[tauri::command]
@@ -70,25 +70,27 @@ pub async fn write_config(
     key: String,
     value: serde_json::Value,
 ) -> AppResult<()> {
-    let path = match scope {
-        ConfigScope::Global => get_global_settings_path(),
-        ConfigScope::Project => {
-            let pp = project_path.ok_or_else(|| {
-                crate::error::AppError::Custom("项目路径不能为空".to_string())
-            })?;
-            get_project_settings_path(&pp)
+    log_command!("write_config", {
+        let path = match scope {
+            ConfigScope::Global => get_global_settings_path(),
+            ConfigScope::Project => {
+                let pp = project_path.ok_or_else(|| {
+                    crate::error::AppError::Custom("项目路径不能为空".to_string())
+                })?;
+                get_project_settings_path(&pp)
+            }
+        };
+
+        let mut settings = read_settings_file(&path);
+        if !settings.is_object() {
+            settings = serde_json::json!({});
         }
-    };
+        settings.as_object_mut().unwrap().insert(key.clone(), value);
 
-    let mut settings = read_settings_file(&path);
-    // 如果文件内容不是 JSON object，重新初始化为空 object
-    if !settings.is_object() {
-        settings = serde_json::json!({});
-    }
-    settings.as_object_mut().unwrap().insert(key, value);
-
-    write_settings_file(&path, &settings)?;
-    Ok(())
+        write_settings_file(&path, &settings)?;
+        tracing::info!(scope = ?scope, key = %key, "config written");
+        Ok(())
+    })
 }
 
 #[tauri::command]
@@ -97,23 +99,26 @@ pub async fn delete_config(
     project_path: Option<String>,
     key: String,
 ) -> AppResult<()> {
-    let path = match scope {
-        ConfigScope::Global => get_global_settings_path(),
-        ConfigScope::Project => {
-            let pp = project_path.ok_or_else(|| {
-                crate::error::AppError::Custom("项目路径不能为空".to_string())
-            })?;
-            get_project_settings_path(&pp)
+    log_command!("delete_config", {
+        let path = match scope {
+            ConfigScope::Global => get_global_settings_path(),
+            ConfigScope::Project => {
+                let pp = project_path.ok_or_else(|| {
+                    crate::error::AppError::Custom("项目路径不能为空".to_string())
+                })?;
+                get_project_settings_path(&pp)
+            }
+        };
+
+        let mut settings = read_settings_file(&path);
+        if let Some(obj) = settings.as_object_mut() {
+            obj.remove(&key);
         }
-    };
 
-    let mut settings = read_settings_file(&path);
-    if let Some(obj) = settings.as_object_mut() {
-        obj.remove(&key);
-    }
-
-    write_settings_file(&path, &settings)?;
-    Ok(())
+        write_settings_file(&path, &settings)?;
+        tracing::info!(scope = ?scope, key = %key, "config deleted");
+        Ok(())
+    })
 }
 
 fn get_global_settings_path() -> PathBuf {

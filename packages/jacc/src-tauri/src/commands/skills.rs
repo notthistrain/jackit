@@ -19,74 +19,77 @@ pub struct GithubInstallResult {
 
 #[tauri::command]
 pub async fn list_skills(project_path: String) -> AppResult<Vec<SkillInfo>> {
-    let mut skills = vec![];
+    log_command!("list_skills", {
+        let mut skills = vec![];
 
-    // 项目级 skills
-    let project_skills_dir = PathBuf::from(&project_path).join(".claude").join("skills");
-    if project_skills_dir.exists() {
-        collect_skills(&project_skills_dir, "project", true, &mut skills)?;
-    }
+        let project_skills_dir = PathBuf::from(&project_path).join(".claude").join("skills");
+        if project_skills_dir.exists() {
+            collect_skills(&project_skills_dir, "project", true, &mut skills)?;
+        }
 
-    // 项目级 disabled skills
-    let disabled_dir = project_skills_dir.join(".disabled");
-    if disabled_dir.exists() {
-        collect_skills(&disabled_dir, "project", false, &mut skills)?;
-    }
+        let disabled_dir = project_skills_dir.join(".disabled");
+        if disabled_dir.exists() {
+            collect_skills(&disabled_dir, "project", false, &mut skills)?;
+        }
 
-    // 用户级 skills
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    let user_skills_dir = home.join(".claude").join("skills");
-    if user_skills_dir.exists() {
-        collect_skills(&user_skills_dir, "user", true, &mut skills)?;
-    }
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        let user_skills_dir = home.join(".claude").join("skills");
+        if user_skills_dir.exists() {
+            collect_skills(&user_skills_dir, "user", true, &mut skills)?;
+        }
 
-    Ok(skills)
+        Ok(skills)
+    })
 }
 
 #[tauri::command]
 pub async fn toggle_skill(project_path: String, name: String, enabled: bool) -> AppResult<()> {
-    let skills_dir = PathBuf::from(&project_path).join(".claude").join("skills");
-    let disabled_dir = skills_dir.join(".disabled");
+    log_command!("toggle_skill", {
+        let skills_dir = PathBuf::from(&project_path).join(".claude").join("skills");
+        let disabled_dir = skills_dir.join(".disabled");
 
-    if enabled {
-        // 从 .disabled/ 移到 skills/
-        let src = disabled_dir.join(&name);
-        let dst = skills_dir.join(&name);
-        if src.exists() {
-            std::fs::rename(&src, &dst)?;
+        if enabled {
+            let src = disabled_dir.join(&name);
+            let dst = skills_dir.join(&name);
+            if src.exists() {
+                std::fs::rename(&src, &dst)?;
+            }
+        } else {
+            let src = skills_dir.join(&name);
+            let dst = disabled_dir.join(&name);
+            std::fs::create_dir_all(&disabled_dir)?;
+            if src.exists() {
+                std::fs::rename(&src, &dst)?;
+            }
         }
-    } else {
-        // 从 skills/ 移到 .disabled/
-        let src = skills_dir.join(&name);
-        let dst = disabled_dir.join(&name);
-        std::fs::create_dir_all(&disabled_dir)?;
-        if src.exists() {
-            std::fs::rename(&src, &dst)?;
-        }
-    }
-    Ok(())
+        tracing::info!(name = %name, enabled, "skill toggled");
+        Ok(())
+    })
 }
 
 #[tauri::command]
 pub async fn import_skill(project_path: String, source_path: String) -> AppResult<()> {
-    let source = PathBuf::from(&source_path);
-    if !source.exists() {
-        return Err(AppError::Custom("源路径不存在".to_string()));
-    }
+    log_command!("import_skill", {
+        let source = PathBuf::from(&source_path);
+        if !source.exists() {
+            return Err(AppError::Custom("源路径不存在".to_string()));
+        }
 
-    let name = source
-        .file_name()
-        .ok_or_else(|| AppError::Custom("无效的源路径".to_string()))?
-        .to_string_lossy()
-        .to_string();
+        let name = source
+            .file_name()
+            .ok_or_else(|| AppError::Custom("无效的源路径".to_string()))?
+            .to_string_lossy()
+            .to_string();
 
-    let dst = PathBuf::from(&project_path)
-        .join(".claude")
-        .join("skills")
-        .join(&name);
+        let dst = PathBuf::from(&project_path)
+            .join(".claude")
+            .join("skills")
+            .join(&name);
 
-    copy_dir_recursive(&source, &dst)?;
-    Ok(())
+        copy_dir_recursive(&source, &dst)?;
+        tracing::info!(name = %name, source = %source_path, "skill imported");
+        Ok(())
+    })
 }
 
 #[tauri::command]
@@ -94,36 +97,37 @@ pub async fn install_skill_from_github(
     _project_path: String,
     repo_url: String,
 ) -> AppResult<GithubInstallResult> {
-    // Clone 到临时目录
-    let temp_dir = std::env::temp_dir().join(format!(
-        "jacc-skill-{}",
-        chrono::Utc::now().timestamp()
-    ));
-    std::fs::create_dir_all(&temp_dir)?;
+    log_command!("install_skill_from_github", {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "jacc-skill-{}",
+            chrono::Utc::now().timestamp()
+        ));
+        std::fs::create_dir_all(&temp_dir)?;
 
-    let output = std::process::Command::new("git")
-        .args([
-            "clone",
-            "--depth",
-            "1",
-            &repo_url,
-            &temp_dir.to_string_lossy(),
-        ])
-        .output()
-        .map_err(|e| AppError::Custom(format!("git clone 失败: {}", e)))?;
+        let output = std::process::Command::new("git")
+            .args([
+                "clone",
+                "--depth",
+                "1",
+                &repo_url,
+                &temp_dir.to_string_lossy(),
+            ])
+            .output()
+            .map_err(|e| AppError::Custom(format!("git clone 失败: {}", e)))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(AppError::Custom(format!("git clone 失败: {}", stderr)));
-    }
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(AppError::Custom(format!("git clone 失败: {}", stderr)));
+        }
 
-    // 扫描 skill 目录（查找包含 SKILL.md 的目录）
-    let mut available_skills = vec![];
-    scan_for_skills(&temp_dir, &mut available_skills)?;
+        let mut available_skills = vec![];
+        scan_for_skills(&temp_dir, &mut available_skills)?;
 
-    Ok(GithubInstallResult {
-        temp_dir: temp_dir.to_string_lossy().to_string(),
-        skills: available_skills,
+        tracing::info!(url = %repo_url, count = available_skills.len(), "skills fetched from github");
+        Ok(GithubInstallResult {
+            temp_dir: temp_dir.to_string_lossy().to_string(),
+            skills: available_skills,
+        })
     })
 }
 
@@ -133,19 +137,21 @@ pub async fn confirm_install_skill(
     temp_dir: String,
     skill_names: Vec<String>,
 ) -> AppResult<()> {
-    let temp_path = PathBuf::from(&temp_dir);
-    let dst_base = PathBuf::from(&project_path).join(".claude").join("skills");
-    std::fs::create_dir_all(&dst_base)?;
+    log_command!("confirm_install_skill", {
+        let temp_path = PathBuf::from(&temp_dir);
+        let dst_base = PathBuf::from(&project_path).join(".claude").join("skills");
+        std::fs::create_dir_all(&dst_base)?;
 
-    for name in &skill_names {
-        let src = find_skill_dir(&temp_path, name)?;
-        let dst = dst_base.join(name);
-        copy_dir_recursive(&src, &dst)?;
-    }
+        for name in &skill_names {
+            let src = find_skill_dir(&temp_path, name)?;
+            let dst = dst_base.join(name);
+            copy_dir_recursive(&src, &dst)?;
+        }
 
-    // 清理临时目录
-    std::fs::remove_dir_all(&temp_path).ok();
-    Ok(())
+        std::fs::remove_dir_all(&temp_path).ok();
+        tracing::info!(names = ?skill_names, "skills installed");
+        Ok(())
+    })
 }
 
 fn collect_skills(

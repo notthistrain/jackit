@@ -141,27 +141,45 @@ pub(crate) async fn test_model_inner(pool: &SqlitePool, id: i64) -> AppResult<St
 
 #[tauri::command]
 pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> AppResult<Model> {
-    add_model_inner(pool.inner(), input).await
+    log_command!("add_model", {
+        let model = add_model_inner(pool.inner(), input).await?;
+        tracing::info!(id = model.id, api_key_id = model.api_key_id, name = %model.model_name, "model created");
+        Ok(model)
+    })
 }
 
 #[tauri::command]
 pub async fn list_models(pool: State<'_, SqlitePool>, api_key_id: i64) -> AppResult<Vec<Model>> {
-    list_models_inner(pool.inner(), api_key_id).await
+    log_command!("list_models", {
+        list_models_inner(pool.inner(), api_key_id).await
+    })
 }
 
 #[tauri::command]
 pub async fn update_model(pool: State<'_, SqlitePool>, id: i64, input: UpdateModelInput) -> AppResult<()> {
-    update_model_inner(pool.inner(), id, input).await
+    log_command!("update_model", {
+        update_model_inner(pool.inner(), id, input).await?;
+        tracing::info!(id, "model updated");
+        Ok(())
+    })
 }
 
 #[tauri::command]
 pub async fn delete_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
-    delete_model_inner(pool.inner(), id).await
+    log_command!("delete_model", {
+        delete_model_inner(pool.inner(), id).await?;
+        tracing::info!(id, "model deleted");
+        Ok(())
+    })
 }
 
 #[tauri::command]
 pub async fn test_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<String> {
-    test_model_inner(pool.inner(), id).await
+    log_command!("test_model", {
+        let result = test_model_inner(pool.inner(), id).await?;
+        tracing::info!(id, result = %result, "model test completed");
+        Ok(result)
+    })
 }
 
 #[cfg(test)]
