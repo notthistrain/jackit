@@ -5,11 +5,13 @@ pub mod handler;
 pub mod middleware;
 pub mod model;
 
+#[cfg(feature = "test-utils")]
 use axum::Router;
+#[cfg(feature = "test-utils")]
 use sqlx::SqlitePool;
 
-/// Build a test app for integration tests.
-/// Not behind #[cfg(test)] because integration tests in tests/ cannot access #[cfg(test)] items.
+/// 构建测试用 app（集成测试使用）
+#[cfg(feature = "test-utils")]
 pub fn test_app(pool: SqlitePool) -> Router {
     use axum::routing::{get, post};
     use axum::middleware as axum_mw;

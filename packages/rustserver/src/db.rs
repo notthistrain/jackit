@@ -55,7 +55,8 @@ async fn migrate(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-/// 创建内存数据库（测试用）- 必须是 pub，集成测试需要访问
+/// 创建内存数据库（测试用）
+#[cfg(feature = "test-utils")]
 pub async fn setup_test_db() -> SqlitePool {
     let pool = SqlitePoolOptions::new()
         .max_connections(1)

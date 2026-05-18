@@ -7,6 +7,10 @@ edition = "2021"
 name = "rustserver"
 path = "src/lib.rs"
 
+[features]
+default = []
+test-utils = []
+
 [dependencies]
 axum = "0.8"
 tokio = { version = "1", features = ["full"] }
@@ -22,3 +26,7 @@ chrono = { version = "0.4", features = ["serde"] }
 [dev-dependencies]
 tempfile = "3"
 tower = "0.5"
+
+[[test]]
+name = "api_test"
+required-features = ["test-utils"]
