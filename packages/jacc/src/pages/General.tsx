@@ -16,7 +16,7 @@ const CONTEXT_OPTIONS = ['', '1m']
 
 export function General() {
   const { t, locale, setLocale } = useT()
-  const { config, loading, refresh: refreshConfig, writeConfig } = useConfig()
+  const { config, refresh: refreshConfig, writeConfig } = useConfig()
   const { bindings, bind, setCurrentModel } = useSlotBindings()
   const { set: setPreference } = usePreferences()
 
@@ -44,7 +44,7 @@ export function General() {
     }
   }, [config])
 
-  if (loading || !config) {
+  if (!config) {
     return <div className="p-6 text-xs text-muted">{t('common.loading')}</div>
   }
 
