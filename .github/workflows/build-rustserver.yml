@@ -51,14 +51,16 @@ jobs:
           cp packages/rustserver/deploy/install.sh /tmp/rustserver-release/
           cp packages/rustserver/config.example.toml /tmp/rustserver-release/config.toml
           cd /tmp/rustserver-release
-          tar czf rustserver-linux-x86_64.tar.gz rustserver rustserver.service install.sh config.toml
+          tar czf rustserver-linux-x86_64.tar.gz rustserver rustserver.service config.toml
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Rustserver ${{ github.ref_name }}
-          files: /tmp/rustserver-release/rustserver-linux-x86_64.tar.gz
+          files: |
+            /tmp/rustserver-release/rustserver-linux-x86_64.tar.gz
+            /tmp/rustserver-release/install.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
