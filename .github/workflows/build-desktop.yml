@@ -96,3 +96,38 @@ jobs:
           files: |
             packages/${{ matrix.app }}/src-tauri/target/release/bundle/nsis/*-setup.exe
             packages/${{ matrix.app }}/src-tauri/target/release/bundle/msi/*.msi
+
+      - name: Publish software info to rustserver
+        if: steps.check.outputs.should_build == 'true'
+        shell: bash
+        env:
+          RUSTSERVER_URL: ${{ secrets.RUSTSERVER_URL }}
+          RUSTSERVER_TOKEN: ${{ secrets.RUSTSERVER_TOKEN }}
+          TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+        run: |
+          if [ -z "$RUSTSERVER_URL" ] || [ -z "$RUSTSERVER_TOKEN" ]; then
+            echo "RUSTSERVER_URL or RUSTSERVER_TOKEN not set, skipping publish"
+            exit 0
+          fi
+
+          VERSION="${TAG#v}"
+          APP="${{ matrix.app }}"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/"
+
+          # 查找实际文件名
+          EXE_FILE=$(ls packages/${APP}/src-tauri/target/release/bundle/nsis/*-setup.exe 2>/dev/null | head -1)
+          if [ -n "$EXE_FILE" ]; then
+            FILENAME=$(basename "$EXE_FILE")
+            DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${FILENAME}"
+          fi
+
+          curl -sf -X POST "${RUSTSERVER_URL}/api/publish/github" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${RUSTSERVER_TOKEN}" \
+            -d "{
+              \"name\": \"${APP}\",
+              \"version\": \"${VERSION}\",
+              \"downloadUrl\": \"${DOWNLOAD_URL}\",
+              \"display\": \"${APP}\",
+              \"identifier\": \"com.jackit.${APP}\"
+            }" && echo "Published ${APP} ${VERSION} to rustserver" || echo "Publish failed (non-blocking)"
