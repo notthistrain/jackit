@@ -1,0 +1,76 @@
+name: Build Rustserver
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/rustserver/**'
+      - '.github/workflows/build-rustserver.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rustserver -> target
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Add musl target
+        run: rustup target add x86_64-unknown-linux-musl
+
+      - name: Run tests
+        working-directory: packages/rustserver
+        run: cargo test
+
+      - name: Build release (musl static)
+        working-directory: packages/rustserver
+        run: cargo build --release --target x86_64-unknown-linux-musl
+
+      - name: Strip binary
+        run: strip packages/rustserver/target/x86_64-unknown-linux-musl/release/rustserver
+
+      - name: Prepare release package
+        run: |
+          mkdir -p /tmp/rustserver-release
+          cp packages/rustserver/target/x86_64-unknown-linux-musl/release/rustserver /tmp/rustserver-release/
+          cp packages/rustserver/deploy/rustserver.service /tmp/rustserver-release/
+          cp packages/rustserver/deploy/install.sh /tmp/rustserver-release/
+          cp packages/rustserver/config.example.toml /tmp/rustserver-release/config.toml
+          cd /tmp/rustserver-release
+          tar czf rustserver-linux-x86_64.tar.gz rustserver rustserver.service install.sh config.toml
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION=$(grep '^version' packages/rustserver/Cargo.toml | head -1 | sed 's/.*=.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=rustserver-v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Rustserver ${{ steps.version.outputs.tag }}
+          files: /tmp/rustserver-release/rustserver-linux-x86_64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show binary size
+        run: ls -lh /tmp/rustserver-release/rustserver

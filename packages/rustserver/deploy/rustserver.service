@@ -1,0 +1,28 @@
+[Unit]
+Description=RustServer - Software Package Info Service
+After=network.target
+
+[Service]
+Type=simple
+User=rustserver
+Group=rustserver
+WorkingDirectory=/opt/rustserver
+ExecStart=/opt/rustserver/rustserver --config /etc/rustserver/config.toml
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+# 安全加固
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/rustserver/data
+PrivateTmp=true
+
+# 日志输出到 journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rustserver
+
+[Install]
+WantedBy=multi-user.target
