@@ -29,17 +29,20 @@ export class WaveformRenderer {
 
   async init(canvas: HTMLCanvasElement): Promise<boolean> {
     // 检查 WebGPU 支持
-    if (!navigator.gpu) return false
+    if (!navigator.gpu)
+      return false
 
     const adapter = await navigator.gpu.requestAdapter()
-    if (!adapter) return false
+    if (!adapter)
+      return false
 
     this.device = await adapter.requestDevice()
     this.canvas = canvas
 
     // 配置 canvas context
-    this.context = canvas.getContext('webgpu') as GPUCanvasContext | null
-    if (!this.context) return false
+    this.context = canvas.getContext('webgpu')
+    if (!this.context)
+      return false
 
     this.format = navigator.gpu.getPreferredCanvasFormat()
     this.context.configure({
@@ -77,9 +80,9 @@ export class WaveformRenderer {
         buffers: [{
           arrayStride: 12, // 3 x f32
           attributes: [
-            { shaderLocation: 0, offset: 0, format: 'float32' as GPUVertexFormat },   // point_index
-            { shaderLocation: 1, offset: 4, format: 'float32' as GPUVertexFormat },   // value
-            { shaderLocation: 2, offset: 8, format: 'float32' as GPUVertexFormat },   // channel_id
+            { shaderLocation: 0, offset: 0, format: 'float32' as GPUVertexFormat }, // point_index
+            { shaderLocation: 1, offset: 4, format: 'float32' as GPUVertexFormat }, // value
+            { shaderLocation: 2, offset: 8, format: 'float32' as GPUVertexFormat }, // channel_id
           ],
         }],
       },
@@ -155,7 +158,8 @@ export class WaveformRenderer {
   }
 
   getVisibleRange(): { startIndex: number, endIndex: number } {
-    if (!this.canvas || this.channels.length === 0) return { startIndex: 0, endIndex: 0 }
+    if (!this.canvas || this.channels.length === 0)
+      return { startIndex: 0, endIndex: 0 }
     const maxLen = this.channels.reduce((max, ch) => Math.max(max, ch.values.length), 1)
     const effectiveZoom = this.getEffectiveZoom()
     const maxPoints = this.canvas.width / effectiveZoom
@@ -167,23 +171,27 @@ export class WaveformRenderer {
   }
 
   getDataAtScreenX(screenX: number, canvasWidth: number): { index: number, values: { channel: string, value: number, channelIndex: number }[] } | null {
-    if (this.channels.length === 0) return null
+    if (this.channels.length === 0)
+      return null
     const effectiveZoom = this.getEffectiveZoom()
     const maxPoints = canvasWidth / effectiveZoom
     const offsetX = this.autoFit ? 0 : this.offsetX
     const xClip = (screenX / canvasWidth) * 2 - 1
     const xNorm = (xClip + 1) / 2
     const pointIndex = Math.round((xNorm - offsetX) * maxPoints)
-    if (pointIndex < 0) return null
+    if (pointIndex < 0)
+      return null
     const values = this.channels
       .map((ch, idx) => ({ channel: ch.name, value: ch.values[pointIndex], channelIndex: idx }))
       .filter((v): v is { channel: string, value: number, channelIndex: number } => v.value !== undefined)
-    if (values.length === 0) return null
+    if (values.length === 0)
+      return null
     return { index: pointIndex, values }
   }
 
   render(): void {
-    if (!this.device || !this.context || !this.pipeline || !this.uniformBuffer || !this.bindGroup || !this.canvas) return
+    if (!this.device || !this.context || !this.pipeline || !this.uniformBuffer || !this.bindGroup || !this.canvas)
+      return
 
     const width = this.canvas.width
     const height = this.canvas.height
@@ -203,12 +211,16 @@ export class WaveformRenderer {
     const effectiveZoom = this.getEffectiveZoom()
     // 更新 uniforms
     const uniformData = new Float32Array([
-      width, height,             // resolution
-      10.0,                      // time_window
-      this.channels.length,      // num_channels
+      width,
+      height, // resolution
+      10.0, // time_window
+      this.channels.length, // num_channels
       this.autoFit ? 0 : this.offsetX, // offset_x
-      effectiveZoom,             // zoom
-      0, 0, 0, 0,               // padding
+      effectiveZoom, // zoom
+      0,
+      0,
+      0,
+      0, // padding
     ])
     this.device.queue.writeBuffer(this.uniformBuffer, 0, uniformData)
 

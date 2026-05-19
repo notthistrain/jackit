@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { WaveformCanvas } from '@/components/waveform/WaveformCanvas'
 import { useDataFeed } from '@/hooks/useDataFeed'
 import { getPortFromUrl } from '@/lib/window'
 import { useWaveformStore } from '@/stores/waveform-store'
-import { WaveformCanvas } from '@/components/waveform/WaveformCanvas'
 
 export default function WaveformApp() {
   const { portId, setPortId, channels, paused, togglePause, clear, addDataBatch } = useWaveformStore()

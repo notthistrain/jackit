@@ -1751,6 +1751,7 @@ dependencies = [
  "chrono",
  "dashmap",
  "dirs",
+ "log",
  "serde",
  "serde_json",
  "serialport",
