@@ -1,40 +1,11 @@
 use crate::core::protocol::error::ParseError;
+use crate::core::protocol::format::crc16_modbus;
 use crate::core::protocol::frame::ParsedData;
 use crate::core::protocol::traits::ProtocolParser;
 use crate::core::protocol::types::{ModbusData, ProtocolType};
 
 /// Modbus RTU 解析器
 pub struct ModbusParser;
-
-/// Modbus CRC-16 查表法
-const CRC_TABLE: [u16; 256] = {
-    let mut table = [0u16; 256];
-    let mut i = 0;
-    while i < 256 {
-        let mut crc = i as u16;
-        let mut j = 0;
-        while j < 8 {
-            if crc & 1 != 0 {
-                crc = (crc >> 1) ^ 0xA001;
-            } else {
-                crc >>= 1;
-            }
-            j += 1;
-        }
-        table[i] = crc;
-        i += 1;
-    }
-    table
-};
-
-fn crc16(data: &[u8]) -> u16 {
-    let mut crc = 0xFFFFu16;
-    for &byte in data {
-        let index = ((crc ^ byte as u16) & 0xFF) as usize;
-        crc = (crc >> 8) ^ CRC_TABLE[index];
-    }
-    crc
-}
 
 impl ModbusParser {
     /// 验证帧完整性：最小长度 + CRC
@@ -48,7 +19,7 @@ impl ModbusParser {
         // CRC 校验：计算除最后 2 字节外的 CRC
         let payload = &data[..data.len() - 2];
         let crc_received = u16::from_le_bytes([data[data.len() - 2], data[data.len() - 1]]);
-        let crc_computed = crc16(payload);
+        let crc_computed = crc16_modbus(payload);
         if crc_received != crc_computed {
             return Err(ParseError::CrcMismatch);
         }
@@ -224,7 +195,7 @@ mod tests {
     fn build_frame(slave: u8, func: u8, data: &[u8]) -> Vec<u8> {
         let mut frame = vec![slave, func];
         frame.extend_from_slice(data);
-        let crc = crc16(&frame);
+        let crc = crc16_modbus(&frame);
         frame.extend_from_slice(&crc.to_le_bytes());
         frame
     }
