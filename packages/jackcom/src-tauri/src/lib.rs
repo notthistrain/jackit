@@ -7,6 +7,7 @@ mod serial;
 mod state;
 mod storage;
 mod core;
+mod infra;
 
 use std::sync::Arc;
 
