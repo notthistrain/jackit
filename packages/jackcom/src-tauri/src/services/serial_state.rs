@@ -7,6 +7,7 @@ use crate::services::emitter::EventEmitter;
 
 /// 活跃端口条目
 pub struct PortEntry {
+    #[allow(dead_code)]
     pub port_name: PortName,
     pub task: crate::services::port_task::PortTask,
     pub session_id: SessionId,
@@ -32,6 +33,7 @@ impl SerialState {
         self.ports.contains_key(port_name)
     }
 
+    #[allow(dead_code)]
     pub fn open_port_names(&self) -> Vec<PortName> {
         self.ports.iter().map(|r| r.key().clone()).collect()
     }

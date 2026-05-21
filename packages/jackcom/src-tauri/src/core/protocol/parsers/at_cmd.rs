@@ -8,7 +8,7 @@ pub struct AtParser;
 
 impl AtParser {
     fn parse_at_line(&self, line: &str) -> Result<ParsedData, ParseError> {
-        let trimmed = line.trim_end_matches(|c: char| c == '\r' || c == '\n');
+        let trimmed = line.trim_end_matches(['\r', '\n']);
         let trimmed = trimmed.trim();
 
         if trimmed.is_empty() {

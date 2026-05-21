@@ -1,5 +1,6 @@
 /// 协议解析错误
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ParseError {
     CrcMismatch,
     InsufficientLength { expected: usize, actual: usize },
@@ -30,6 +31,7 @@ impl std::error::Error for ParseError {}
 
 /// 协议检测错误
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum DetectError {
     NoMatch,
     Ambiguous(Vec<String>),

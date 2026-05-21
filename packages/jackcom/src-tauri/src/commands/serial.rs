@@ -24,7 +24,6 @@ pub fn enumerate_ports() -> Result<Vec<PortInfo>, String> {
             }
             serialport::SerialPortType::PciPort => (None, None, None, "PCI".to_string()),
             serialport::SerialPortType::Unknown => (None, None, None, "Unknown".to_string()),
-            _ => (None, None, None, "Other".to_string()),
         };
         PortInfo {
             name: p.port_name,

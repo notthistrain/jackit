@@ -11,6 +11,7 @@ pub struct PortChange {
 /// 端口热插拔检测器
 pub struct PortWatcher {
     known_ports: Vec<String>,
+    #[allow(dead_code)]
     pub interval: Duration,
 }
 

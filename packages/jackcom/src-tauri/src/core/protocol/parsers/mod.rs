@@ -31,6 +31,7 @@ impl AnyParser {
         }
     }
 
+    #[allow(dead_code)]
     pub fn protocol(&self) -> ProtocolType {
         match self {
             Self::Raw(p) => p.protocol(),

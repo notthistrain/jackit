@@ -15,6 +15,7 @@ impl StorageState {
         &self.pool
     }
 
+    #[allow(dead_code)]
     pub fn pool_arc(&self) -> Arc<SqlitePool> {
         self.pool.clone()
     }

@@ -28,6 +28,7 @@ pub enum PortEvent {
         port_id: PortName,
         reason: CloseReason,
     },
+    #[allow(dead_code)]
     Error {
         port_id: PortName,
         error: String,

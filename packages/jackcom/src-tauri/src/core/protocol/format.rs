@@ -10,7 +10,7 @@ pub fn bytes_to_hex(data: &[u8]) -> String {
 pub fn bytes_to_ascii(data: &[u8]) -> String {
     data.iter()
         .map(|&b| {
-            if b >= 0x20 && b < 0x7F {
+            if (0x20..0x7F).contains(&b) {
                 b as char
             } else {
                 '.'

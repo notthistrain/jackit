@@ -82,7 +82,7 @@ async fn flush(
             .iter()
             .filter_map(|ev| {
                 if let PortEvent::Data { frames, direction, .. } = ev.as_ref() {
-                    Some(frames.iter().map(|f| to_display_frame(f, direction.clone(), frame_id)))
+                    Some(frames.iter().map(|f| to_display_frame(f, *direction, frame_id)))
                 } else {
                     None
                 }

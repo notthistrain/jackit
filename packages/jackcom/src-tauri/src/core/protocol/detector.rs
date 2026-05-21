@@ -176,7 +176,7 @@ impl ModbusDetector {
             0x0F => {
                 if data.len() >= 6 {
                     let count = u16::from_be_bytes([data[4], data[5]]) as usize;
-                    let byte_count = (count + 7) / 8;
+                    let byte_count = count.div_ceil(8);
                     lengths.push(7 + byte_count + 2);
                 }
                 lengths.push(8); // 响应
@@ -239,6 +239,7 @@ impl AnyDetector {
         }
     }
 
+    #[allow(dead_code)]
     pub fn protocol_name(&self) -> ProtocolType {
         match self {
             Self::Json(d) => d.protocol_name(),
@@ -631,6 +632,7 @@ impl AutoDetector {
         }
     }
 
+    #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.lock = None;
         self.reset_detectors();

@@ -40,6 +40,7 @@ impl EventEmitter {
         self.emit(PortEvent::Closed { port_id: port, reason });
     }
 
+    #[allow(dead_code)]
     pub fn emit_error(&self, port: PortName, error: String) {
         self.emit(PortEvent::Error { port_id: port, error });
     }

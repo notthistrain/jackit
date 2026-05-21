@@ -78,6 +78,7 @@ pub struct FrameQuery {
 #[derive(Debug, Clone)]
 pub struct FrameRecord {
     pub id: i64,
+    #[allow(dead_code)]
     pub session_id: i64,
     pub timestamp: String,
     pub direction: String,

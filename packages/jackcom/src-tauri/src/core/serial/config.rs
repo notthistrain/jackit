@@ -12,6 +12,7 @@ pub struct SerialConfig {
 }
 
 /// 常用波特率预设
+#[allow(dead_code)]
 pub const BAUD_RATES: &[u32] = &[
     1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600,
 ];
