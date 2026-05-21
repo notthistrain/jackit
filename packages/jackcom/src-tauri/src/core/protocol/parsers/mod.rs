@@ -1,4 +1,5 @@
 pub mod raw;
+pub mod modbus;
 
 use crate::core::protocol::error::ParseError;
 use crate::core::protocol::frame::ParsedData;
