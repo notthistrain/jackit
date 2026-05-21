@@ -8,6 +8,7 @@ mod state;
 mod storage;
 mod core;
 mod infra;
+mod services;
 
 use std::sync::Arc;
 

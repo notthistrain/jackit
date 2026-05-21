@@ -1,0 +1,10 @@
+pub mod event_bus;
+pub mod emitter;
+pub mod serial_state;
+pub mod serial_service;
+pub mod port_task;
+pub mod port_processor;
+pub mod tauri_bridge;
+pub mod db_writer;
+pub mod storage_service;
+pub mod storage_state;
