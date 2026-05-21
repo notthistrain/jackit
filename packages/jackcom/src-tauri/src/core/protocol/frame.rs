@@ -6,6 +6,18 @@ use serde::{Deserialize, Serialize};
 use super::types::{ATData, ModbusData, ProtocolType};
 use super::format::bytes_to_hex;
 
+impl Serialize for ParsedFrame {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("ParsedFrame", 4)?;
+        state.serialize_field("raw_hex", &self.raw_hex())?;
+        state.serialize_field("protocol", &self.protocol)?;
+        state.serialize_field("parsed", &self.parsed)?;
+        state.serialize_field("formatted", self.formatted())?;
+        state.end()
+    }
+}
+
 /// 解析后的数据（按协议分发）
 ///
 /// **Serde 契约**（前端依赖此格式，不可更改）：
