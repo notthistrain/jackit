@@ -121,7 +121,7 @@ src/
 // services/serial_state.rs
 pub struct SerialState {
     ports: DashMap<PortName, PortEntry>,      // 活跃端口
-    sessions: DashMap<PortName, SessionId>,   // 端口→session 映射
+    sessions: Arc<DashMap<PortName, SessionId>>,  // 端口→session 映射（与 db_writer 共享）
     emitter: EventEmitter,                     // 事件发布
 }
 
@@ -133,7 +133,42 @@ pub struct StorageState {
 
 **EventBus 不注册为 Tauri state**，通过 `Arc<EventBus>` 在 app.rs 中 clone 分发给各组件。
 
-### 3.2 EventEmitter：统一事件发布
+### 3.2 Serde 序列化格式契约
+
+前端解析依赖以下 serde 属性，**必须精确保持**：
+
+```rust
+// core/event/port_event.rs
+#[derive(Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum PortEvent {
+    Data { port_id, frames, direction },  // → {"type":"data","port_id":"COM3",...}
+    Opened { port_id, config },           // → {"type":"opened","port_id":"COM3",...}
+    Closed { port_id, reason },           // → {"type":"closed",...}
+    Error { port_id, error },             // → {"type":"error",...}
+    Change { arrived, removed },          // → {"type":"change",...}
+}
+
+// core/protocol/types.rs
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ProtocolType { Raw, Modbus, AT, Json }
+// → "raw", "modbus", "at", "json"
+
+// core/protocol/frame.rs
+#[derive(Serialize)]
+#[serde(tag = "type", content = "data")]
+pub enum ParsedData {
+    Raw { hex, ascii },              // → {"type":"raw","data":{"hex":"...","ascii":"..."}}
+    Modbus(ModbusData),              // → {"type":"modbus","data":{...}}
+    AT(ATData),                      // → {"type":"at","data":{...}}
+    Json(serde_json::Value),         // → {"type":"json","data":{...}}
+}
+```
+
+**多窗口路由**：Tauri 2 的 `app_handle.emit()` 默认发送到所有窗口（main、waveform、decoder、history）。子窗口通过各自的 `listen()` 接收事件，无需特殊处理。
+
+### 3.3 EventEmitter：统一事件发布
 
 ```rust
 // services/emitter.rs
@@ -160,7 +195,7 @@ impl EventEmitter {
 - `PortWatcher` → `emit_change()`
 - `PortTask` → `emit_error()`
 
-### 3.3 EventBus：broadcast 替代手写 broker
+### 3.4 EventBus：broadcast 替代手写 broker
 
 ```rust
 // services/event_bus.rs
@@ -177,7 +212,7 @@ impl EventBus {
 
 替代原来 256 行的 broker.rs。没有手动 dispatch、没有背压逻辑、没有 HashMap 遍历。
 
-### 3.4 零拷贝数据管道
+### 3.5 零拷贝数据管道
 
 ```
 OS 线程 read(buf) → copy_from_slice → BytesMut → freeze() → Bytes
@@ -191,7 +226,7 @@ OS 线程 read(buf) → copy_from_slice → BytesMut → freeze() → Bytes
 - `ParsedFrame.raw: Bytes` 是 Arc 引用，clone 零成本
 - `ParsedFrame.formatted: OnceCell<String>` 懒计算，只在序列化时触发一次
 
-### 3.5 通道策略（混合）
+### 3.6 通道策略（混合）
 
 | 通道 | 类型 | 原因 |
 |------|------|------|
@@ -200,7 +235,7 @@ OS 线程 read(buf) → copy_from_slice → BytesMut → freeze() → Bytes
 | EventBus | `broadcast(256)<Arc<PortEvent>>` | 一对多分发，自带 lagged 处理 |
 | db_writer | 从 EventBus subscribe | 不需要额外通道 |
 
-### 3.6 写数据管道
+### 3.7 写数据管道
 
 ```
 前端 send_data
@@ -213,7 +248,7 @@ OS 线程 read(buf) → copy_from_slice → BytesMut → freeze() → Bytes
 
 写完成后由 `serial_service` 通过 EventEmitter 发布 TX `PortEvent::Data { direction: Tx }`。
 
-### 3.7 错误处理
+### 3.8 错误处理
 
 ```rust
 // error.rs
@@ -224,7 +259,9 @@ pub type Result<T> = anyhow::Result<T>;
 - Tauri command 层做 `map_err(|e| e.to_string())` 转换
 - 内部用 `anyhow::Context` 添加上下文
 
-### 3.8 控制流扁平化
+**当前代码的 AppError**：有 5 个变体（Serial/Protocol/Database/PortNotFound/PortInUse）并带自定义 `Serialize` impl。重构后统一为 anyhow string，前端不需要结构化错误类型（所有 `invoke` catch 的 error 都是 string）。
+
+### 3.9 控制流扁平化
 
 三个技法消除嵌套：
 
@@ -268,17 +305,20 @@ db_writer (tokio task)
 
 ### 4.2 tauri_bridge.rs 重写
 
+**关键：双路径序列化。** `port:data` 需要先转 `DisplayFrame` 再 emit，其他事件直接序列化 `PortEvent`。
+
 ```rust
 pub fn spawn(rx, app_handle, batch_interval) -> JoinHandle<()> {
     tokio::spawn(async move {
         let mut pending: HashMap<PortName, Vec<Arc<PortEvent>>> = HashMap::new();
         let mut interval = tokio::time::interval(batch_interval);
+        let mut frame_id: AtomicI64 = AtomicI64::new(0);  // 替代 wrapping_add
         loop {
             tokio::select! {
                 event = rx.recv() => {
                     if !on_event(event, &mut pending, &app_handle) { break }
                 }
-                _ = interval.tick() => flush(&mut pending, &app_handle).await,
+                _ = interval.tick() => flush(&mut pending, &app_handle, &frame_id).await,
             }
         }
     })
@@ -291,28 +331,49 @@ fn on_event(result, pending, app) -> bool {
         Err(_) => return false,
     };
     let Some(PortEvent::Data { port_id, .. }) = event.as_ref() else {
-        emit(app, event.as_ref());
+        // 非数据事件：直接序列化 PortEvent（tagged union 格式）
+        let _ = app.emit(event_name(event.as_ref()), serde_json::to_value(event.as_ref()));
         return true;
     };
     pending.entry(port_id.clone()).or_default().push(event);
     true
 }
 
-async fn flush(pending, app) {
+async fn flush(pending, app, frame_id) {
     if pending.is_empty() { return }
     for (_, events) in pending.drain() {
-        let merged = merge_data_events(events);
-        emit(app, &merged);
+        // port:data 特殊路径：ParsedFrame → DisplayFrame 再 emit
+        let display_frames: Vec<DisplayFrame> = merge_data_events(events)
+            .into_iter()
+            .flat_map(|ev| to_display_frames(ev, frame_id))
+            .collect();
+        let _ = app.emit("port:data", serde_json::json!({
+            "port_id": port_id,
+            "frames": display_frames,
+            "direction": "rx",
+        }));
+    }
+}
+
+// 事件名映射：PortEvent::Opened → "port:opened" 等
+fn event_name(event: &PortEvent) -> &str {
+    match event {
+        PortEvent::Opened(..) => "port:opened",
+        PortEvent::Closed(..) => "port:closed",
+        PortEvent::Error(..)  => "port:error",
+        PortEvent::Change(..) => "port:change",
+        PortEvent::Data(..)   => "port:data",
     }
 }
 ```
 
-嵌套深度：最大 1 层。每个函数 < 20 行。
+嵌套深度：最大 1 层。每个函数 < 25 行。
+`frame_id` 使用 `AtomicI64` 替代当前 `wrapping_add`，线程安全。
 
 ### 4.3 db_writer.rs
 
 ```rust
-pub fn spawn(rx, pool, batch_size, flush_interval) -> JoinHandle<()> {
+pub fn spawn(rx, pool, batch_size, flush_interval, session_lookup) -> JoinHandle<()> {
     tokio::spawn(async move {
         let mut buffer: Vec<FrameRow> = Vec::with_capacity(batch_size);
         let mut interval = tokio::time::interval(flush_interval);
@@ -320,8 +381,9 @@ pub fn spawn(rx, pool, batch_size, flush_interval) -> JoinHandle<()> {
             tokio::select! {
                 event = rx.recv() => {
                     if let Ok(arc) = event {
-                        if let PortEvent::Data { frames, .. } = arc.as_ref() {
-                            buffer.extend(frames.iter().map(FrameRow::from));
+                        if let PortEvent::Data { port_id, frames, direction, .. } = arc.as_ref() {
+                            let session_id = session_lookup.get(port_id);
+                            buffer.extend(frames.iter().map(|f| FrameRow::new(f, session_id, direction)));
                             if buffer.len() >= batch_size {
                                 flush_to_db(&pool, &buffer).await;
                                 buffer.clear();
@@ -341,7 +403,9 @@ pub fn spawn(rx, pool, batch_size, flush_interval) -> JoinHandle<()> {
 }
 ```
 
-错误恢复：事务失败 → `log::error` + 丢弃当前批次。buffer 上限 10000 条，超过后丢弃新数据并 warn。
+**session_id 查找**：db_writer 需要通过 `SerialState.sessions` 查找当前端口的 session_id。由于 db_writer 是独立 task，通过 `Arc<DashMap<PortName, SessionId>>` 共享引用获取（DashMap 并发安全，无需额外锁）。
+
+错误恢复：事务失败 → `tracing::error` + 丢弃当前批次。buffer 上限 10000 条，超过后丢弃新数据并 warn。
 
 ---
 
@@ -474,30 +538,40 @@ pub trait SessionStore: Send + Sync {
 
 ```rust
 // app.rs
-fn build_app(app_handle: AppHandle) -> Result<(SerialState, StorageState)> {
-    // 1. 日志初始化
-    let _guard = init_logging();
+fn build_app(app_handle: AppHandle) -> Result<(LogGuard, SerialState, StorageState)> {
+    // 1. 日志初始化（guard 必须注册为 Tauri managed state 保持存活）
+    let log_guard = init_logging("jackcom");
 
     // 2. DB 初始化（失败直接 ?，应用启动失败）
     let pool = init_db().await?;
     let storage_state = StorageState::new(pool);
 
-    // 3. EventBus 创建
+    // 3. 共享 session 映射（db_writer 需要查找 session_id）
+    let sessions: Arc<DashMap<PortName, SessionId>> = Arc::new(DashMap::new());
+
+    // 4. EventBus 创建
     let event_bus = Arc::new(EventBus::new(256));
 
-    // 4. 启动独立消费者
+    // 5. 启动独立消费者
     spawn_tauri_bridge(event_bus.subscribe(), app_handle, Duration::from_millis(10));
-    spawn_db_writer(event_bus.subscribe(), storage_state.pool(), 100, Duration::from_millis(500));
+    spawn_db_writer(event_bus.subscribe(), storage_state.pool(), sessions.clone(), 100, Duration::from_millis(500));
     spawn_watcher(event_bus.emitter());
 
-    // 5. 创建 SerialState
-    let serial_state = SerialState::new(event_bus.emitter());
+    // 6. 创建 SerialState（持有 sessions Arc）
+    let serial_state = SerialState::new(event_bus.emitter(), sessions);
 
-    Ok((serial_state, storage_state))
+    Ok((log_guard, serial_state, storage_state))
 }
+
+// lib.rs 注册时：
+// app.manage(log_guard);
+// app.manage(serial_state);
+// app.manage(storage_state);
 ```
 
 初始化顺序 = 依赖顺序。不用 type-state ZST，简单直接。
+**日志统一**：全部使用 `tracing` 宏（`tracing::info!` / `tracing::warn!` 等），删除 `log` crate 依赖。
+**session 共享**：`DashMap<PortName, SessionId>` 通过 `Arc` 共享给 db_writer，由 SerialService 在 open/close 时更新。
 
 ---
 
@@ -515,28 +589,44 @@ fn build_app(app_handle: AppHandle) -> Result<(SerialState, StorageState)> {
 | `list_recent_sessions` | `{ limit }` | `ListRecentSessionsResponse` |
 | `query_history` | `{ session_id, direction, protocol, limit, offset }` | `QueryHistoryResponse` |
 | `export_data` | `{ session_id, format, file_path }` | `ExportDataResponse` |
-| `log_debug` | `{ module, message }` | 无 |
-| `log_info` | `{ module, message }` | 无 |
-| `log_warn` | `{ module, message }` | 无 |
-| `log_error` | `{ module, message }` | 无 |
+| `log_debug` | `{ module, message }` | `()` (无返回值) |
+| `log_info` | `{ module, message }` | `()` |
+| `log_warn` | `{ module, message }` | `()` |
+| `log_error` | `{ module, message }` | `()` |
 
-另保留 `ping` 和 `get_config`/`save_config`（已注册但前端未调用）。
+另保留 `ping` 和 `get_config`/`save_config`（已注册但前端未调用）：
+- `ping` → 健康检查，返回 `"pong"`
+- `get_config`/`save_config` → 前端用 `localStorage`，后端保持空壳实现
+
+**注意**：`send_data` 前端硬编码 `protocol: 'raw'`，后端保持接口但实际只有 raw 路径。
 
 ### 8.2 Tauri 事件（5 个事件保持不变）
 
-| 事件名 | Payload |
-|--------|---------|
-| `port:data` | `{ port_id, frames: DisplayFrame[], direction }` |
-| `port:opened` | `{ port_id, config }` |
-| `port:closed` | `{ port_id, reason }` |
-| `port:error` | `{ port_id, error }` |
-| `port:change` | `{ arrived[], removed[] }` |
+| 事件名 | Payload | 序列化方式 |
+|--------|---------|-----------|
+| `port:data` | `{ port_id, frames: DisplayFrame[], direction }` | **特殊路径**：ParsedFrame → DisplayFrame 转换后 emit |
+| `port:opened` | `{"type":"opened","port_id":"COM3","config":{...}}` | PortEvent tagged union 直接序列化 |
+| `port:closed` | `{"type":"closed","port_id":"COM3","reason":"..."}` | PortEvent tagged union 直接序列化 |
+| `port:error` | `{"type":"error","port_id":"COM3","error":"..."}` | PortEvent tagged union 直接序列化 |
+| `port:change` | `{"type":"change","arrived":[...],"removed":[...]}` | PortEvent tagged union 直接序列化 |
+
+**注意**：`port:opened`/`port:closed`/`port:error` 当前无前端 listener，但保持 emit 以备未来使用。
 
 ### 8.3 DisplayFrame 字段（完全保持）
 
+```rust
+pub struct DisplayFrame {
+    pub id: i64,
+    pub timestamp: DateTime<Utc>,  // ISO 8601 字符串
+    pub direction: Direction,       // "tx" | "rx"
+    pub protocol: ProtocolType,     // "raw" | "modbus" | "at" | "json"
+    pub raw_data: String,           // hex 字符串
+    pub formatted: String,          // 格式化显示文本
+    pub summary: String,            // 摘要文本
+}
 ```
-id, timestamp, direction, protocol, raw_data, formatted, summary
-```
+
+字段名必须与前端 TypeScript 类型定义完全一致。
 
 ---
 
@@ -547,6 +637,8 @@ id, timestamp, direction, protocol, raw_data, formatted, summary
 3. 每帧数据通过 `db_writer` 写入时携带 `session_id`
 4. `close_port` 命令 → `serial_service` 调用 `DB::end_session()`
 5. `SerialState` 保证 port 和 session 的生命周期一致
+
+**字段映射**：DB 中 `sessions.started_at` 在 `list_recent_sessions` 响应中映射为 `created_at`（前端期望的字段名）。`session_repo` 的 `to_session_info()` 负责此转换。
 
 ---
 
@@ -560,6 +652,7 @@ pub async fn export_streaming(pool: &SqlitePool, query: &ExportQuery) -> Result<
     let mut offset = 0i64;
     let page_size = 1000i64;
     loop {
+        // session_id = None 时导出所有会话的帧
         let rows = query_frames_paginated(pool, query.session_id, page_size, offset).await?;
         if rows.is_empty() { break }
         for row in &rows {
@@ -571,11 +664,15 @@ pub async fn export_streaming(pool: &SqlitePool, query: &ExportQuery) -> Result<
 }
 ```
 
+**null session_id 处理**：前端 `TitleBar` 调用 `export_data` 时传 `session_id: null`，表示导出所有会话。SQL 查询需处理 `WHERE session_id = ?`（有值）或无 WHERE（null）两种情况。
+
 内存占用恒定（每页 1000 条），不受数据量影响。
 
 ---
 
 ## 11. 端口热插拔
+
+**设计决策**：当前代码中 `PortWatcher` 基础设施已存在但**从未激活**（`start_watcher()` 未被调用）。重构后**正式启用**热插拔检测，作为新功能。
 
 ```rust
 // infra/watcher/watcher.rs
@@ -600,18 +697,48 @@ pub fn spawn(emitter: EventEmitter) -> JoinHandle<()> {
 
 ---
 
-## 12. DB Schema（保持不变）
+## 12. DB 基础设施
+
+### 12.1 Schema（保持不变）
 
 保持现有 `sessions` + `frames` 表结构、索引、migration 不变。
 
+### 12.2 连接池初始化
+
+```rust
+// infra/db/pool.rs
+pub async fn init_db() -> Result<SqlitePool> {
+    let db_path = ensure_db_path()?;   // 确保 ~/.jackit/toolbox/tools/jackcom/data/ 存在
+    migrate_old_path_if_needed(&db_path)?;  // 从旧路径迁移（见下文）
+    let pool = SqlitePool::connect(&format!("sqlite:{}", db_path.display())).await?;
+    sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await?;
+    run_migrations(&pool).await?;
+    Ok(pool)
+}
+```
+
+**PRAGMA**：`PRAGMA foreign_keys = ON` 必须在每个连接上执行（SQLite 默认关闭外键）。
+
+### 12.3 数据库路径迁移
+
+从旧路径 `{data_local_dir}/jackcom/jackcom.db` 迁移到新路径 `~/.jackit/toolbox/tools/jackcom/data/jackcom.db`：
+- 如果新路径不存在文件且旧路径存在 → 复制文件到新路径
+- 不删除旧文件（避免降级时数据丢失）
+- 使用 `std::fs::copy`，不是 rename
+
 ---
 
-## 13. 已删除内容
+## 13. 已删除/清理内容
 
-- `PortEvent::Stats` — 当前无发送方，不需要
+- `PortEvent::Stats` — 当前无发送方、无前端 listener，不需要
 - `stats_collector.rs` — 随 Stats 一起删除
 - `BrokerState` — EventBus 通过 Arc 共享，不注册为 Tauri state
 - 自定义 `DataBits`/`StopBits`/`Parity` 枚举 — 直接 re-export serialport
+- `thiserror` 依赖 — 统一使用 anyhow
+- `log` crate 依赖 — 统一使用 tracing（`tracing` 兼容 `log` facade，但直接用 tracing 宏更清晰）
+- `uuid` 依赖 — Cargo.toml 声明了但 Rust 代码从未使用，前端用 `crypto.randomUUID()`
+- `tokio_util::sync::Notify` — 当前用于 OS 线程通知 tokio，重构后由 `tokio::sync::mpsc` 替代
+- `channel/backpressure.rs` — broadcast 自带 lagged 处理，不需要自定义背压
 
 ---
 
