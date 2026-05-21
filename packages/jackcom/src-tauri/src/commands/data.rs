@@ -1,260 +1,73 @@
-use std::fs;
-use std::path::Path;
-
-use chrono::{DateTime, Utc, TimeZone};
 use tauri::State;
+use crate::services::storage_service;
+use crate::services::storage_state::StorageState;
+use crate::commands::types::*;
 
-use crate::error::AppError;
-use crate::protocol::frame::{DisplayFrame, Direction};
-use crate::state::AppState;
-use crate::storage::{self, FrameQuery};
-
-use super::types::{
-    ExportDataRequest, ExportDataResponse, ExportFormat, QueryHistoryRequest, QueryHistoryResponse,
-};
-
-/// 将数据库中的 timestamp 字符串解析为 DateTime<Utc>
-fn parse_timestamp(ts_str: &str) -> DateTime<Utc> {
-    // 先尝试 RFC3339 格式（前端写入的）
-    if let Ok(dt) = DateTime::parse_from_rfc3339(ts_str) {
-        return dt.to_utc();
-    }
-    // 再尝试 SQLite datetime 格式 "2025-01-01 12:00:00"
-    if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(ts_str, "%Y-%m-%d %H:%M:%S") {
-        return TimeZone::from_utc_datetime(&Utc, &naive);
-    }
-    // 最后尝试带毫秒的格式
-    if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(ts_str, "%Y-%m-%d %H:%M:%S%.f") {
-        return TimeZone::from_utc_datetime(&Utc, &naive);
-    }
-    // 兜底返回 Unix epoch
-    Utc::now()
-}
-
-/// FrameRow 转换辅助
-fn row_to_display_frame(row: &crate::storage::FrameRow) -> DisplayFrame {
-    let raw_hex: String = row.raw_data.iter()
-        .map(|b| format!("{:02X}", b))
-        .collect::<Vec<_>>()
-        .join(" ");
-    DisplayFrame {
-        id: row.id,
-        timestamp: parse_timestamp(&row.timestamp),
-        direction: row.direction,
-        raw_hex,
-        formatted: row.formatted.clone(),
-        protocol: row.protocol,
-        summary: row.summary.clone(),
-    }
-}
-
-/// 查询历史帧数据
 #[tauri::command]
 pub async fn query_history(
     request: QueryHistoryRequest,
-    state: State<'_, AppState>,
-) -> Result<QueryHistoryResponse, AppError> {
-    let db_guard = state.db.read().await;
-    let pool = db_guard
-        .as_ref()
-        .ok_or_else(|| AppError::Database("数据库未初始化".to_string()))?;
+    storage_state: State<'_, StorageState>,
+) -> Result<QueryHistoryResponse, String> {
+    let (records, total) = storage_service::query_history(
+        storage_state.pool(),
+        request.session_id,
+        request.direction,
+        request.protocol.map(|p| serde_json::to_string(&p).unwrap_or_default().trim_matches('"').to_string()),
+        request.limit.unwrap_or(100),
+        request.offset.unwrap_or(0),
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
-    let mut query = FrameQuery::new();
-    if let Some(session_id) = request.session_id {
-        query = query.session(session_id);
-    }
-    if let Some(direction) = request.direction {
-        query = query.direction(direction);
-    }
-    if let Some(protocol) = request.protocol {
-        query = query.protocol(protocol);
-    }
-    if let Some(limit) = request.limit {
-        query.limit = limit;
-    }
-    if let Some(offset) = request.offset {
-        query.offset = offset;
-    }
+    let frames = records.into_iter().map(|r| {
+        crate::core::event::display_frame::DisplayFrame {
+            id: r.id,
+            timestamp: chrono::DateTime::parse_from_rfc3339(&r.timestamp)
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now()),
+            direction: match r.direction.as_str() {
+                "tx" => crate::core::serial::types::Direction::Tx,
+                _ => crate::core::serial::types::Direction::Rx,
+            },
+            raw_hex: r.raw_data.iter()
+                .map(|b| format!("{:02X}", b))
+                .collect::<Vec<_>>()
+                .join(" "),
+            formatted: r.formatted,
+            protocol: match r.protocol.as_str() {
+                "modbus" => crate::core::protocol::types::ProtocolType::Modbus,
+                "at" => crate::core::protocol::types::ProtocolType::AT,
+                "json" => crate::core::protocol::types::ProtocolType::Json,
+                _ => crate::core::protocol::types::ProtocolType::Raw,
+            },
+            summary: r.summary,
+        }
+    }).collect();
 
-    let page = storage::query_frames(pool, query)
-        .await
-        .map_err(|e| AppError::Database(format!("查询历史失败: {}", e)))?;
-
-    let frames: Vec<DisplayFrame> = page.rows.iter().map(row_to_display_frame).collect();
-
-    Ok(QueryHistoryResponse {
-        frames,
-        total: page.total,
-    })
+    Ok(QueryHistoryResponse { frames, total })
 }
 
-/// 导出帧数据到文件
 #[tauri::command]
 pub async fn export_data(
     request: ExportDataRequest,
-    state: State<'_, AppState>,
-) -> Result<ExportDataResponse, AppError> {
-    let db_guard = state.db.read().await;
-    let pool = db_guard
-        .as_ref()
-        .ok_or_else(|| AppError::Database("数据库未初始化".to_string()))?;
-
-    let mut query = FrameQuery::new();
-    query.limit = i64::MAX;
-    if let Some(session_id) = request.session_id {
-        query = query.session(session_id);
-    }
-
-    let page = storage::query_frames(pool, query)
-        .await
-        .map_err(|e| AppError::Database(format!("查询导出数据失败: {}", e)))?;
-
-    if page.rows.is_empty() {
-        return Err(AppError::Database("没有可导出的数据".to_string()));
-    }
-
-    // 确保目标目录存在
-    if let Some(parent) = Path::new(&request.file_path).parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| AppError::Database(format!("创建导出目录失败: {}", e)))?;
-    }
-
-    let frames: Vec<DisplayFrame> = page.rows.iter().map(row_to_display_frame).collect();
-
-    let content = match request.format {
-        ExportFormat::Csv => {
-            let mut csv = String::from("id,direction,raw_hex,formatted,protocol,summary\n");
-            for frame in &frames {
-                csv.push_str(&format_frame_csv(frame));
-                csv.push('\n');
-            }
-            csv
-        }
-        ExportFormat::Json => {
-            serde_json::to_string_pretty(&frames)
-                .map_err(|e| AppError::Database(format!("JSON 序列化失败: {}", e)))?
-        }
-        ExportFormat::Hex => {
-            let hex_lines: Vec<String> = frames.iter().map(|f| format_frame_hex(f)).collect();
-            hex_lines.join("\n")
-        }
+    storage_state: State<'_, StorageState>,
+) -> Result<ExportDataResponse, String> {
+    let format_str = match request.format {
+        ExportFormat::Csv => "csv",
+        ExportFormat::Json => "json",
+        ExportFormat::Hex => "hex",
     };
-
-    fs::write(&request.file_path, content)
-        .map_err(|e| AppError::Database(format!("写入导出文件失败: {}", e)))?;
+    let rows = storage_service::export_streaming(
+        storage_state.pool(),
+        request.session_id,
+        format_str,
+        &request.file_path,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     Ok(ExportDataResponse {
         file_path: request.file_path,
-        rows_exported: frames.len(),
+        rows_exported: rows,
     })
-}
-
-/// 将字段用双引号包裹（RFC 4180 CSV 格式）
-/// 内部双引号转义为两个双引号
-fn csv_escape(s: &str) -> String {
-    if s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r') {
-        format!("\"{}\"", s.replace('"', "\"\""))
-    } else {
-        s.to_string()
-    }
-}
-
-/// 将 DisplayFrame 格式化为 CSV 行
-pub fn format_frame_csv(frame: &DisplayFrame) -> String {
-    format!(
-        "{},{},{},{},{},{}",
-        frame.id,
-        match frame.direction {
-            Direction::Tx => "Tx",
-            Direction::Rx => "Rx",
-        },
-        csv_escape(&frame.raw_hex),
-        csv_escape(&frame.formatted),
-        format!("{:?}", frame.protocol),
-        csv_escape(&frame.summary),
-    )
-}
-
-/// 将 DisplayFrame 格式化为纯 HEX 行
-pub fn format_frame_hex(frame: &DisplayFrame) -> String {
-    format!(
-        "[{}] {} {}",
-        frame.timestamp.to_rfc3339(),
-        match frame.direction {
-            Direction::Tx => ">>",
-            Direction::Rx => "<<",
-        },
-        frame.raw_hex,
-    )
-}
-
-// === 测试 ===
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::state::AppState;
-    use crate::protocol::ProtocolType;
-
-    #[tokio::test]
-    async fn test_query_history_no_db() {
-        let state = AppState::new_test();
-        let req = QueryHistoryRequest {
-            session_id: None,
-            direction: None,
-            protocol: None,
-            limit: Some(100),
-            offset: None,
-        };
-        let db_guard = state.db.read().await;
-        assert!(db_guard.is_none());
-    }
-
-    #[test]
-    fn test_format_frame_csv() {
-        let frame = DisplayFrame {
-            id: 1,
-            timestamp: chrono::Utc::now(),
-            direction: Direction::Rx,
-            raw_hex: "01 03 00 00".to_string(),
-            formatted: "READ holding registers".to_string(),
-            protocol: ProtocolType::Modbus,
-            summary: "Slave 1, Func 3".to_string(),
-        };
-        let csv = format_frame_csv(&frame);
-        assert!(csv.contains("01 03 00 00"));
-        assert!(csv.contains("Rx"));
-    }
-
-    #[test]
-    fn test_format_frame_json_via_serialize() {
-        let frame = DisplayFrame {
-            id: 1,
-            timestamp: chrono::Utc::now(),
-            direction: Direction::Tx,
-            raw_hex: "AA BB".to_string(),
-            formatted: "raw data".to_string(),
-            protocol: ProtocolType::Raw,
-            summary: "2 bytes".to_string(),
-        };
-        let json = serde_json::to_string(&frame).unwrap();
-        assert!(json.contains("AA BB"));
-        assert!(json.contains("tx"));
-    }
-
-    #[test]
-    fn test_format_frame_hex() {
-        let frame = DisplayFrame {
-            id: 2,
-            timestamp: chrono::Utc::now(),
-            direction: Direction::Rx,
-            raw_hex: "FF EE DD".to_string(),
-            formatted: "data".to_string(),
-            protocol: ProtocolType::Raw,
-            summary: "3 bytes".to_string(),
-        };
-        let hex = format_frame_hex(&frame);
-        assert!(hex.contains("FF EE DD"));
-        assert!(hex.contains("<<"));
-    }
 }
