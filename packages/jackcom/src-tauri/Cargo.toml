@@ -20,6 +20,7 @@ sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 bytes = "1"
 dashmap = "6"
 thiserror = "2"
+anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }

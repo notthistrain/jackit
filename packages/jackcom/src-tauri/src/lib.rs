@@ -6,6 +6,7 @@ pub mod protocol;
 mod serial;
 mod state;
 mod storage;
+mod core;
 
 use std::sync::Arc;
 
