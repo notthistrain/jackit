@@ -1,4 +1,5 @@
 pub mod at_cmd;
+pub mod json;
 pub mod modbus;
 pub mod raw;
 
