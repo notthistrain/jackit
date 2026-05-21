@@ -6,7 +6,7 @@ use sqlx::SqlitePool;
 use tokio::sync::broadcast;
 
 use crate::core::event::port_event::PortEvent;
-use crate::core::serial::types::{Direction, PortName, SessionId};
+use crate::core::serial::types::{PortName, SessionId};
 use crate::infra::db::frame_repo::{self, FrameRow};
 
 /// 启动 DB 写入任务

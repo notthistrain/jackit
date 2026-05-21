@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use sqlx::SqlitePool;
 
 use crate::core::serial::config::SerialConfig;
-use crate::core::serial::types::{PortName, SessionId};
+use crate::core::serial::types::PortName;
 use crate::infra::db::session_repo;
 use crate::services::serial_state::{PortEntry, SerialState};
 use crate::services::port_task::PortTask;
