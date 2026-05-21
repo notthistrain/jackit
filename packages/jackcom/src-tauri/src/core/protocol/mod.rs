@@ -8,4 +8,4 @@ pub mod detector;
 
 pub use types::{ProtocolType, Detection, ModbusData, ATData};
 pub use error::ParseError;
-// pub use frame::{ParsedFrame, ParsedData}; — Task 6
+pub use frame::{ParsedFrame, ParsedData};
