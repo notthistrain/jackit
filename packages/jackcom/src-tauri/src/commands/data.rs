@@ -22,8 +22,8 @@ pub async fn query_history(
     let frames = records.into_iter().map(|r| {
         crate::core::event::display_frame::DisplayFrame {
             id: r.id,
-            timestamp: chrono::DateTime::parse_from_rfc3339(&r.timestamp)
-                .map(|dt| dt.with_timezone(&chrono::Utc))
+            timestamp: chrono::NaiveDateTime::parse_from_str(&r.timestamp, "%Y-%m-%d %H:%M:%S")
+                .map(|dt| dt.and_utc())
                 .unwrap_or_else(|_| chrono::Utc::now()),
             direction: match r.direction.as_str() {
                 "tx" => crate::core::serial::types::Direction::Tx,

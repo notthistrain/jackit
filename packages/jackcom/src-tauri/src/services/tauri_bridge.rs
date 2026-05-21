@@ -91,13 +91,20 @@ async fn flush(
             .collect();
 
         if !display_frames.is_empty() {
+            // 取最后一条帧的方向作为本批次方向（大多数情况同一批次方向一致）
+            let batch_direction = display_frames.last()
+                .map(|f| f.direction)
+                .unwrap_or(Direction::Rx);
             let _ = app.emit(
                 "port:data",
                 serde_json::json!({
                     "type": "data",
                     "port_id": port_id.as_str(),
                     "frames": display_frames,
-                    "direction": "rx",
+                    "direction": match batch_direction {
+                        Direction::Rx => "rx",
+                        Direction::Tx => "tx",
+                    },
                 }),
             );
         }

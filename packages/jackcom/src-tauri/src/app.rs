@@ -26,13 +26,13 @@ pub async fn build_app(app_handle: tauri::AppHandle) -> anyhow::Result<(LogGuard
     // 4. EventBus -- 核心枢纽
     let event_bus = Arc::new(EventBus::new(256));
 
-    // 5. 启动独立消费者
-    crate::services::tauri_bridge::spawn(
+    // 5. 启动独立消费者（保存 JoinHandle 以检测 panic）
+    let _bridge_handle = crate::services::tauri_bridge::spawn(
         event_bus.subscribe(),
         app_handle,
         Duration::from_millis(10),
     );
-    crate::services::db_writer::spawn(
+    let _db_writer_handle = crate::services::db_writer::spawn(
         event_bus.subscribe(),
         storage_state.pool().clone(),
         100,
@@ -41,7 +41,7 @@ pub async fn build_app(app_handle: tauri::AppHandle) -> anyhow::Result<(LogGuard
     );
 
     // 6. 启动端口热插拔检测
-    spawn_watcher(event_bus.emitter());
+    let _watcher_handle = spawn_watcher(event_bus.emitter());
 
     // 7. SerialState
     let serial_state = SerialState::new(event_bus.emitter(), sessions);
@@ -49,7 +49,7 @@ pub async fn build_app(app_handle: tauri::AppHandle) -> anyhow::Result<(LogGuard
     Ok((log_guard, serial_state, storage_state))
 }
 
-fn spawn_watcher(emitter: crate::services::emitter::EventEmitter) {
+fn spawn_watcher(emitter: crate::services::emitter::EventEmitter) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut watcher = PortWatcher::new(Duration::from_secs(2));
         watcher.initialize();
@@ -60,5 +60,5 @@ fn spawn_watcher(emitter: crate::services::emitter::EventEmitter) {
                 emitter.emit_change(change.arrived, change.removed);
             }
         }
-    });
+    })
 }

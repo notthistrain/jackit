@@ -1,7 +1,12 @@
+use bytes::Bytes;
 use sqlx::SqlitePool;
 
+use crate::core::protocol::frame::ParsedFrame;
+use crate::core::protocol::parsers::raw::RawParser;
+use crate::core::protocol::traits::ProtocolParser;
+use crate::core::protocol::types::ProtocolType;
 use crate::core::serial::config::SerialConfig;
-use crate::core::serial::types::PortName;
+use crate::core::serial::types::{Direction, PortName};
 use crate::infra::db::session_repo;
 use crate::services::serial_state::{PortEntry, SerialState};
 use crate::services::port_task::PortTask;
@@ -33,20 +38,19 @@ impl SerialService {
 
         // 创建 session
         let session_id = session_repo::create_session(pool, &port_name, config.baud_rate).await?;
-        state.sessions.insert(port_name.clone(), session_id);
 
         // 启动 PortTask
         let task = PortTask::start(
             port,
             port_name.clone(),
-            state.emitter.clone(),
+            state.emitter().clone(),
         )?;
 
         // 发布 Opened 事件
-        state.emitter.emit_opened(port_name.clone(), config.clone());
+        state.emitter().emit_opened(port_name.clone(), config.clone());
 
         // 存入状态
-        state.ports.insert(port_name.clone(), PortEntry {
+        state.insert_port(port_name.clone(), PortEntry {
             port_name: port_name.clone(),
             task,
             session_id,
@@ -61,19 +65,18 @@ impl SerialService {
         pool: &SqlitePool,
         port_name: &PortName,
     ) -> anyhow::Result<()> {
-        let Some((_, entry)) = state.ports.remove(port_name) else {
+        let Some((_, entry)) = state.remove_port(port_name) else {
             anyhow::bail!("端口不存在: {}", port_name);
         };
 
         // 结束 session
         session_repo::end_session(pool, entry.session_id).await?;
-        state.sessions.remove(port_name);
 
         // 停止任务
         entry.task.stop().await;
 
         // 发布 Closed 事件
-        state.emitter.emit_closed(
+        state.emitter().emit_closed(
             port_name.clone(),
             crate::core::serial::config::CloseReason::Disconnected,
         );
@@ -83,7 +86,7 @@ impl SerialService {
 
     /// 关闭所有端口
     pub async fn close_all(state: &SerialState, pool: &SqlitePool) -> Vec<PortName> {
-        let port_names: Vec<PortName> = state.ports.iter().map(|r| r.key().clone()).collect();
+        let port_names: Vec<PortName> = state.open_port_names();
         for name in &port_names {
             let _ = Self::close(state, pool, name).await;
         }
@@ -92,16 +95,19 @@ impl SerialService {
 
     /// 发送数据
     pub fn send(state: &SerialState, port_name: &PortName, data: Vec<u8>) -> anyhow::Result<usize> {
-        let Some(entry) = state.ports.get(port_name) else {
+        let Some(entry) = state.get_port(port_name) else {
             anyhow::bail!("端口不存在: {}", port_name);
         };
         let len = data.len();
+        let raw = Bytes::from(data.clone());
+        let parsed = RawParser.parse(&data).unwrap();
+        let frame = ParsedFrame::new(raw, ProtocolType::Raw, parsed);
         entry.task.send(data)?;
-        // 发布 TX 事件
-        state.emitter.emit_data(
+        // 发布 TX 事件（含实际数据，前端回显）
+        state.emitter().emit_data(
             port_name.clone(),
-            vec![],
-            crate::core::serial::types::Direction::Tx,
+            vec![frame],
+            Direction::Tx,
         );
         Ok(len)
     }

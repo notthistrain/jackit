@@ -1,2 +1,2 @@
-#[allow(dead_code)]
-pub type Result<T> = anyhow::Result<T>;
+// 错误类型
+// 全局使用 anyhow::Result，此处保留模块以备将来扩展

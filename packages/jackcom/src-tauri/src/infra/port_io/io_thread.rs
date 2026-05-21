@@ -11,6 +11,7 @@ use tokio_util::sync::CancellationToken;
 pub struct IoThread {
     write_tx: mpsc::Sender<Vec<u8>>,
     thread_handle: Option<JoinHandle<()>>,
+    cancel: CancellationToken,
 }
 
 /// IO 线程配置
@@ -41,6 +42,7 @@ impl IoThread {
         config: IoThreadConfig,
     ) -> io::Result<Self> {
         let (write_tx, write_rx) = mpsc::channel::<Vec<u8>>();
+        let cancel_clone = cancel.clone();
 
         let handle = thread::Builder::new()
             .name(format!("io-{}", port.name().unwrap_or_default()))
@@ -48,7 +50,7 @@ impl IoThread {
                 let mut buf = vec![0u8; config.read_buffer_size];
                 loop {
                     // 检查取消
-                    if cancel.is_cancelled() {
+                    if cancel_clone.is_cancelled() {
                         break;
                     }
 
@@ -85,6 +87,7 @@ impl IoThread {
         Ok(Self {
             write_tx,
             thread_handle: Some(handle),
+            cancel,
         })
     }
 
@@ -98,6 +101,8 @@ impl IoThread {
 
 impl Drop for IoThread {
     fn drop(&mut self) {
+        // 先触发 cancel，确保 OS 线程能在 read timeout 内退出
+        self.cancel.cancel();
         // write_tx drop 后线程中的 write_rx 会返回 Err，加速退出
         if let Some(handle) = self.thread_handle.take() {
             let _ = handle.join();
