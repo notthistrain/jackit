@@ -1,14 +1,56 @@
-use std::path::Path;
-use tracing_appender::non_blocking::WorkerGuard;
-use tracing_appender::rolling;
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use std::path::PathBuf;
 
-/// 初始化 tracing 日志系统
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+
+/// 日志守卫 — 保持 alive 直到应用退出
+pub struct LogGuard {
+    _guard: tracing_appender::non_blocking::WorkerGuard,
+}
+
+/// 初始化日志系统（新版：统一 tracing）
+///
+/// 返回 LogGuard 必须注册为 Tauri managed state 以保持存活
+pub fn init_logging(app_name: &str) -> LogGuard {
+    let log_dir = ensure_log_dir(app_name);
+    let file_appender = tracing_appender::rolling::daily(&log_dir, "jackcom.log");
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info"));
+
+    tracing_subscriber::fmt()
+        .with_env_filter(env_filter)
+        .with_writer(non_blocking)
+        .with_ansi(false)
+        .init();
+
+    tracing::info!("日志系统初始化完成: {}", log_dir.display());
+
+    LogGuard { _guard: guard }
+}
+
+fn ensure_log_dir(app_name: &str) -> PathBuf {
+    let dir = dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".jackit")
+        .join("toolbox")
+        .join("tools")
+        .join(app_name)
+        .join("log");
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
+
+// ============================================================
+// 旧版 API — 向后兼容，Plan 5 清理时移除
+// ============================================================
+
+/// 初始化 tracing 日志系统（旧版）
 /// 返回 WorkerGuard，必须保持存活直到应用退出
-pub fn init(app_name: &str, log_dir: &Path) -> WorkerGuard {
+pub fn init(app_name: &str, log_dir: &std::path::Path) -> tracing_appender::non_blocking::WorkerGuard {
     std::fs::create_dir_all(log_dir).ok();
 
-    let file_appender = rolling::daily(log_dir, format!("{app_name}.log"));
+    let file_appender = tracing_appender::rolling::daily(log_dir, format!("{app_name}.log"));
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
     let env_filter = if cfg!(debug_assertions) {
@@ -17,7 +59,7 @@ pub fn init(app_name: &str, log_dir: &Path) -> WorkerGuard {
         EnvFilter::new("info")
     };
 
-    let file_layer = fmt::layer()
+    let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(non_blocking)
         .with_ansi(false)
         .with_target(true)
@@ -25,7 +67,7 @@ pub fn init(app_name: &str, log_dir: &Path) -> WorkerGuard {
 
     // dev 模式同时输出到 stdout，release 模式仅写文件
     let stdout_layer = if cfg!(debug_assertions) {
-        Some(fmt::layer().with_writer(std::io::stdout))
+        Some(tracing_subscriber::fmt::layer().with_writer(std::io::stdout))
     } else {
         None
     };
