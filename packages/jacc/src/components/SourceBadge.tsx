@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils'
 import { useT } from '@/i18n'
+import { cn } from '@/lib/utils'
 
 interface SourceBadgeProps {
   scope: 'global' | 'project' | 'user' | 'plugin' | 'models'

@@ -53,14 +53,18 @@ export function useAllModels() {
       }
 
       setModels(flat)
-    } catch (e) {
+    }
+    catch (e) {
       toastError(String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [toastError])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return { models, loading, refresh }
 }

@@ -65,9 +65,6 @@ export function useDataFeed(options: UseDataFeedOptions = {}): UseDataFeedReturn
         batchRef.current.push(...payload.frames)
       })
 
-      // 诊断日志：确认订阅已建立
-      console.log(`[useDataFeed] subscribed port:data (portId=${portId ?? 'all'})`)
-
       // 如果在 await 期间已经 unmount，立即取消订阅
       if (cancelled) {
         unsub()
@@ -82,6 +79,7 @@ export function useDataFeed(options: UseDataFeedOptions = {}): UseDataFeedReturn
 
     return () => {
       cancelled = true
+      batchRef.current = []
       if (timer)
         clearInterval(timer)
       if (unlisten)

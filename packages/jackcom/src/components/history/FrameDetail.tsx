@@ -11,7 +11,12 @@ export function FrameDetail({ frame }: FrameDetailProps) {
   return (
     <div className={root()}>
       <div className={header()}>
-        Frame #{frame.id} · {frame.timestamp}
+        Frame #
+        {frame.id}
+        {' '}
+        ·
+        {' '}
+        {frame.timestamp}
       </div>
       <div className={hexSection()}>
         <div className={hexLabel()}>HEX:</div>

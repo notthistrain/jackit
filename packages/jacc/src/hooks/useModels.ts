@@ -28,53 +28,70 @@ export function useModels(apiKeyId: number) {
   const { error } = useToast()
 
   const refresh = useCallback(async () => {
-    if (!apiKeyId) return
+    if (!apiKeyId)
+      return
     setLoading(true)
     try {
       const list = await invoke<Model[]>('list_models', { apiKeyId })
       setModels(list)
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [apiKeyId, error])
 
-  const add = useCallback(async (input: CreateModelInput) => {
-    try {
-      await invoke('add_model', { input })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const add = useCallback(
+    async (input: CreateModelInput) => {
+      try {
+        await invoke('add_model', { input })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const update = useCallback(async (id: number, input: UpdateModelInput) => {
-    try {
-      await invoke('update_model', { id, input })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const update = useCallback(
+    async (id: number, input: UpdateModelInput) => {
+      try {
+        await invoke('update_model', { id, input })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const remove = useCallback(async (id: number) => {
-    try {
-      await invoke('delete_model', { id })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const remove = useCallback(
+    async (id: number) => {
+      try {
+        await invoke('delete_model', { id })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
   const test = useCallback(async (id: number): Promise<string> => {
     return invoke<string>('test_model', { id })
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return { models, loading, refresh, add, update, remove, test }
 }

@@ -1,7 +1,7 @@
-import { useT } from '@/i18n'
 import type { DisplayFrame } from '@/lib/tauri-events'
-import { FrameDetail } from './FrameDetail'
+import { useT } from '@/i18n'
 import { frameTable } from './frame-table.variants'
+import { FrameDetail } from './FrameDetail'
 
 interface FrameTableProps {
   frames: DisplayFrame[]
@@ -10,7 +10,7 @@ interface FrameTableProps {
 }
 
 const dirColor = (dir: string) => dir === 'rx' ? 'var(--color-rx)' : 'var(--color-tx)'
-const protoColor = (proto: string) => {
+function protoColor(proto: string) {
   switch (proto.toLowerCase()) {
     case 'modbus': return '#569CD6'
     case 'at': return '#CE9178'
@@ -41,7 +41,7 @@ export function FrameTable({ frames, expandedFrameId, onToggleExpand }: FrameTab
         <span className={headerData()}>Data</span>
       </div>
       {/* 数据行 */}
-      {frames.map(frame => {
+      {frames.map((frame) => {
         const isExpanded = frame.id === expandedFrameId
         const timeStr = new Date(frame.timestamp).toLocaleTimeString('en-US', {
           hour12: false,
@@ -67,7 +67,8 @@ export function FrameTable({ frames, expandedFrameId, onToggleExpand }: FrameTab
                 {frame.protocol}
               </span>
               <span className={cellData()}>
-                {frame.raw_hex.substring(0, 30)}{frame.raw_hex.length > 30 ? ' ...' : ''}
+                {frame.raw_hex.substring(0, 30)}
+                {frame.raw_hex.length > 30 ? ' ...' : ''}
                 {frame.summary && (
                   <span className={cellSummary()}>
                     {frame.summary.substring(0, 40)}

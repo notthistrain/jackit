@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 
-export type Page =
-  | 'general'
-  | 'envvars'
-  | 'permissions'
-  | 'mcp'
-  | 'models'
-  | 'skills'
-  | 'agents'
+export type Page
+  = | 'general'
+    | 'envvars'
+    | 'permissions'
+    | 'mcp'
+    | 'models'
+    | 'skills'
+    | 'agents'
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -20,11 +20,11 @@ interface AppState {
   setTheme: (theme: Theme) => void
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>(set => ({
   currentPage: 'general',
   currentProject: null,
   theme: 'system',
-  setPage: (page) => set({ currentPage: page }),
-  setProject: (path) => set({ currentProject: path }),
-  setTheme: (theme) => set({ theme }),
+  setPage: page => set({ currentPage: page }),
+  setProject: path => set({ currentProject: path }),
+  setTheme: theme => set({ theme }),
 }))

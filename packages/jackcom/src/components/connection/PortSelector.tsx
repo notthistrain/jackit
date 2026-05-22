@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSerialPort } from '@/hooks/useSerialPort'
-import { Select } from '@/components/ui/Select'
 import type { SelectOption } from '@/components/ui/Select'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Select } from '@/components/ui/Select'
+import { useSerialPort } from '@/hooks/useSerialPort'
 import { portSelector } from './port-selector.variants'
 
 interface PortInfo {
@@ -38,9 +38,11 @@ export function PortSelector({ value, onChange }: PortSelectorProps) {
       if (!valueRef.current && list.length > 0) {
         onChangeRef.current(list[0].name)
       }
-    } catch (e) {
+    }
+    catch (e) {
       setErrMsg(e instanceof Error ? e.message : String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [enumerate])

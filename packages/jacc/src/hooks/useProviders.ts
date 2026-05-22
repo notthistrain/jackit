@@ -26,51 +26,67 @@ export interface UpdateProviderInput {
 export function useProviders() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(false)
-  const { success, error } = useToast()
+  const { error } = useToast()
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
       const list = await invoke<Provider[]>('list_providers')
       setProviders(list)
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [error])
 
-  const add = useCallback(async (input: CreateProviderInput) => {
-    try {
-      await invoke('add_provider', { input })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const add = useCallback(
+    async (input: CreateProviderInput) => {
+      try {
+        await invoke('add_provider', { input })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const update = useCallback(async (id: number, input: UpdateProviderInput) => {
-    try {
-      await invoke('update_provider', { id, input })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const update = useCallback(
+    async (id: number, input: UpdateProviderInput) => {
+      try {
+        await invoke('update_provider', { id, input })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const remove = useCallback(async (id: number) => {
-    try {
-      await invoke('delete_provider', { id })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const remove = useCallback(
+    async (id: number) => {
+      try {
+        await invoke('delete_provider', { id })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return { providers, loading, refresh, add, update, remove }
 }

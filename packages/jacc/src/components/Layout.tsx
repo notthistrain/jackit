@@ -1,16 +1,16 @@
-import { useAppStore } from '@/stores/useAppStore'
-import { Sidebar } from './Sidebar'
-import { TitleBar } from './TitleBar'
-import { EmptyState } from './EmptyState'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useProjects } from '@/hooks/useProjects'
-import { General } from '@/pages/General'
+import { Agents } from '@/pages/Agents'
 import { EnvVars } from '@/pages/EnvVars'
-import { Permissions } from '@/pages/Permissions'
+import { General } from '@/pages/General'
 import { McpServers } from '@/pages/McpServers'
 import { Models } from '@/pages/Models'
+import { Permissions } from '@/pages/Permissions'
 import { Skills } from '@/pages/Skills'
-import { Agents } from '@/pages/Agents'
+import { useAppStore } from '@/stores/useAppStore'
+import { EmptyState } from './EmptyState'
+import { Sidebar } from './Sidebar'
+import { TitleBar } from './TitleBar'
 
 export function Layout() {
   const { currentPage, currentProject, setProject } = useAppStore()
@@ -38,10 +38,12 @@ export function Layout() {
       case 'models':
         return <Models />
       case 'skills':
-        if (!currentProject) return <EmptyState onSelectProject={handleSelectProject} />
+        if (!currentProject)
+          return <EmptyState onSelectProject={handleSelectProject} />
         return <Skills />
       case 'agents':
-        if (!currentProject) return <EmptyState onSelectProject={handleSelectProject} />
+        if (!currentProject)
+          return <EmptyState onSelectProject={handleSelectProject} />
         return <Agents />
       default:
         return null

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useConfig } from '@/hooks/useConfig'
-import { SourceBadge } from '@/components/SourceBadge'
 import { Fab } from '@/components/Fab'
+import { SourceBadge } from '@/components/SourceBadge'
+import { useConfig } from '@/hooks/useConfig'
 import { useT } from '@/i18n'
 
 interface PermissionRule {
@@ -18,7 +18,7 @@ export function Permissions() {
   const [newPattern, setNewPattern] = useState('')
   const [newScope, setNewScope] = useState<'global' | 'project'>('project')
 
-  const allowItem = config?.items.find((i) => i.key === 'permissions')
+  const allowItem = config?.items.find(i => i.key === 'permissions')
   const permissions = (allowItem?.value as Record<string, PermissionRule[]>) || {}
   const permScope = allowItem?.scope || 'global'
 
@@ -26,7 +26,8 @@ export function Permissions() {
   const denyRules = permissions.deny || []
 
   async function handleAdd() {
-    if (!newPattern.trim()) return
+    if (!newPattern.trim())
+      return
     const key = newType === 'allow' ? 'allow' : 'deny'
     const current = permissions[key] || []
     const updated = {
@@ -52,7 +53,9 @@ export function Permissions() {
       {/* 允许列表 */}
       <div className="mb-5">
         <div className="text-xs font-semibold text-success mb-2 flex items-center gap-1.5">
-          <span>✓</span> {t('permissions.allow')}
+          <span>✓</span>
+          {' '}
+          {t('permissions.allow')}
         </div>
         <div className="bg-card border border-border-light rounded-[4px] overflow-hidden">
           <div className="flex px-3.5 py-2 bg-sidebar border-b border-border-light text-[11px] text-muted font-medium">
@@ -84,7 +87,9 @@ export function Permissions() {
       {/* 拒绝列表 */}
       <div>
         <div className="text-xs font-semibold text-danger mb-2 flex items-center gap-1.5">
-          <span>✗</span> {t('permissions.deny')}
+          <span>✗</span>
+          {' '}
+          {t('permissions.deny')}
         </div>
         <div className="bg-card border border-border-light rounded-[4px] overflow-hidden">
           <div className="flex px-3.5 py-2 bg-sidebar border-b border-border-light text-[11px] text-muted font-medium">
@@ -118,17 +123,17 @@ export function Permissions() {
         <div className="mt-4 p-3 bg-card border border-border-light rounded-[4px]">
           <div className="text-[13px] font-medium text-foreground mb-3">{t('permissions.add.title')}</div>
           <div className="flex gap-2 mb-2">
-            <select value={newType} onChange={(e) => setNewType(e.target.value as 'allow' | 'deny')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground">
+            <select value={newType} onChange={e => setNewType(e.target.value as 'allow' | 'deny')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground">
               <option value="allow">Allow</option>
               <option value="deny">Deny</option>
             </select>
-            <select value={newTool} onChange={(e) => setNewTool(e.target.value)} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground">
+            <select value={newTool} onChange={e => setNewTool(e.target.value)} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground">
               <option>Bash</option>
               <option>Read</option>
               <option>Write</option>
               <option>Edit</option>
             </select>
-            <select value={newScope} onChange={(e) => setNewScope(e.target.value as 'global' | 'project')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground">
+            <select value={newScope} onChange={e => setNewScope(e.target.value as 'global' | 'project')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground">
               <option value="project">{t('permissions.add.scopeProject')}</option>
               <option value="global">{t('permissions.add.scopeGlobal')}</option>
             </select>
@@ -136,7 +141,7 @@ export function Permissions() {
           <div className="flex gap-2">
             <input
               value={newPattern}
-              onChange={(e) => setNewPattern(e.target.value)}
+              onChange={e => setNewPattern(e.target.value)}
               placeholder={t('permissions.add.pattern')}
               className="flex-1 bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground"
             />

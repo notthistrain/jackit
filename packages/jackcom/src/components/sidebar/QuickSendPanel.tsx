@@ -1,25 +1,37 @@
 import { useCallback, useState } from 'react'
-import { useT } from '@/i18n'
 import { useSerialPort } from '@/hooks/useSerialPort'
-import { useMainStore } from '@/lib/store'
+import { useT } from '@/i18n'
 import { hexToBytes } from '@/lib/formatters'
 import { useSnippetsStore } from '@/lib/snippets-store'
+import { useMainStore } from '@/lib/store'
 import { quickSendPanel } from './quick-send-panel.variants'
 
 export function QuickSendPanel() {
   const { t } = useT()
   const { snippets, add, remove } = useSnippetsStore()
   const { send } = useSerialPort()
-  const { activePortId } = useMainStore()
+  const activePortId = useMainStore(s => s.activePortId)
 
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [data, setData] = useState('')
 
   const {
-    root, list, empty, snippet, snippetInfo, snippetName, snippetData,
-    sendBtn, deleteBtn, addForm, addInput, addActions, confirmBtn,
-    cancelFormBtn, addButton,
+    root,
+    list,
+    empty,
+    snippet: snippetClass,
+    snippetInfo,
+    snippetName,
+    snippetData,
+    sendBtn,
+    deleteBtn,
+    addForm,
+    addInput,
+    addActions,
+    confirmBtn,
+    cancelFormBtn,
+    addButton,
   } = quickSendPanel()
 
   const handleAdd = useCallback(() => {
@@ -34,35 +46,29 @@ export function QuickSendPanel() {
     setAdding(false)
   }, [name, data, add])
 
-  const handleSend = useCallback(async (hexData: string) => {
-    if (!activePortId)
-      return
-    try {
-      await send(activePortId, hexData.replace(/\s+/g, ''))
-    }
-    catch (err) {
-      console.error('Quick send failed:', err)
-    }
-  }, [activePortId, send])
+  const handleSend = useCallback(
+    async (hexData: string) => {
+      if (!activePortId)
+        return
+      try {
+        await send(activePortId, hexData.replace(/\s+/g, ''))
+      }
+      catch {
+        /* send failure silently ignored */
+      }
+    },
+    [activePortId, send],
+  )
 
   return (
     <div className={root()}>
       <div className={list()}>
-        {snippets.length === 0 && (
-          <div className={empty()}>
-            {t('sidebar.quickSend.empty')}
-          </div>
-        )}
+        {snippets.length === 0 && <div className={empty()}>{t('sidebar.quickSend.empty')}</div>}
         {snippets.map(snippet => (
-          <div
-            key={snippet.id}
-            className={snippet()}
-          >
+          <div key={snippet.id} className={snippetClass()}>
             <div className={snippetInfo()}>
               <div className={snippetName()}>{snippet.name}</div>
-              <div className={snippetData()}>
-                {snippet.data}
-              </div>
+              <div className={snippetData()}>{snippet.data}</div>
             </div>
             <button
               title={t('sidebar.quickSend.send')}
@@ -72,11 +78,7 @@ export function QuickSendPanel() {
             >
               ▶
             </button>
-            <button
-              title={t('sidebar.quickSend.delete')}
-              onClick={() => remove(snippet.id)}
-              className={deleteBtn()}
-            >
+            <button title={t('sidebar.quickSend.delete')} onClick={() => remove(snippet.id)} className={deleteBtn()}>
               ✕
             </button>
           </div>
@@ -98,14 +100,15 @@ export function QuickSendPanel() {
             className={addInput({ mono: true })}
           />
           <div className={addActions()}>
-            <button
-              onClick={handleAdd}
-              className={confirmBtn()}
-            >
+            <button onClick={handleAdd} className={confirmBtn()}>
               {t('sidebar.quickSend.confirm')}
             </button>
             <button
-              onClick={() => { setAdding(false); setName(''); setData('') }}
+              onClick={() => {
+                setAdding(false)
+                setName('')
+                setData('')
+              }}
               className={cancelFormBtn()}
             >
               {t('sidebar.quickSend.cancel')}
@@ -114,11 +117,10 @@ export function QuickSendPanel() {
         </div>
       )}
 
-      <button
-        onClick={() => setAdding(true)}
-        className={addButton({ adding })}
-      >
-        + {t('sidebar.quickSend.add')}
+      <button onClick={() => setAdding(true)} className={addButton({ adding })}>
+        +
+        {' '}
+        {t('sidebar.quickSend.add')}
       </button>
     </div>
   )

@@ -5,7 +5,9 @@ import { statusBar } from './status-bar.variants'
 
 export function StatusBar() {
   const { t } = useT()
-  const { connections, activePortId, stats } = useMainStore()
+  const connections = useMainStore(s => s.connections)
+  const activePortId = useMainStore(s => s.activePortId)
+  const stats = useMainStore(s => s.stats)
   const activeConn = activePortId ? connections[activePortId] : null
   const portStats = activePortId ? stats[activePortId] : null
 
@@ -13,7 +15,10 @@ export function StatusBar() {
 
   return (
     <div className={root()}>
-      <span>⚡ {t('statusbar.app')}</span>
+      <span>
+        ⚡
+        {t('statusbar.app')}
+      </span>
       {activeConn && (
         <>
           <span>{activeConn.portName}</span>

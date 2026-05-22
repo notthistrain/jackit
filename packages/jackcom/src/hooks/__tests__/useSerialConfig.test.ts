@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { useSerialConfig } from '../useSerialConfig'
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -13,8 +15,6 @@ const localStorageMock = (() => {
 })()
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock })
 
-import { useSerialConfig } from '../useSerialConfig'
-
 describe('useSerialConfig', () => {
   beforeEach(() => {
     localStorageMock.clear()
@@ -26,8 +26,8 @@ describe('useSerialConfig', () => {
     expect(result.current.config.baudRate).toBe(115200)
     expect(result.current.config.dataBits).toBe(8)
     expect(result.current.config.stopBits).toBe(1)
-    expect(result.current.config.parity).toBe('none')
-    expect(result.current.config.flowControl).toBe('none')
+    expect(result.current.config.parity).toBe('None')
+    expect(result.current.config.flowControl).toBe('None')
   })
 
   it('updates config with setConfig', () => {

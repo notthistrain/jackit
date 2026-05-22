@@ -1,5 +1,5 @@
-import { create } from 'zustand'
 import type { DisplayFrame } from '@/lib/tauri-events'
+import { create } from 'zustand'
 
 export interface SessionRow {
   id: number
@@ -32,7 +32,7 @@ interface HistoryStore {
   setError: (error: string | null) => void
 }
 
-export const useHistoryStore = create<HistoryStore>((set) => ({
+export const useHistoryStore = create<HistoryStore>(set => ({
   sessions: [],
   selectedSessionId: null,
   frames: [],
@@ -45,14 +45,14 @@ export const useHistoryStore = create<HistoryStore>((set) => ({
   loading: false,
   error: null,
 
-  setSessions: (sessions) => set({ sessions }),
-  selectSession: (id) => set({ selectedSessionId: id, page: 0, expandedFrameId: null }),
+  setSessions: sessions => set({ sessions }),
+  selectSession: id => set({ selectedSessionId: id, page: 0, expandedFrameId: null }),
   setFrames: (frames, total) => set({ frames, totalFrames: total }),
-  setPage: (page) => set({ page }),
-  setDirectionFilter: (directionFilter) => set({ directionFilter, page: 0 }),
-  setProtocolFilter: (protocolFilter) => set({ protocolFilter, page: 0 }),
-  toggleFrameExpand: (id) =>
+  setPage: page => set({ page }),
+  setDirectionFilter: directionFilter => set({ directionFilter, page: 0 }),
+  setProtocolFilter: protocolFilter => set({ protocolFilter, page: 0 }),
+  toggleFrameExpand: id =>
     set(s => ({ expandedFrameId: s.expandedFrameId === id ? null : id })),
-  setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error }),
+  setLoading: loading => set({ loading }),
+  setError: error => set({ error }),
 }))

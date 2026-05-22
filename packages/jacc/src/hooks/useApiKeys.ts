@@ -31,49 +31,66 @@ export function useApiKeys(providerId: number) {
   const { error } = useToast()
 
   const refresh = useCallback(async () => {
-    if (!providerId) return
+    if (!providerId)
+      return
     setLoading(true)
     try {
       const list = await invoke<ApiKeyView[]>('list_api_keys', { providerId })
       setApiKeys(list)
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [providerId, error])
 
-  const add = useCallback(async (input: CreateApiKeyInput) => {
-    try {
-      await invoke('add_api_key', { input })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const add = useCallback(
+    async (input: CreateApiKeyInput) => {
+      try {
+        await invoke('add_api_key', { input })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const update = useCallback(async (id: number, input: UpdateApiKeyInput) => {
-    try {
-      await invoke('update_api_key', { id, input })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const update = useCallback(
+    async (id: number, input: UpdateApiKeyInput) => {
+      try {
+        await invoke('update_api_key', { id, input })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const remove = useCallback(async (id: number) => {
-    try {
-      await invoke('delete_api_key', { id })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const remove = useCallback(
+    async (id: number) => {
+      try {
+        await invoke('delete_api_key', { id })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return { apiKeys, loading, refresh, add, update, remove }
 }

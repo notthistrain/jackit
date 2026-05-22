@@ -15,7 +15,7 @@ tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 tokio = { version = "1", features = ["full"] }
-serialport = "4"
+serialport = { version = "4", features = ["serde"] }
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 bytes = "1"
 dashmap = "6"

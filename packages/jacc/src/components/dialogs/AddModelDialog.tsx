@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
 import type { CreateModelInput } from '@/hooks/useModels'
+import { useEffect, useState } from 'react'
 import { useT } from '@/i18n'
 
 interface ModelDialogProps {
@@ -23,16 +23,20 @@ export function AddModelDialog({ open, onClose, onSubmit, apiKeyId, initialValue
     if (open && initialValues) {
       setModelName(initialValues.model_name)
       setContextSize(initialValues.context_size)
-    } else if (!open) {
-      setModelName(''); setContextSize('')
+    }
+    else if (!open) {
+      setModelName('')
+      setContextSize('')
     }
   }, [open, initialValues])
 
-  if (!open) return null
+  if (!open)
+    return null
   const isEdit = !!initialValues
 
   async function handleSubmit() {
-    if (!modelName) return
+    if (!modelName)
+      return
     setSubmitting(true)
     try {
       await onSubmit({
@@ -41,7 +45,8 @@ export function AddModelDialog({ open, onClose, onSubmit, apiKeyId, initialValue
         context_size: contextSize || null,
       })
       onClose()
-    } finally {
+    }
+    finally {
       setSubmitting(false)
     }
   }
@@ -54,25 +59,40 @@ export function AddModelDialog({ open, onClose, onSubmit, apiKeyId, initialValue
         </h3>
         <div className="flex flex-col gap-3.5">
           <div>
-            <div className="text-[11px] text-muted mb-1">{t('models.dialog.modelName')} *</div>
-            <input value={modelName} onChange={(e) => setModelName(e.target.value)}
+            <div className="text-[11px] text-muted mb-1">
+              {t('models.dialog.modelName')}
+              {' '}
+              *
+            </div>
+            <input
+              value={modelName}
+              onChange={e => setModelName(e.target.value)}
               placeholder={t('models.dialog.modelNamePlaceholder')}
-              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground" />
+              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
+            />
           </div>
           <div>
             <div className="text-[11px] text-muted mb-1">{t('models.dialog.contextSize')}</div>
-            <input value={contextSize} onChange={(e) => setContextSize(e.target.value)}
+            <input
+              value={contextSize}
+              onChange={e => setContextSize(e.target.value)}
               placeholder={t('models.dialog.contextSizePlaceholder')}
-              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground" />
+              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
+            />
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose}
-            className="px-4 py-2 border border-border text-xs text-muted-foreground rounded-[4px] hover:bg-sidebar">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-border text-xs text-muted-foreground rounded-[4px] hover:bg-sidebar"
+          >
             {t('models.dialog.cancel')}
           </button>
-          <button onClick={handleSubmit} disabled={submitting || !modelName}
-            className="px-4 py-2 bg-primary text-white text-xs rounded-[4px] disabled:opacity-50">
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !modelName}
+            className="px-4 py-2 bg-primary text-white text-xs rounded-[4px] disabled:opacity-50"
+          >
             {submitting ? t('models.dialog.saving') : t('models.dialog.save')}
           </button>
         </div>

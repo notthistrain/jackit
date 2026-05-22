@@ -12,13 +12,14 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({ open, title, message, confirmLabel, danger, onConfirm, onCancel }: ConfirmDialogProps) {
   const { t } = useT()
-  if (!open) return null
+  if (!open)
+    return null
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={onCancel}>
       <div
         className="bg-card border border-border rounded-[4px] p-5 w-[360px] shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <h3 className="text-[14px] font-medium text-foreground mb-2">{title}</h3>
         <p className="text-[12px] text-muted leading-relaxed">{message}</p>

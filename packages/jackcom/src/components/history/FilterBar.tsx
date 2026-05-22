@@ -10,12 +10,12 @@ interface FilterBarProps {
 export function FilterBar({ direction, protocol, onDirectionChange, onProtocolChange }: FilterBarProps) {
   const { root, label, pill, separator } = filterBar()
 
-  const directions: Array<{ value: 'all' | 'rx' | 'tx'; label: string }> = [
+  const directions: Array<{ value: 'all' | 'rx' | 'tx', label: string }> = [
     { value: 'all', label: 'All' },
     { value: 'rx', label: 'RX' },
     { value: 'tx', label: 'TX' },
   ]
-  const protocols: Array<{ value: string | null; label: string }> = [
+  const protocols: Array<{ value: string | null, label: string }> = [
     { value: null, label: 'All' },
     { value: 'raw', label: 'Raw' },
     { value: 'modbus', label: 'Modbus' },

@@ -1,5 +1,5 @@
-use crate::core::serial::config::SerialConfig;
 use crate::commands::types::*;
+use crate::core::serial::config::SerialConfig;
 
 #[tauri::command]
 pub fn get_config() -> Result<GetConfigResponse, String> {
@@ -29,11 +29,14 @@ pub async fn list_recent_sessions(
     .map_err(|e| e.to_string())?;
 
     Ok(ListRecentSessionsResponse {
-        sessions: sessions.into_iter().map(|s| SessionInfo {
-            id: s.id,
-            port_name: s.port_name,
-            baud_rate: s.baud_rate,
-            created_at: s.created_at,
-        }).collect(),
+        sessions: sessions
+            .into_iter()
+            .map(|s| SessionInfo {
+                id: s.id,
+                port_name: s.port_name,
+                baud_rate: s.baud_rate,
+                created_at: s.created_at,
+            })
+            .collect(),
     })
 }

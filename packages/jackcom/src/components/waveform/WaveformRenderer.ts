@@ -5,6 +5,10 @@ interface ChannelData {
   values: number[]
 }
 
+export interface WaveformRendererOptions {
+  onDeviceLost?: (reason: string) => void
+}
+
 export class WaveformRenderer {
   private device: GPUDevice | null = null
   private context: GPUCanvasContext | null = null
@@ -22,13 +26,29 @@ export class WaveformRenderer {
   private canvas: HTMLCanvasElement | null = null
   private msaaTexture: GPUTexture | null = null
   private msaaView: GPUTextureView | null = null
+  private msaaSampleCount: number = 4
+
+  // Pre-allocated CPU-side vertex buffer to avoid per-frame GC
+  private _cpuVertices: Float32Array = new Float32Array(0)
+  private _cpuVertexFloats = 0
+  // Dirty flag: skip render when nothing changed
+  private _dirty = true
+  private _onDeviceLost?: (reason: string) => void
+
+  constructor(options?: WaveformRendererOptions) {
+    this._onDeviceLost = options?.onDeviceLost
+  }
 
   isReady(): boolean {
     return this.device !== null && this.pipeline !== null
   }
 
+  /** Mark renderer as needing re-render. Call after canvas resize. */
+  markDirty(): void {
+    this._dirty = true
+  }
+
   async init(canvas: HTMLCanvasElement): Promise<boolean> {
-    // 检查 WebGPU 支持
     if (!navigator.gpu)
       return false
 
@@ -36,10 +56,24 @@ export class WaveformRenderer {
     if (!adapter)
       return false
 
-    this.device = await adapter.requestDevice()
+    // DPR-aware MSAA: high-DPI screens already render at high resolution
+    const dpr = window.devicePixelRatio || 1
+    this.msaaSampleCount = dpr > 1 ? 2 : 4
+
+    this.device = await adapter.requestDevice({
+      requiredLimits: {
+        maxBufferSize: adapter.limits.maxBufferSize,
+      },
+    })
+
+    // Handle GPU device loss (driver crash, sleep/wake, GPU switch)
+    this.device.lost.then((info) => {
+      this.destroy()
+      this._onDeviceLost?.(info.message)
+    })
+
     this.canvas = canvas
 
-    // 配置 canvas context
     this.context = canvas.getContext('webgpu')
     if (!this.context)
       return false
@@ -51,13 +85,12 @@ export class WaveformRenderer {
       alphaMode: 'premultiplied',
     })
 
-    // 创建 uniform buffer（16 个 float = 64 bytes，满足 16 字节对齐）
+    // Uniform buffer: resolution(2f) + num_channels + offset_x + zoom = 5 floats, padded to 32 bytes
     this.uniformBuffer = this.device.createBuffer({
-      size: 64,
+      size: 32,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     })
 
-    // 创建 bind group layout
     const bindGroupLayout = this.device.createBindGroupLayout({
       entries: [{
         binding: 0,
@@ -66,10 +99,16 @@ export class WaveformRenderer {
       }],
     })
 
-    // 创建 shader module（vertex 和 fragment 共用）
+    // Shader compilation with diagnostics
     const shaderModule = this.device.createShaderModule({ code: WAVEFORM_SHADER })
+    const compilationInfo = await shaderModule.getCompilationInfo()
+    for (const msg of compilationInfo.messages) {
+      if (msg.type === 'error') {
+        console.error(`[WebGPU] Shader compile error at line ${msg.lineNum}:${msg.linePos} — ${msg.message}`)
+        return false
+      }
+    }
 
-    // 创建 render pipeline
     this.pipeline = this.device.createRenderPipeline({
       layout: this.device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayout],
@@ -78,11 +117,11 @@ export class WaveformRenderer {
         module: shaderModule,
         entryPoint: 'line_vertex',
         buffers: [{
-          arrayStride: 12, // 3 x f32
+          arrayStride: 12,
           attributes: [
-            { shaderLocation: 0, offset: 0, format: 'float32' as GPUVertexFormat }, // point_index
-            { shaderLocation: 1, offset: 4, format: 'float32' as GPUVertexFormat }, // value
-            { shaderLocation: 2, offset: 8, format: 'float32' as GPUVertexFormat }, // channel_id
+            { shaderLocation: 0, offset: 0, format: 'float32' as GPUVertexFormat },
+            { shaderLocation: 1, offset: 4, format: 'float32' as GPUVertexFormat },
+            { shaderLocation: 2, offset: 8, format: 'float32' as GPUVertexFormat },
           ],
         }],
       },
@@ -95,11 +134,10 @@ export class WaveformRenderer {
         topology: 'line-strip',
       },
       multisample: {
-        count: 4,
+        count: this.msaaSampleCount,
       },
     })
 
-    // 创建 bind group
     this.bindGroup = this.device.createBindGroup({
       layout: bindGroupLayout,
       entries: [{
@@ -116,16 +154,19 @@ export class WaveformRenderer {
       name,
       values,
     }))
+    this._dirty = true
   }
 
   setZoom(level: number): void {
     this.autoFit = false
     this.zoom = Math.max(0.1, Math.min(level, 100))
+    this._dirty = true
   }
 
   setOffset(x: number): void {
     if (!this.canvas || this.channels.length === 0) {
       this.offsetX = x
+      this._dirty = true
       return
     }
     const maxLen = this.channels.reduce((max, ch) => Math.max(max, ch.values.length), 1)
@@ -134,6 +175,7 @@ export class WaveformRenderer {
     const minOffset = Math.min(0, 1 - maxLen / maxPoints)
     const maxOffset = Math.max(0, 1 - maxLen / maxPoints)
     this.offsetX = Math.max(minOffset, Math.min(x, maxOffset))
+    this._dirty = true
   }
 
   getZoom(): number {
@@ -147,6 +189,7 @@ export class WaveformRenderer {
   resetView(): void {
     this.autoFit = true
     this.offsetX = 0
+    this._dirty = true
   }
 
   getEffectiveZoom(): number {
@@ -176,8 +219,7 @@ export class WaveformRenderer {
     const effectiveZoom = this.getEffectiveZoom()
     const maxPoints = canvasWidth / effectiveZoom
     const offsetX = this.autoFit ? 0 : this.offsetX
-    const xClip = (screenX / canvasWidth) * 2 - 1
-    const xNorm = (xClip + 1) / 2
+    const xNorm = screenX / canvasWidth
     const pointIndex = Math.round((xNorm - offsetX) * maxPoints)
     if (pointIndex < 0)
       return null
@@ -189,19 +231,48 @@ export class WaveformRenderer {
     return { index: pointIndex, values }
   }
 
+  /** Fill pre-allocated CPU vertex buffer. No per-frame allocation. */
+  private buildVertexData(): void {
+    let totalFloats = 0
+    for (const ch of this.channels)
+      totalFloats += ch.values.length * 3
+
+    // Grow CPU buffer with power-of-2 doubling
+    if (totalFloats > this._cpuVertices.length) {
+      let newSize = Math.max(256, this._cpuVertices.length)
+      while (newSize < totalFloats)
+        newSize *= 2
+      this._cpuVertices = new Float32Array(newSize)
+    }
+
+    let offset = 0
+    for (let ch = 0; ch < this.channels.length; ch++) {
+      const { values } = this.channels[ch]
+      for (let i = 0; i < values.length; i++) {
+        this._cpuVertices[offset++] = i
+        this._cpuVertices[offset++] = values[i]
+        this._cpuVertices[offset++] = ch
+      }
+    }
+    this._cpuVertexFloats = offset
+  }
+
   render(): void {
     if (!this.device || !this.context || !this.pipeline || !this.uniformBuffer || !this.bindGroup || !this.canvas)
+      return
+
+    if (!this._dirty)
       return
 
     const width = this.canvas.width
     const height = this.canvas.height
 
-    // 确保 MSAA 纹理尺寸匹配
+    // Ensure MSAA texture size matches canvas
     if (!this.msaaTexture || this.msaaTexture.width !== width || this.msaaTexture.height !== height) {
       this.msaaTexture?.destroy()
       this.msaaTexture = this.device.createTexture({
         size: [width, height],
-        sampleCount: 4,
+        sampleCount: this.msaaSampleCount,
         format: this.format,
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       })
@@ -209,51 +280,47 @@ export class WaveformRenderer {
     }
 
     const effectiveZoom = this.getEffectiveZoom()
-    // 更新 uniforms
+
+    // Update uniforms (5 floats = 20 bytes, buffer is 32 bytes)
     const uniformData = new Float32Array([
       width,
       height, // resolution
-      10.0, // time_window
       this.channels.length, // num_channels
       this.autoFit ? 0 : this.offsetX, // offset_x
       effectiveZoom, // zoom
-      0,
-      0,
-      0,
-      0, // padding
     ])
     this.device.queue.writeBuffer(this.uniformBuffer, 0, uniformData)
 
-    // 构建顶点数据
-    const vertices: number[] = []
-    for (let ch = 0; ch < this.channels.length; ch++) {
-      const { values } = this.channels[ch]
-      for (let i = 0; i < values.length; i++) {
-        vertices.push(i, values[i], ch)
-      }
-    }
+    // Build vertex data into pre-allocated buffer
+    this.buildVertexData()
+    const neededBytes = this._cpuVertexFloats * 4
 
-    // 创建/复用顶点 buffer
-    const vertexData = new Float32Array(vertices)
-    const neededSize = vertexData.byteLength
-    if (!this.vertexBuffer || this.vertexBufferSize < neededSize) {
+    // Grow GPU vertex buffer with power-of-2 doubling, capped at 16 MB
+    if (!this.vertexBuffer || this.vertexBufferSize < neededBytes) {
       this.vertexBuffer?.destroy()
+      let gpuSize = Math.max(64, this.vertexBufferSize)
+      while (gpuSize < neededBytes)
+        gpuSize *= 2
+      gpuSize = Math.min(gpuSize, 16 * 1024 * 1024)
       this.vertexBuffer = this.device.createBuffer({
-        size: neededSize || 4, // 至少 4 bytes 避免 0 size
+        size: gpuSize,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
       })
-      this.vertexBufferSize = neededSize || 4
+      this.vertexBufferSize = gpuSize
     }
-    this.device.queue.writeBuffer(this.vertexBuffer, 0, vertexData)
 
-    // 渲染
+    if (this._cpuVertexFloats > 0) {
+      this.device.queue.writeBuffer(this.vertexBuffer, 0, this._cpuVertices.buffer as ArrayBuffer, this._cpuVertices.byteOffset, this._cpuVertexFloats * 4)
+    }
+
+    // Render pass
     const textureView = this.context.getCurrentTexture().createView()
     const commandEncoder = this.device.createCommandEncoder()
     const passEncoder = commandEncoder.beginRenderPass({
       colorAttachments: [{
         view: this.msaaView!,
         resolveTarget: textureView,
-        clearValue: { r: 0.118, g: 0.118, b: 0.118, a: 1.0 }, // --color-editor-bg
+        clearValue: { r: 0.118, g: 0.118, b: 0.118, a: 1.0 },
         loadOp: 'clear',
         storeOp: 'discard',
       }],
@@ -261,21 +328,20 @@ export class WaveformRenderer {
 
     passEncoder.setPipeline(this.pipeline)
     passEncoder.setBindGroup(0, this.bindGroup)
-    if (vertices.length > 0 && this.vertexBuffer) {
+    if (this._cpuVertexFloats > 0 && this.vertexBuffer) {
       passEncoder.setVertexBuffer(0, this.vertexBuffer)
-      // 分通道绘制，避免通道间出现连接线
       let firstVertex = 0
       for (const ch of this.channels) {
         const count = ch.values.length
-        if (count >= 2) {
+        if (count >= 2)
           passEncoder.draw(count, 1, firstVertex)
-        }
         firstVertex += count
       }
     }
     passEncoder.end()
 
     this.device.queue.submit([commandEncoder.finish()])
+    this._dirty = false
   }
 
   startRenderLoop(): void {
@@ -309,5 +375,7 @@ export class WaveformRenderer {
     this.bindGroup = null
     this.channels = []
     this.canvas = null
+    this._cpuVertices = new Float32Array(0)
+    this._cpuVertexFloats = 0
   }
 }

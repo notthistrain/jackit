@@ -7,10 +7,10 @@ import { listen } from '@tauri-apps/api/event'
 export interface SerialConfig {
   port_name: string
   baud_rate: number
-  data_bits: 'five' | 'six' | 'seven' | 'eight'
-  stop_bits: 'one' | 'two'
-  parity: 'none' | 'odd' | 'even'
-  flow_control: 'none' | 'hardware' | 'software'
+  data_bits: 'Five' | 'Six' | 'Seven' | 'Eight'
+  stop_bits: 'One' | 'Two'
+  parity: 'None' | 'Odd' | 'Even'
+  flow_control: 'None' | 'Software' | 'Hardware'
 }
 
 export interface DisplayFrame {

@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
-import { useAppStore } from '@/stores/useAppStore'
 import { useToast } from '@/components/toast/ToastProvider'
+import { useAppStore } from '@/stores/useAppStore'
 
 export interface MergedConfigItem {
   key: string
@@ -26,9 +26,11 @@ export function useConfig() {
         projectPath: currentProject || '',
       })
       setConfig(result)
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [currentProject, error])
@@ -43,7 +45,8 @@ export function useConfig() {
           value,
         })
         await refresh()
-      } catch (e) {
+      }
+      catch (e) {
         error(String(e))
         throw e
       }
@@ -60,7 +63,8 @@ export function useConfig() {
           key,
         })
         await refresh()
-      } catch (e) {
+      }
+      catch (e) {
         error(String(e))
         throw e
       }

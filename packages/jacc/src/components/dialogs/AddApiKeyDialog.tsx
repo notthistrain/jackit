@@ -1,6 +1,6 @@
+import type { CreateApiKeyInput } from '@/hooks/useApiKeys'
 import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { CreateApiKeyInput } from '@/hooks/useApiKeys'
 import { useT } from '@/i18n'
 
 interface ApiKeyDialogProps {
@@ -28,16 +28,21 @@ export function AddApiKeyDialog({ open, onClose, onSubmit, providerId, initialVa
       setName(initialValues.name)
       setApiKey(initialValues.api_key)
       setNotes(initialValues.notes)
-    } else if (!open) {
-      setName(''); setApiKey(''); setNotes('')
+    }
+    else if (!open) {
+      setName('')
+      setApiKey('')
+      setNotes('')
     }
   }, [open, initialValues])
 
-  if (!open) return null
+  if (!open)
+    return null
   const isEdit = !!initialValues
 
   async function handleSubmit() {
-    if (!name || (!isEdit && !apiKey)) return
+    if (!name || (!isEdit && !apiKey))
+      return
     setSubmitting(true)
     try {
       await onSubmit({
@@ -47,7 +52,8 @@ export function AddApiKeyDialog({ open, onClose, onSubmit, providerId, initialVa
         notes: notes || null,
       })
       onClose()
-    } finally {
+    }
+    finally {
       setSubmitting(false)
     }
   }
@@ -60,40 +66,62 @@ export function AddApiKeyDialog({ open, onClose, onSubmit, providerId, initialVa
         </h3>
         <div className="flex flex-col gap-3.5">
           <div>
-            <div className="text-[11px] text-muted mb-1">{t('apiKeys.dialog.name')} {!isEdit && '*'}</div>
-            <input value={name} onChange={(e) => setName(e.target.value)}
+            <div className="text-[11px] text-muted mb-1">
+              {t('apiKeys.dialog.name')}
+              {' '}
+              {!isEdit && '*'}
+            </div>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
               placeholder={t('apiKeys.dialog.namePlaceholder')}
-              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground" />
+              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
+            />
           </div>
           <div>
             <div className="text-[11px] text-muted mb-1">
-              {isEdit ? t('apiKeys.dialog.apiKeyEdit') : t('apiKeys.dialog.apiKey')} {!isEdit && '*'}
+              {isEdit ? t('apiKeys.dialog.apiKeyEdit') : t('apiKeys.dialog.apiKey')}
+              {' '}
+              {!isEdit && '*'}
             </div>
             <div className="relative">
-              <input type={showKey ? 'text' : 'password'} value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
                 placeholder={isEdit ? t('apiKeys.dialog.apiKeyEditPlaceholder') : t('apiKeys.dialog.apiKeyPlaceholder')}
-                className="w-full bg-sidebar border border-border px-3 py-2 pr-9 rounded-[4px] text-xs text-foreground" />
-              <button onClick={() => setShowKey(!showKey)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">
+                className="w-full bg-sidebar border border-border px-3 py-2 pr-9 rounded-[4px] text-xs text-foreground"
+              />
+              <button
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
+              >
                 {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
           </div>
           <div>
             <div className="text-[11px] text-muted mb-1">{t('apiKeys.dialog.notes')}</div>
-            <input value={notes} onChange={(e) => setNotes(e.target.value)}
+            <input
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
               placeholder={t('apiKeys.dialog.notesPlaceholder')}
-              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground" />
+              className="w-full bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
+            />
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose}
-            className="px-4 py-2 border border-border text-xs text-muted-foreground rounded-[4px] hover:bg-sidebar">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-border text-xs text-muted-foreground rounded-[4px] hover:bg-sidebar"
+          >
             {t('models.dialog.cancel')}
           </button>
-          <button onClick={handleSubmit} disabled={submitting || !name || (!isEdit && !apiKey)}
-            className="px-4 py-2 bg-primary text-white text-xs rounded-[4px] disabled:opacity-50">
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !name || (!isEdit && !apiKey)}
+            className="px-4 py-2 bg-primary text-white text-xs rounded-[4px] disabled:opacity-50"
+          >
             {submitting ? t('models.dialog.saving') : t('models.dialog.save')}
           </button>
         </div>

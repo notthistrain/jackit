@@ -81,8 +81,15 @@ async fn flush(
         let display_frames: Vec<DisplayFrame> = events
             .iter()
             .filter_map(|ev| {
-                if let PortEvent::Data { frames, direction, .. } = ev.as_ref() {
-                    Some(frames.iter().map(|f| to_display_frame(f, *direction, frame_id)))
+                if let PortEvent::Data {
+                    frames, direction, ..
+                } = ev.as_ref()
+                {
+                    Some(
+                        frames
+                            .iter()
+                            .map(|f| to_display_frame(f, *direction, frame_id)),
+                    )
                 } else {
                     None
                 }
@@ -92,7 +99,8 @@ async fn flush(
 
         if !display_frames.is_empty() {
             // 取最后一条帧的方向作为本批次方向（大多数情况同一批次方向一致）
-            let batch_direction = display_frames.last()
+            let batch_direction = display_frames
+                .last()
                 .map(|f| f.direction)
                 .unwrap_or(Direction::Rx);
             let _ = app.emit(

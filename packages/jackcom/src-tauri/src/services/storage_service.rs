@@ -33,7 +33,8 @@ pub async fn export_streaming(
 ) -> Result<usize> {
     use tokio::io::AsyncWriteExt;
 
-    let mut file = tokio::fs::File::create(file_path).await
+    let mut file = tokio::fs::File::create(file_path)
+        .await
         .context("创建导出文件失败")?;
     let mut offset = 0i64;
     let page_size = 1000i64;
@@ -41,7 +42,9 @@ pub async fn export_streaming(
 
     loop {
         let rows = frame_repo::query_frames_paginated(pool, session_id, page_size, offset).await?;
-        if rows.is_empty() { break; }
+        if rows.is_empty() {
+            break;
+        }
         for row in &rows {
             let line = format_row(row, format);
             file.write_all(line.as_bytes()).await?;
@@ -55,20 +58,26 @@ pub async fn export_streaming(
 }
 
 fn format_row(row: &FrameRecord, format: &str) -> String {
-    let hex: String = row.raw_data.iter()
+    let hex: String = row
+        .raw_data
+        .iter()
         .map(|b| format!("{:02X}", b))
         .collect::<Vec<_>>()
         .join(" ");
 
     match format {
-        "csv" => format!("{},{},{},{},{}", row.timestamp, row.direction, row.protocol, hex, row.summary),
+        "csv" => format!(
+            "{},{},{},{},{}",
+            row.timestamp, row.direction, row.protocol, hex, row.summary
+        ),
         "json" => serde_json::json!({
             "timestamp": row.timestamp,
             "direction": row.direction,
             "protocol": row.protocol,
             "raw_data": hex,
             "summary": row.summary,
-        }).to_string(),
+        })
+        .to_string(),
         "hex" => hex,
         _ => hex,
     }

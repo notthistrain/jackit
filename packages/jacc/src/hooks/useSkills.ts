@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
-import { useAppStore } from '@/stores/useAppStore'
 import { useToast } from '@/components/toast/ToastProvider'
+import { useAppStore } from '@/stores/useAppStore'
 
 export interface SkillInfo {
   name: string
@@ -22,33 +22,38 @@ export function useSkills() {
   const { error } = useToast()
 
   const refresh = useCallback(async () => {
-    if (!currentProject) return
+    if (!currentProject)
+      return
     setLoading(true)
     try {
       const list = await invoke<SkillInfo[]>('list_skills', { projectPath: currentProject })
       setSkills(list)
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [currentProject, error])
 
   const toggle = useCallback(
     async (name: string, enabled: boolean) => {
-      if (!currentProject) return
+      if (!currentProject)
+        return
 
       // 乐观更新：立即修改本地状态
-      setSkills((prev) =>
-        prev.map((s) => (s.name === name ? { ...s, enabled } : s)),
+      setSkills(prev =>
+        prev.map(s => (s.name === name ? { ...s, enabled } : s)),
       )
 
       try {
         await invoke('toggle_skill', { projectPath: currentProject, name, enabled })
-      } catch (e) {
+      }
+      catch (e) {
         // 失败回滚
-        setSkills((prev) =>
-          prev.map((s) => (s.name === name ? { ...s, enabled: !enabled } : s)),
+        setSkills(prev =>
+          prev.map(s => (s.name === name ? { ...s, enabled: !enabled } : s)),
         )
         error(String(e))
       }
@@ -58,11 +63,13 @@ export function useSkills() {
 
   const importSkill = useCallback(
     async (sourcePath: string) => {
-      if (!currentProject) return
+      if (!currentProject)
+        return
       try {
         await invoke('import_skill', { projectPath: currentProject, sourcePath })
         await refresh()
-      } catch (e) {
+      }
+      catch (e) {
         error(String(e))
         throw e
       }
@@ -72,13 +79,15 @@ export function useSkills() {
 
   const installFromGithub = useCallback(
     async (repoUrl: string): Promise<GithubInstallResult> => {
-      if (!currentProject) return { temp_dir: '', skills: [] }
+      if (!currentProject)
+        return { temp_dir: '', skills: [] }
       try {
         return await invoke<GithubInstallResult>('install_skill_from_github', {
           projectPath: currentProject,
           repoUrl,
         })
-      } catch (e) {
+      }
+      catch (e) {
         error(String(e))
         throw e
       }
@@ -88,7 +97,8 @@ export function useSkills() {
 
   const confirmInstall = useCallback(
     async (tempDir: string, skillNames: string[]) => {
-      if (!currentProject) return
+      if (!currentProject)
+        return
       try {
         await invoke('confirm_install_skill', {
           projectPath: currentProject,
@@ -96,7 +106,8 @@ export function useSkills() {
           skillNames,
         })
         await refresh()
-      } catch (e) {
+      }
+      catch (e) {
         error(String(e))
         throw e
       }

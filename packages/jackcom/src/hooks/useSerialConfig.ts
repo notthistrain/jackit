@@ -1,12 +1,15 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
+
+export type Parity = 'None' | 'Odd' | 'Even' | 'Mark' | 'Space'
+export type FlowControl = 'None' | 'Software' | 'Hardware'
 
 export interface SerialConfig {
   portName: string
   baudRate: number
   dataBits: number
   stopBits: number
-  parity: string
-  flowControl: string
+  parity: Parity
+  flowControl: FlowControl
 }
 
 const STORAGE_KEY = 'jackcom:serial-config'
@@ -18,23 +21,31 @@ const defaultConfig: SerialConfig = {
   baudRate: 115200,
   dataBits: 8,
   stopBits: 1,
-  parity: 'none',
-  flowControl: 'none',
+  parity: 'None',
+  flowControl: 'None',
 }
 
 function loadConfig(): SerialConfig {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) return { ...defaultConfig, ...JSON.parse(saved) }
-  } catch { /* ignore */ }
+    if (saved)
+      return { ...defaultConfig, ...JSON.parse(saved) }
+  }
+  catch {
+    /* ignore */
+  }
   return { ...defaultConfig }
 }
 
 function loadRecent(): SerialConfig[] {
   try {
     const saved = localStorage.getItem(RECENT_KEY)
-    if (saved) return JSON.parse(saved)
-  } catch { /* ignore */ }
+    if (saved)
+      return JSON.parse(saved)
+  }
+  catch {
+    /* ignore */
+  }
   return []
 }
 
@@ -43,20 +54,28 @@ export function useSerialConfig() {
   const [recentConfigs, setRecentConfigs] = useState<SerialConfig[]>(loadRecent)
 
   const setConfig = useCallback((partial: Partial<SerialConfig>) => {
-    setConfigState(prev => {
+    setConfigState((prev) => {
       const next = { ...prev, ...partial }
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      }
+      catch {
+        /* ignore */
+      }
       return next
     })
   }, [])
 
   const saveAsRecent = useCallback(() => {
-    setRecentConfigs(prev => {
-      const filtered = prev.filter(
-        c => !(c.portName === config.portName && c.baudRate === config.baudRate)
-      )
+    setRecentConfigs((prev) => {
+      const filtered = prev.filter(c => !(c.portName === config.portName && c.baudRate === config.baudRate))
       const next = [config, ...filtered].slice(0, MAX_RECENT)
-      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      try {
+        localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+      }
+      catch {
+        /* ignore */
+      }
       return next
     })
   }, [config])

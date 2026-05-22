@@ -1,11 +1,12 @@
-import { useMainStore } from '@/lib/store'
 import { useT } from '@/i18n'
+import { useMainStore } from '@/lib/store'
 import { ConnectionList } from './ConnectionList'
 import { QuickSendPanel } from './QuickSendPanel'
 import { sidebar } from './sidebar.variants'
 
 export function Sidebar() {
-  const { sidebarVisible, sidebarTab } = useMainStore()
+  const sidebarVisible = useMainStore(s => s.sidebarVisible)
+  const sidebarTab = useMainStore(s => s.sidebarTab)
   const { t } = useT()
   const { root, header, content } = sidebar()
 

@@ -34,12 +34,12 @@ describe('sendBar', () => {
     expect(onSend).toHaveBeenCalledWith([72, 101, 108, 108, 111])
   })
 
-  it('shows error border for invalid hex', () => {
+  it('shows error class for invalid hex', () => {
     render(<SendBar onSend={vi.fn()} />)
     const input = screen.getByPlaceholderText('01 03 00 00 00 0A C5 CD') as HTMLInputElement
     fireEvent.change(input, { target: { value: 'GG' } })
-    // error state applies inline border style with --color-error
-    expect(input.style.border).toContain('var(--color-error)')
+    // error state applies border-error CSS class
+    expect(input.className).toContain('border-error')
   })
 
   it('adds line ending when selected', () => {

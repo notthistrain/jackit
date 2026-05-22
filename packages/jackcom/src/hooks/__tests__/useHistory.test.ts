@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { useHistory } from '../useHistory'
 
 const mockInvoke = vi.fn()
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: (...args: any[]) => mockInvoke(...args),
 }))
-
-import { useHistory } from '../useHistory'
 
 describe('useHistory', () => {
   beforeEach(() => {

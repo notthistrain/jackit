@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { MenuItem } from '../MenuItem'
 
-describe('MenuItem', () => {
+describe('menuItem', () => {
   it('renders label text', () => {
     render(<MenuItem label="File" />)
     expect(screen.getByText('File')).toBeTruthy()

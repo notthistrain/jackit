@@ -4,7 +4,9 @@ import { connectionList } from './connection-list.variants'
 
 export function ConnectionList() {
   const { t } = useT()
-  const { connections, activePortId, setActivePortId } = useMainStore()
+  const connections = useMainStore(s => s.connections)
+  const activePortId = useMainStore(s => s.activePortId)
+  const setActivePortId = useMainStore(s => s.setActivePortId)
   const connList = Object.values(connections)
   const { empty, list, item, row, statusDot, portName, baudRate } = connectionList()
 

@@ -68,8 +68,9 @@ impl IoThread {
                             let mut bytes_mut = BytesMut::new();
                             bytes_mut.extend_from_slice(&buf[..n]);
                             let bytes = bytes_mut.freeze();
-                            if data_tx.blocking_send(bytes).is_err() {
-                                break; // channel closed
+                            if let Err(e) = data_tx.blocking_send(bytes) {
+                                tracing::warn!("数据通道已关闭，丢弃 {} 字节，IO 线程退出", e.0.len());
+                                break;
                             }
                         }
                         Ok(_) => {} // n == 0, ignore
@@ -93,9 +94,9 @@ impl IoThread {
 
     /// 发送数据到串口
     pub fn send(&self, data: Vec<u8>) -> io::Result<()> {
-        self.write_tx.send(data).map_err(|e| {
-            io::Error::new(io::ErrorKind::BrokenPipe, format!("IO 线程已关闭: {e}"))
-        })
+        self.write_tx
+            .send(data)
+            .map_err(|e| io::Error::new(io::ErrorKind::BrokenPipe, format!("IO 线程已关闭: {e}")))
     }
 }
 
@@ -123,7 +124,7 @@ mod tests {
 
         // 创建一个 mock serial port（这里用 /dev/null 模拟）
         // 实际测试需要 mock，此处仅验证通道机制
-        let config = IoThreadConfig::default();
+        let _config = IoThreadConfig::default();
         // 注意：实际运行需要真实串口，此处仅验证结构
         assert!(data_tx.capacity() >= 4096);
         cancel.cancel();

@@ -1,16 +1,24 @@
 import { useEffect } from 'react'
-import { useT } from '@/i18n'
-import { useHistory } from '@/hooks/useHistory'
-import { SessionList } from '@/components/history/SessionList'
 import { FilterBar } from '@/components/history/FilterBar'
 import { FrameTable } from '@/components/history/FrameTable'
+import { SessionList } from '@/components/history/SessionList'
+import { useHistory } from '@/hooks/useHistory'
+import { useT } from '@/i18n'
 
-export default function HistoryApp() {
+export function HistoryApp() {
   const { t } = useT()
   const { store, loadSessions, loadFrames, exportCsv } = useHistory()
   const {
-    sessions, selectedSessionId, frames, totalFrames,
-    page, pageSize, directionFilter, protocolFilter, expandedFrameId, loading,
+    sessions,
+    selectedSessionId,
+    frames,
+    totalFrames,
+    page,
+    pageSize,
+    directionFilter,
+    protocolFilter,
+    expandedFrameId,
+    loading,
   } = store
 
   // 挂载时加载会话列表
@@ -26,7 +34,8 @@ export default function HistoryApp() {
   }, [selectedSessionId, directionFilter, protocolFilter, page, loadFrames])
 
   const handleExport = async () => {
-    if (selectedSessionId === null) return
+    if (selectedSessionId === null)
+      return
     await exportCsv(selectedSessionId)
   }
 
@@ -41,7 +50,8 @@ export default function HistoryApp() {
       display: 'flex',
       fontFamily: 'Consolas, "Courier New", monospace',
       fontSize: '11px',
-    }}>
+    }}
+    >
       {/* 左侧会话列表 */}
       <div style={{
         width: '200px',
@@ -49,7 +59,8 @@ export default function HistoryApp() {
         borderRight: '1px solid var(--color-border)',
         display: 'flex',
         flexDirection: 'column',
-      }}>
+      }}
+      >
         <div style={{
           padding: '6px 10px',
           fontSize: '11px',
@@ -57,7 +68,8 @@ export default function HistoryApp() {
           color: 'var(--color-text-secondary)',
           letterSpacing: '0.5px',
           borderBottom: '1px solid var(--color-border)',
-        }}>
+        }}
+        >
           {t('history.sessions')}
         </div>
         <SessionList
@@ -90,28 +102,43 @@ export default function HistoryApp() {
           color: 'var(--color-text-secondary)',
           fontSize: '10px',
           alignItems: 'center',
-        }}>
-          <span>{totalFrames.toLocaleString()} {t('history.frames')}</span>
-          {totalFrames > 0 && <>
-            <span>|</span>
-            <span>{t('history.showing')} {startIdx}-{endIdx}</span>
-          </>}
-          {selectedSessionId !== null && <>
-            <span>|</span>
-            <button
-              onClick={handleExport}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--color-accent)',
-                cursor: 'pointer',
-                fontSize: '10px',
-                padding: 0,
-              }}
-            >
-              {t('history.export')}
-            </button>
-          </>}
+        }}
+        >
+          <span>
+            {totalFrames.toLocaleString()}
+            {' '}
+            {t('history.frames')}
+          </span>
+          {totalFrames > 0 && (
+            <>
+              <span>|</span>
+              <span>
+                {t('history.showing')}
+                {' '}
+                {startIdx}
+                -
+                {endIdx}
+              </span>
+            </>
+          )}
+          {selectedSessionId !== null && (
+            <>
+              <span>|</span>
+              <button
+                onClick={handleExport}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-accent)',
+                  cursor: 'pointer',
+                  fontSize: '10px',
+                  padding: 0,
+                }}
+              >
+                {t('history.export')}
+              </button>
+            </>
+          )}
           {loading && <span style={{ color: 'var(--color-accent)' }}>{t('history.loading')}</span>}
         </div>
       </div>

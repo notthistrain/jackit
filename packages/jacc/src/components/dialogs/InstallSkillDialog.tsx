@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import type { SkillInfo } from '@/hooks/useSkills'
+import { useState } from 'react'
 import { useT } from '@/i18n'
 
 interface GithubInstallResult {
@@ -24,10 +24,12 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
   const [tempDir, setTempDir] = useState('')
   const [error, setError] = useState('')
 
-  if (!open) return null
+  if (!open)
+    return null
 
   async function handleFetch() {
-    if (!repoUrl.trim()) return
+    if (!repoUrl.trim())
+      return
     setFetching(true)
     setAvailable([])
     setSelected(new Set())
@@ -39,9 +41,11 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
       if (result.skills.length === 0) {
         setError(t('skills.install.noSkills'))
       }
-    } catch (e) {
+    }
+    catch (e) {
       setError(String(e))
-    } finally {
+    }
+    finally {
       setFetching(false)
     }
   }
@@ -50,14 +54,16 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
     const next = new Set(selected)
     if (next.has(name)) {
       next.delete(name)
-    } else {
+    }
+    else {
       next.add(name)
     }
     setSelected(next)
   }
 
   async function handleInstall() {
-    if (selected.size === 0 || !tempDir) return
+    if (selected.size === 0 || !tempDir)
+      return
     setInstalling(true)
     try {
       await onConfirm(tempDir, Array.from(selected))
@@ -65,7 +71,8 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
       setRepoUrl('')
       setAvailable([])
       setSelected(new Set())
-    } finally {
+    }
+    finally {
       setInstalling(false)
     }
   }
@@ -80,7 +87,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
           <div className="flex gap-2">
             <input
               value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
+              onChange={e => setRepoUrl(e.target.value)}
               placeholder={t('skills.install.repoPlaceholder')}
               className="flex-1 bg-sidebar border border-border px-3 py-2 rounded-[4px] text-xs text-foreground"
             />
@@ -110,7 +117,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
           <div className="mb-4">
             <div className="text-[11px] text-muted mb-2">{t('skills.install.selectLabel')}</div>
             <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
-              {available.map((skill) => (
+              {available.map(skill => (
                 <label
                   key={skill.name}
                   className={`flex items-center gap-2 px-3 py-2 rounded-[4px] cursor-pointer border ${

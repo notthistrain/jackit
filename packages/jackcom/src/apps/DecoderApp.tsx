@@ -34,8 +34,11 @@ function labelStyle(color: string): React.CSSProperties {
   }
 }
 
-export default function DecoderApp() {
-  const { portId, setPortId, pinnedFrame, pinFrame } = useDecoderStore()
+export function DecoderApp() {
+  const portId = useDecoderStore(s => s.portId)
+  const setPortId = useDecoderStore(s => s.setPortId)
+  const pinnedFrame = useDecoderStore(s => s.pinnedFrame)
+  const pinFrame = useDecoderStore(s => s.pinFrame)
   const { frames } = useDataFeed({ portId })
 
   useEffect(() => {

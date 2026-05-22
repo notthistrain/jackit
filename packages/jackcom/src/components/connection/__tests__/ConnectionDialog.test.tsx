@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConnectionDialog } from '../ConnectionDialog'
 
 // --- Mocks ---
@@ -47,12 +47,13 @@ vi.mock('@/hooks/useSerialPort', () => ({
 // store
 const mockToggleDialog = vi.fn()
 vi.mock('@/lib/store', () => ({
-  useMainStore: () => ({
-    toggleConnectionDialog: mockToggleDialog,
+  useMainStore: vi.fn((selector?: any) => {
+    const state = { toggleConnectionDialog: mockToggleDialog }
+    return selector ? selector(state) : state
   }),
 }))
 
-describe('ConnectionDialog', () => {
+describe('connectionDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockConfig = {
@@ -88,8 +89,8 @@ describe('ConnectionDialog', () => {
       expect(mockOpen).toHaveBeenCalledWith({
         port_name: 'COM3',
         baud_rate: 115200,
-        data_bits: 'eight',
-        stop_bits: 'one',
+        data_bits: 'Eight',
+        stop_bits: 'One',
         parity: 'none',
         flow_control: 'none',
       })
@@ -148,8 +149,8 @@ describe('ConnectionDialog', () => {
       expect(mockOpen).toHaveBeenCalledWith({
         port_name: 'COM5',
         baud_rate: 57600,
-        data_bits: 'seven',
-        stop_bits: 'two',
+        data_bits: 'Seven',
+        stop_bits: 'Two',
         parity: 'even',
         flow_control: 'hardware',
       })

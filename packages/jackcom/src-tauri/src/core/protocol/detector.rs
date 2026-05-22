@@ -669,7 +669,7 @@ mod auto_detector_tests {
     fn detect_raw_fallback() {
         let mut detector = AutoDetector::new();
         // 随机二进制数据，所有检测器都会拒绝
-        let frames = detector.process(&[0xFF, 0xFE, 0xFD]);
+        let _frames = detector.process(&[0xFF, 0xFE, 0xFD]);
         // 二进制数据：JSON 检测器拒绝，AT 检测器 NeedMore（等待换行），
         // Modbus 检测器 NeedMore，所以不是所有都拒绝 -> NeedMore 等待
         // 这是预期行为

@@ -1,5 +1,11 @@
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { invoke } from '@tauri-apps/api/core'
+import { act, renderHook, waitFor } from '@testing-library/react'
+
 import { vi } from 'vitest'
+import { useApiKeys } from './useApiKeys'
+import { useModels } from './useModels'
+import { useProviders } from './useProviders'
+import { useSlotBindings } from './useSlotBindings'
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
@@ -12,18 +18,14 @@ vi.mock('@/components/toast/ToastProvider', () => ({
   useToast: () => mockToast,
 }))
 
-import { invoke } from '@tauri-apps/api/core'
-import { useProviders } from './useProviders'
-import { useApiKeys } from './useApiKeys'
-import { useModels } from './useModels'
-import { useSlotBindings } from './useSlotBindings'
-
 // -- useProviders tests --
 
 describe('useProviders', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  test('mounts and calls list_providers', async () => {
+  it('mounts and calls list_providers', async () => {
     const mockProviders = [
       { id: 1, name: 'Anthropic', base_url: 'https://api.anthropic.com', notes: null, created_at: '', updated_at: '' },
     ]
@@ -37,11 +39,20 @@ describe('useProviders', () => {
     expect(invoke).toHaveBeenCalledWith('list_providers')
   })
 
-  test('.add() calls add_provider then refreshes', async () => {
+  it('.add() calls add_provider then refreshes', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([]) // initial list
-      .mockResolvedValueOnce({ id: 1, name: 'New', base_url: 'https://new.com', notes: null, created_at: '', updated_at: '' }) // add
-      .mockResolvedValueOnce([{ id: 1, name: 'New', base_url: 'https://new.com', notes: null, created_at: '', updated_at: '' }]) // refresh
+      .mockResolvedValueOnce({
+        id: 1,
+        name: 'New',
+        base_url: 'https://new.com',
+        notes: null,
+        created_at: '',
+        updated_at: '',
+      }) // add
+      .mockResolvedValueOnce([
+        { id: 1, name: 'New', base_url: 'https://new.com', notes: null, created_at: '', updated_at: '' },
+      ]) // refresh
 
     const { result } = renderHook(() => useProviders())
     await waitFor(() => expect(result.current.providers).toEqual([]))
@@ -55,7 +66,7 @@ describe('useProviders', () => {
     })
   })
 
-  test('.remove() calls delete_provider then refreshes', async () => {
+  it('.remove() calls delete_provider then refreshes', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([]) // initial list
       .mockResolvedValueOnce(undefined) // delete
@@ -75,11 +86,21 @@ describe('useProviders', () => {
 // -- useApiKeys tests --
 
 describe('useApiKeys', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  test('calls list_api_keys with provider_id on mount', async () => {
+  it('calls list_api_keys with provider_id on mount', async () => {
     vi.mocked(invoke).mockResolvedValueOnce([
-      { id: 1, provider_id: 10, name: 'Main', api_key_masked: 'sk-ant-1***', notes: null, created_at: '', updated_at: '' },
+      {
+        id: 1,
+        provider_id: 10,
+        name: 'Main',
+        api_key_masked: 'sk-ant-1***',
+        notes: null,
+        created_at: '',
+        updated_at: '',
+      },
     ])
 
     const { result } = renderHook(() => useApiKeys(10))
@@ -90,7 +111,7 @@ describe('useApiKeys', () => {
     expect(invoke).toHaveBeenCalledWith('list_api_keys', { providerId: 10 })
   })
 
-  test('.add() calls add_api_key then refreshes', async () => {
+  it('.add() calls add_api_key then refreshes', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([]) // initial
       .mockResolvedValueOnce(undefined) // add
@@ -112,9 +133,11 @@ describe('useApiKeys', () => {
 // -- useModels tests --
 
 describe('useModels', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  test('calls list_models with api_key_id on mount', async () => {
+  it('calls list_models with api_key_id on mount', async () => {
     vi.mocked(invoke).mockResolvedValueOnce([
       { id: 1, api_key_id: 5, model_name: 'claude-opus-4-6', context_size: '200k', created_at: '', updated_at: '' },
     ])
@@ -127,7 +150,7 @@ describe('useModels', () => {
     expect(invoke).toHaveBeenCalledWith('list_models', { apiKeyId: 5 })
   })
 
-  test('.add() calls add_model then refreshes', async () => {
+  it('.add() calls add_model then refreshes', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([]) // initial
       .mockResolvedValueOnce(undefined) // add
@@ -145,7 +168,7 @@ describe('useModels', () => {
     })
   })
 
-  test('.test() calls test_model and returns result', async () => {
+  it('.test() calls test_model and returns result', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([]) // initial list
       .mockResolvedValueOnce('CONNECTION_SUCCESS')
@@ -165,11 +188,21 @@ describe('useModels', () => {
 // -- useSlotBindings tests --
 
 describe('useSlotBindings', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  test('calls get_slot_bindings on mount', async () => {
+  it('calls get_slot_bindings on mount', async () => {
     vi.mocked(invoke).mockResolvedValueOnce([
-      { slot: 'opus', model_id: 1, model_name: 'claude-opus-4-6', context_size: null, api_key: 'sk-ant-aaa', base_url: 'https://api.anthropic.com', provider_name: 'Anthropic' },
+      {
+        slot: 'opus',
+        model_id: 1,
+        model_name: 'claude-opus-4-6',
+        context_size: null,
+        api_key: 'sk-ant-aaa',
+        base_url: 'https://api.anthropic.com',
+        provider_name: 'Anthropic',
+      },
     ])
 
     const { result } = renderHook(() => useSlotBindings())
@@ -180,7 +213,7 @@ describe('useSlotBindings', () => {
     expect(invoke).toHaveBeenCalledWith('get_slot_bindings')
   })
 
-  test('.bind() calls bind_slot with slot + modelId', async () => {
+  it('.bind() calls bind_slot with slot + modelId', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([]) // initial
       .mockResolvedValueOnce(undefined) // bind
@@ -196,7 +229,7 @@ describe('useSlotBindings', () => {
     expect(invoke).toHaveBeenCalledWith('bind_slot', { slot: 'opus', modelId: 1 })
   })
 
-  test('.setCurrentModel() calls set_current_model with slot + contextSize', async () => {
+  it('.setCurrentModel() calls set_current_model with slot + contextSize', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([]) // initial
       .mockResolvedValueOnce(undefined) // set_current_model

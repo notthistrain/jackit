@@ -1,16 +1,16 @@
-import { useCallback, useState } from 'react'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import { open } from '@tauri-apps/plugin-shell'
-import { save } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
-import { useT } from '@/i18n'
-import { useMainStore } from '@/lib/store'
-import { useSerialPort } from '@/hooks/useSerialPort'
-import { openDecoderWindow, openHistoryWindow, openWaveformWindow } from '@/lib/window'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import { save } from '@tauri-apps/plugin-dialog'
+import { open } from '@tauri-apps/plugin-shell'
+import { useCallback, useState } from 'react'
 import { MenuDropdown } from '@/components/menu/MenuDropdown'
 import { MenuItem } from '@/components/menu/MenuItem'
-import { WindowControls } from './WindowControls'
+import { useSerialPort } from '@/hooks/useSerialPort'
+import { useT } from '@/i18n'
+import { useMainStore } from '@/lib/store'
+import { openDecoderWindow, openHistoryWindow, openWaveformWindow } from '@/lib/window'
 import { titleBar } from './title-bar.variants'
+import { WindowControls } from './WindowControls'
 
 interface TitleBarProps {
   onOpenConnectionDialog: () => void
@@ -30,7 +30,11 @@ interface MenuDef {
 
 export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarProps) {
   const { t } = useT()
-  const { activePortId, toggleSidebar, toggleHexDisplay, setSidebarTab, toggleConnectionDialog } = useMainStore()
+  const activePortId = useMainStore(s => s.activePortId)
+  const toggleSidebar = useMainStore(s => s.toggleSidebar)
+  const toggleHexDisplay = useMainStore(s => s.toggleHexDisplay)
+  const setSidebarTab = useMainStore(s => s.setSidebarTab)
+  const toggleConnectionDialog = useMainStore(s => s.toggleConnectionDialog)
   const { close, closeAll } = useSerialPort()
 
   const exportCurrentSession = async () => {
@@ -43,11 +47,13 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
           { name: 'HEX', extensions: ['txt'] },
         ],
       })
-      if (!filePath) return
+      if (!filePath)
+        return
       const ext = filePath.split('.').pop()?.toLowerCase()
       const format = ext === 'json' ? 'json' : ext === 'txt' ? 'hex' : 'csv'
       await invoke('export_data', { request: { session_id: null, format, file_path: filePath } })
-    } catch {
+    }
+    catch {
       // 用户取消或导出失败
     }
   }
@@ -67,11 +73,20 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
       id: 'connection',
       items: [
         { labelKey: 'menu.connection.connect', onClick: onOpenConnectionDialog },
-        { labelKey: 'menu.connection.disconnect', disabled: !activePortId, onClick: () => activePortId && close(activePortId).catch(() => {}) },
+        {
+          labelKey: 'menu.connection.disconnect',
+          disabled: !activePortId,
+          onClick: () => activePortId && close(activePortId).catch(() => {}),
+        },
         { type: 'separator' },
         { labelKey: 'menu.connection.portSettings', onClick: () => toggleConnectionDialog(true) },
         { type: 'separator' },
-        { labelKey: 'menu.connection.close', shortcut: 'Ctrl+W', disabled: !activePortId, onClick: () => activePortId && close(activePortId).catch(() => {}) },
+        {
+          labelKey: 'menu.connection.close',
+          shortcut: 'Ctrl+W',
+          disabled: !activePortId,
+          onClick: () => activePortId && close(activePortId).catch(() => {}),
+        },
         { labelKey: 'menu.connection.closeAll', onClick: () => closeAll().catch(() => {}) },
       ],
     },
@@ -81,24 +96,55 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
         { labelKey: 'menu.view.toggleSidebar', onClick: toggleSidebar },
         { labelKey: 'menu.view.toggleHex', shortcut: 'Ctrl+H', onClick: toggleHexDisplay },
         { type: 'separator' },
-        { labelKey: 'menu.view.waveform', shortcut: 'Ctrl+Shift+W', onClick: () => activePortId && openWaveformWindow(activePortId), disabled: !activePortId },
-        { labelKey: 'menu.view.decoder', shortcut: 'Ctrl+Shift+D', onClick: () => activePortId && openDecoderWindow(activePortId), disabled: !activePortId },
+        {
+          labelKey: 'menu.view.waveform',
+          shortcut: 'Ctrl+Shift+W',
+          onClick: () => activePortId && openWaveformWindow(activePortId),
+          disabled: !activePortId,
+        },
+        {
+          labelKey: 'menu.view.decoder',
+          shortcut: 'Ctrl+Shift+D',
+          onClick: () => activePortId && openDecoderWindow(activePortId),
+          disabled: !activePortId,
+        },
         { labelKey: 'menu.view.history', shortcut: 'Ctrl+Shift+H', onClick: () => openHistoryWindow() },
       ],
     },
     {
       id: 'tools',
       items: [
-        { labelKey: 'menu.tools.quickSend', onClick: () => { setSidebarTab('snippets'); if (!useMainStore.getState().sidebarVisible) toggleSidebar() } },
+        {
+          labelKey: 'menu.tools.quickSend',
+          onClick: () => {
+            setSidebarTab('snippets')
+            if (!useMainStore.getState().sidebarVisible)
+              toggleSidebar()
+          },
+        },
         { labelKey: 'menu.tools.clearTerminal', shortcut: 'Ctrl+L', onClick: onClearTerminal },
-        { labelKey: 'menu.tools.export', disabled: !activePortId, onClick: () => activePortId && exportCurrentSession() },
+        {
+          labelKey: 'menu.tools.export',
+          disabled: !activePortId,
+          onClick: () => activePortId && exportCurrentSession(),
+        },
       ],
     },
     {
       id: 'window',
       items: [
-        { labelKey: 'menu.window.waveform', shortcut: 'Ctrl+Shift+W', onClick: () => activePortId && openWaveformWindow(activePortId), disabled: !activePortId },
-        { labelKey: 'menu.window.decoder', shortcut: 'Ctrl+Shift+D', onClick: () => activePortId && openDecoderWindow(activePortId), disabled: !activePortId },
+        {
+          labelKey: 'menu.window.waveform',
+          shortcut: 'Ctrl+Shift+W',
+          onClick: () => activePortId && openWaveformWindow(activePortId),
+          disabled: !activePortId,
+        },
+        {
+          labelKey: 'menu.window.decoder',
+          shortcut: 'Ctrl+Shift+D',
+          onClick: () => activePortId && openDecoderWindow(activePortId),
+          disabled: !activePortId,
+        },
         { labelKey: 'menu.window.history', shortcut: 'Ctrl+Shift+H', onClick: () => openHistoryWindow() },
         { type: 'separator' },
       ],
@@ -106,7 +152,10 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
     {
       id: 'help',
       items: [
-        { labelKey: 'menu.help.about', onClick: () => open('https://github.com/notthistrain/jackit/tree/main/packages/jackcom/README.md') },
+        {
+          labelKey: 'menu.help.about',
+          onClick: () => open('https://github.com/notthistrain/jackit/tree/main/packages/jackcom/README.md'),
+        },
       ],
     },
   ]
@@ -117,10 +166,13 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
     setOpenMenuId(prev => (prev === menuId ? null : menuId))
   }, [])
 
-  const handleMenuHover = useCallback((menuId: string) => {
-    if (openMenuId !== null)
-      setOpenMenuId(menuId)
-  }, [openMenuId])
+  const handleMenuHover = useCallback(
+    (menuId: string) => {
+      if (openMenuId !== null)
+        setOpenMenuId(menuId)
+    },
+    [openMenuId],
+  )
 
   const handleClose = useCallback(() => {
     setOpenMenuId(null)
@@ -130,21 +182,14 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
 
   return (
     <div className={root()}>
-      <div
-        className={brand()}
-      >
+      <div className={brand()}>
         <span className={brandIcon()}>&#x26A1;</span>
-        <span className={brandText()}>
-          {t('app.title')}
-        </span>
+        <span className={brandText()}>{t('app.title')}</span>
       </div>
 
       <div className={menuArea()}>
         {menus.map(menu => (
-          <div
-            key={menu.id}
-            className={menuContainer()}
-          >
+          <div key={menu.id} className={menuContainer()}>
             <div
               role="menubar"
               data-open={openMenuId === menu.id}
@@ -161,7 +206,14 @@ export function TitleBar({ onOpenConnectionDialog, onClearTerminal }: TitleBarPr
                     key={item.labelKey ?? `sep-${i}`}
                     label={item.labelKey ? t(item.labelKey) : undefined}
                     shortcut={item.shortcut}
-                    onClick={item.onClick ? () => { item.onClick!(); handleClose() } : undefined}
+                    onClick={
+                      item.onClick
+                        ? () => {
+                            item.onClick!()
+                            handleClose()
+                          }
+                        : undefined
+                    }
                     disabled={item.disabled}
                     type={item.type}
                   />

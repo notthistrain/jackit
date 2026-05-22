@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { hexToBytes } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
+import { sendBar } from './send-bar.variants'
 
 type SendMode = 'hex' | 'ascii'
 type LineEnding = 'none' | 'lf' | 'cr' | 'crlf'
@@ -77,61 +79,30 @@ export function SendBar({ onSend, disabled }: SendBarProps) {
     [handleSend],
   )
 
+  const { root, optionsRow, modeBtn, separator, lineEndingBtn, inputRow, input: inputCls, sendBtn } = sendBar()
+
   return (
-    <div style={{
-      background: 'var(--color-sidebar-bg)',
-      borderTop: '1px solid var(--color-border)',
-      padding: '6px 10px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-    }}
-    >
+    <div className={root()}>
       {/* 选项行 */}
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '11px' }}>
+      <div className={optionsRow()}>
         <button
           onClick={() => setMode('hex')}
-          style={{
-            background: mode === 'hex' ? 'var(--color-accent)' : 'transparent',
-            color: mode === 'hex' ? '#fff' : 'var(--color-text-secondary)',
-            border: 'none',
-            padding: '1px 6px',
-            borderRadius: '2px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '10px',
-          }}
+          className={modeBtn({ active: mode === 'hex' })}
         >
           HEX
         </button>
         <button
           onClick={() => setMode('ascii')}
-          style={{
-            background: mode === 'ascii' ? 'var(--color-accent)' : 'transparent',
-            color: mode === 'ascii' ? '#fff' : 'var(--color-text-secondary)',
-            border: 'none',
-            padding: '1px 6px',
-            borderRadius: '2px',
-            cursor: 'pointer',
-            fontSize: '10px',
-          }}
+          className={modeBtn({ active: mode === 'ascii' })}
         >
           ASCII
         </button>
-        <span style={{ color: 'var(--color-border)' }}>|</span>
+        <span className={separator()}>|</span>
         {(['none', 'lf', 'cr', 'crlf'] as LineEnding[]).map(le => (
           <button
             key={le}
             onClick={() => setLineEnding(le)}
-            style={{
-              background: lineEnding === le ? 'var(--color-border)' : 'transparent',
-              color: lineEnding === le ? 'var(--color-text)' : 'var(--color-text-secondary)',
-              border: 'none',
-              padding: '1px 4px',
-              borderRadius: '2px',
-              cursor: 'pointer',
-              fontSize: '10px',
-            }}
+            className={lineEndingBtn({ lineEndingActive: lineEnding === le })}
           >
             +
             {le.toUpperCase()}
@@ -139,7 +110,7 @@ export function SendBar({ onSend, disabled }: SendBarProps) {
         ))}
       </div>
       {/* 输入行 */}
-      <div style={{ display: 'flex', gap: '6px' }}>
+      <div className={inputRow()}>
         <input
           value={input}
           onChange={(e) => {
@@ -152,32 +123,12 @@ export function SendBar({ onSend, disabled }: SendBarProps) {
           onKeyDown={handleKeyDown}
           placeholder={mode === 'hex' ? '01 03 00 00 00 0A C5 CD' : 'AT+RST'}
           disabled={disabled}
-          style={{
-            flex: 1,
-            background: 'var(--color-editor-bg)',
-            border: `1px solid ${error ? 'var(--color-error)' : 'var(--color-border)'}`,
-            borderRadius: '3px',
-            padding: '4px 8px',
-            color: 'var(--color-text)',
-            fontFamily: '\'Consolas\', monospace',
-            fontSize: '12px',
-            outline: 'none',
-          }}
+          className={inputCls({ error })}
         />
         <button
           onClick={handleSend}
           disabled={disabled}
-          style={{
-            background: 'var(--color-accent)',
-            color: '#fff',
-            border: 'none',
-            padding: '4px 20px',
-            borderRadius: '3px',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            fontWeight: 700,
-            fontSize: '11px',
-            opacity: disabled ? 0.5 : 1,
-          }}
+          className={cn(sendBtn(), disabled && 'cursor-not-allowed opacity-50')}
         >
           SEND
         </button>

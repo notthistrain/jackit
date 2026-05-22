@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "catalog:",
-    "@tauri-apps/plugin-dialog": "^2.7.1",
-    "@tauri-apps/plugin-shell": "^2.3.5",
+    "@tauri-apps/plugin-dialog": "catalog:",
+    "@tauri-apps/plugin-shell": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "lucide-react": "catalog:",

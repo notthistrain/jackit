@@ -1,5 +1,5 @@
-import { createApp, h } from 'vue'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { createApp, h } from 'vue'
 import Layout from '@/components/layout.vue'
 import ToolsPage from '@/components/pages/tools-page.vue'
 import Titlebar from '@/components/titlebar.vue'

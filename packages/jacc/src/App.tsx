@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { useEffect } from 'react'
 import { Layout } from '@/components/Layout'
 import { ToastProvider } from '@/components/toast/ToastProvider'
-import { useAppStore } from '@/stores/useAppStore'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useT } from '@/i18n'
+import { useAppStore } from '@/stores/useAppStore'
 
 export default function App() {
   const { theme, setTheme } = useAppStore()
@@ -30,7 +30,8 @@ export default function App() {
     const root = document.documentElement
     if (theme === 'system') {
       root.removeAttribute('data-theme')
-    } else {
+    }
+    else {
       root.setAttribute('data-theme', theme)
     }
   }, [theme])

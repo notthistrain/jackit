@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { waveformApp } from '@/components/waveform/waveform-app.variants'
 import { WaveformCanvas } from '@/components/waveform/WaveformCanvas'
 import { useDataFeed } from '@/hooks/useDataFeed'
 import { getPortFromUrl } from '@/lib/window'
 import { useWaveformStore } from '@/stores/waveform-store'
 
-export default function WaveformApp() {
-  const { portId, setPortId, channels, paused, togglePause, clear, addDataBatch } = useWaveformStore()
+export function WaveformApp() {
+  const portId = useWaveformStore(s => s.portId)
+  const setPortId = useWaveformStore(s => s.setPortId)
+  const channels = useWaveformStore(s => s.channels)
+  const paused = useWaveformStore(s => s.paused)
+  const togglePause = useWaveformStore(s => s.togglePause)
+  const clear = useWaveformStore(s => s.clear)
+  const addDataBatch = useWaveformStore(s => s.addDataBatch)
   const { frames } = useDataFeed({ portId })
+
+  const { root, waveformArea, emptyState, toolbar, pauseBtn, clearBtn, frameCount } = waveformApp({ paused })
 
   // 从 URL 获取端口名
   useEffect(() => {
@@ -43,26 +52,16 @@ export default function WaveformApp() {
   const hasData = Object.keys(channels).length > 0
 
   return (
-    <div style={{
-      height: '100vh',
-      background: 'var(--color-editor-bg)',
-      color: 'var(--color-text)',
-      display: 'flex',
-      flexDirection: 'column',
-      fontFamily: 'system-ui, sans-serif',
-    }}
-    >
-      {/* 标题栏 — 系统窗口已自带标题，此处省略 */}
-
+    <div className={root()}>
       {/* 波形区 */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div className={waveformArea()}>
         {!hasData && !portId && (
-          <div style={{ color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '40px' }}>
+          <div className={emptyState()}>
             No port specified. Open from main window toolbar.
           </div>
         )}
         {!hasData && portId && (
-          <div style={{ color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '40px' }}>
+          <div className={emptyState()}>
             Waiting for data from
             {' '}
             {portId}
@@ -75,43 +74,14 @@ export default function WaveformApp() {
       </div>
 
       {/* 工具栏 */}
-      <div style={{
-        background: 'var(--color-sidebar-bg)',
-        borderTop: '1px solid var(--color-border)',
-        padding: '4px 10px',
-        display: 'flex',
-        gap: '12px',
-        fontSize: '10px',
-        color: 'var(--color-text-secondary)',
-      }}
-      >
-        <button
-          onClick={togglePause}
-          style={{
-            background: paused ? 'var(--color-accent)' : 'transparent',
-            color: paused ? '#fff' : 'var(--color-text-secondary)',
-            border: 'none',
-            padding: '2px 8px',
-            borderRadius: '2px',
-            cursor: 'pointer',
-            fontSize: '10px',
-          }}
-        >
+      <div className={toolbar()}>
+        <button className={pauseBtn()} onClick={togglePause}>
           {paused ? '\u25B6 Resume' : '\u23F8 Pause'}
         </button>
-        <button
-          onClick={handleClear}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--color-text-secondary)',
-            cursor: 'pointer',
-            fontSize: '10px',
-          }}
-        >
+        <button className={clearBtn()} onClick={handleClear}>
           Clear
         </button>
-        <span style={{ marginLeft: 'auto', fontSize: '10px' }}>
+        <span className={frameCount()}>
           {frames.length}
           {' '}
           frames

@@ -16,11 +16,11 @@ interface SnippetsStore {
 
 export const useSnippetsStore = create<SnippetsStore>()(
   persist(
-    (set) => ({
+    set => ({
       snippets: [],
 
       add: (name, data) =>
-        set((s) => ({
+        set(s => ({
           snippets: [
             ...s.snippets,
             {
@@ -32,8 +32,8 @@ export const useSnippetsStore = create<SnippetsStore>()(
           ],
         })),
 
-      remove: (id) =>
-        set((s) => ({
+      remove: id =>
+        set(s => ({
           snippets: s.snippets.filter(sn => sn.id !== id),
         })),
     }),

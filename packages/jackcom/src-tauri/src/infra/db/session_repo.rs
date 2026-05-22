@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use sqlx::SqlitePool;
+use sqlx::{FromRow, SqlitePool};
 
 use crate::core::serial::types::{PortName, SessionId};
 
@@ -9,8 +9,8 @@ pub async fn create_session(
     port_name: &PortName,
     baud_rate: u32,
 ) -> Result<SessionId> {
-    let result = sqlx::query_as::<_, (i64,)>(
-        "INSERT INTO sessions (port_name, baud_rate) VALUES (?, ?) RETURNING id"
+    let id: i64 = sqlx::query_scalar(
+        "INSERT INTO sessions (port_name, baud_rate) VALUES (?, ?) RETURNING id",
     )
     .bind(port_name.as_str())
     .bind(baud_rate as i64)
@@ -18,7 +18,7 @@ pub async fn create_session(
     .await
     .context("创建 session 失败")?;
 
-    Ok(SessionId::new(result.0))
+    Ok(SessionId::new(id))
 }
 
 /// 结束会话
@@ -32,20 +32,18 @@ pub async fn end_session(pool: &SqlitePool, session_id: SessionId) -> Result<()>
 }
 
 /// 会话信息（用于 list_recent_sessions）
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, FromRow)]
 pub struct SessionInfo {
     pub id: i64,
     pub port_name: String,
     pub baud_rate: u32,
+    #[sqlx(rename = "started_at")]
     pub created_at: String,
 }
 
 /// 查询最近的会话
-pub async fn list_recent_sessions(
-    pool: &SqlitePool,
-    limit: i64,
-) -> Result<Vec<SessionInfo>> {
-    let rows = sqlx::query_as::<_, (i64, String, i64, String)>(
+pub async fn list_recent_sessions(pool: &SqlitePool, limit: i64) -> Result<Vec<SessionInfo>> {
+    let sessions = sqlx::query_as::<_, SessionInfo>(
         "SELECT id, port_name, baud_rate, started_at FROM sessions ORDER BY started_at DESC LIMIT ?"
     )
     .bind(limit)
@@ -53,15 +51,7 @@ pub async fn list_recent_sessions(
     .await
     .context("查询 sessions 失败")?;
 
-    Ok(rows.into_iter().map(|(id, port_name, baud_rate, started_at)| {
-        SessionInfo {
-            id,
-            port_name,
-            baud_rate: baud_rate as u32,
-            // DB 字段 started_at → 前端字段 created_at
-            created_at: started_at,
-        }
-    }).collect())
+    Ok(sessions)
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
-import { useT } from '@/i18n'
-import type { SerialConfig } from '@/hooks/useSerialConfig'
 import type { SelectOption } from '@/components/ui/Select'
+import type { FlowControl, Parity, SerialConfig } from '@/hooks/useSerialConfig'
 import { Select } from '@/components/ui/Select'
+import { useT } from '@/i18n'
 import { PortSelector } from './PortSelector'
 import { serialConfigForm } from './serial-config-form.variants'
 
@@ -11,13 +11,20 @@ interface SerialConfigFormProps {
 }
 
 const BAUD_RATES = [
-  9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600,
+  9600,
+  19200,
+  38400,
+  57600,
+  115200,
+  230400,
+  460800,
+  921600,
 ]
 
 const DATA_BITS_OPTIONS: SelectOption[] = [5, 6, 7, 8].map(b => ({ value: String(b), label: `${b} bit` }))
 const STOP_BITS_OPTIONS: SelectOption[] = [1, 2].map(b => ({ value: String(b), label: `${b} stop` }))
-const PARITY_OPTIONS: SelectOption[] = ['none', 'odd', 'even'].map(p => ({ value: p, label: p }))
-const FLOW_CONTROL_OPTIONS: SelectOption[] = ['none', 'hardware', 'software'].map(f => ({ value: f, label: f }))
+const PARITY_OPTIONS: SelectOption[] = ['None', 'Odd', 'Even'].map(p => ({ value: p, label: p }))
+const FLOW_CONTROL_OPTIONS: SelectOption[] = ['None', 'Hardware', 'Software'].map(f => ({ value: f, label: f }))
 
 export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
   const { t } = useT()
@@ -70,14 +77,14 @@ export function SerialConfigForm({ config, onChange }: SerialConfigFormProps) {
           <Select
             value={config.parity}
             options={PARITY_OPTIONS}
-            onChange={v => onChange({ parity: v })}
+            onChange={v => onChange({ parity: v as Parity })}
             size="compact"
             className="flex-1"
           />
           <Select
             value={config.flowControl}
             options={FLOW_CONTROL_OPTIONS}
-            onChange={v => onChange({ flowControl: v })}
+            onChange={v => onChange({ flowControl: v as FlowControl })}
             size="compact"
             className="flex-1"
           />

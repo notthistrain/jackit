@@ -1,5 +1,5 @@
-import { useT } from '@/i18n'
 import type { SessionRow } from '@/stores/history-store'
+import { useT } from '@/i18n'
 import { sessionList } from './session-list.variants'
 
 interface SessionListProps {
@@ -22,7 +22,7 @@ export function SessionList({ sessions, selectedId, onSelect }: SessionListProps
 
   return (
     <div className={root()}>
-      {sessions.map(session => {
+      {sessions.map((session) => {
         const isSelected = session.id === selectedId
         return (
           <div
@@ -32,7 +32,10 @@ export function SessionList({ sessions, selectedId, onSelect }: SessionListProps
             className={item()}
           >
             <div className={portInfo()}>
-              {session.port_name} @ {session.baud_rate}
+              {session.port_name}
+              {' '}
+              @
+              {session.baud_rate}
             </div>
             <div className={time()}>
               {new Date(session.created_at).toLocaleString()}

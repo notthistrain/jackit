@@ -1,9 +1,11 @@
-import { useCallback } from 'react'
+import type { SessionRow } from '@/stores/history-store'
 import { invoke } from '@tauri-apps/api/core'
-import { useHistoryStore, type SessionRow } from '@/stores/history-store'
+import { useCallback } from 'react'
+import { useHistoryStore } from '@/stores/history-store'
 
 function toErrorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message
+  if (e instanceof Error)
+    return e.message
   return String(e)
 }
 
@@ -19,9 +21,11 @@ export function useHistory() {
         request: { limit: 20 },
       })
       s.setSessions(res.sessions)
-    } catch (e: unknown) {
+    }
+    catch (e: unknown) {
       useHistoryStore.getState().setError(toErrorMessage(e))
-    } finally {
+    }
+    finally {
       useHistoryStore.getState().setLoading(false)
     }
   }, [])
@@ -32,7 +36,7 @@ export function useHistory() {
       s.setLoading(true)
       s.setError(null)
       const { directionFilter, protocolFilter, page, pageSize } = s
-      const res = await invoke<{ frames: any[]; total: number }>('query_history', {
+      const res = await invoke<{ frames: any[], total: number }>('query_history', {
         request: {
           session_id: sessionId,
           direction: directionFilter === 'all' ? undefined : directionFilter,
@@ -42,9 +46,11 @@ export function useHistory() {
         },
       })
       s.setFrames(res.frames, res.total)
-    } catch (e: unknown) {
+    }
+    catch (e: unknown) {
       useHistoryStore.getState().setError(toErrorMessage(e))
-    } finally {
+    }
+    finally {
       useHistoryStore.getState().setLoading(false)
     }
   }, [])
@@ -55,7 +61,8 @@ export function useHistory() {
         request: { session_id: sessionId, format: 'csv', file_path: `jackcom-session-${sessionId}.csv` },
       })
       return res.file_path
-    } catch {
+    }
+    catch {
       return null
     }
   }, [])

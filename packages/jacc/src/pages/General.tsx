@@ -1,10 +1,11 @@
+import type { Locale } from '@/i18n'
 import { useEffect, useState } from 'react'
-import { useConfig } from '@/hooks/useConfig'
-import { useSlotBindings } from '@/hooks/useSlotBindings'
-import { usePreferences } from '@/hooks/usePreferences'
-import { SourceBadge } from '@/components/SourceBadge'
 import { ModelSelect } from '@/components/ModelSelect'
-import { useT, type Locale } from '@/i18n'
+import { SourceBadge } from '@/components/SourceBadge'
+import { useConfig } from '@/hooks/useConfig'
+import { usePreferences } from '@/hooks/usePreferences'
+import { useSlotBindings } from '@/hooks/useSlotBindings'
+import { useT } from '@/i18n'
 
 type Slot = 'opus' | 'sonnet' | 'haiku'
 
@@ -30,7 +31,8 @@ export function General() {
 
   // 从 config 的 model 字段回显当前模型设置
   useEffect(() => {
-    if (!config) return
+    if (!config)
+      return
     const modelItem = config.items.find(i => i.key === 'model')
     if (modelItem?.value) {
       const val = String(modelItem.value)
@@ -48,18 +50,19 @@ export function General() {
     return <div className="p-6 text-xs text-muted">{t('common.loading')}</div>
   }
 
-  const getItem = (key: string) => config.items.find((i) => i.key === key)
+  const getItem = (key: string) => config.items.find(i => i.key === key)
   const effortLevel = getItem('effortLevel')
   const skipDangerous = getItem('skipDangerousModePermissionPrompt')
 
   function getBinding(slot: Slot) {
-    return bindings.find((b) => b.slot === slot)
+    return bindings.find(b => b.slot === slot)
   }
 
   async function handleSlotModelChange(slot: Slot, modelId: number) {
     try {
       await bind(slot, modelId)
-    } catch {
+    }
+    catch {
       // error handled by toast in hook
     }
   }
@@ -68,7 +71,8 @@ export function General() {
     try {
       await setCurrentModel(slot, (ctx ?? slotContexts[slot]) || null)
       await refreshConfig()
-    } catch {
+    }
+    catch {
       // error handled by toast in hook
     }
   }
@@ -118,7 +122,7 @@ export function General() {
                   {/* Model select */}
                   <ModelSelect
                     value={binding?.model_id ?? null}
-                    onChange={(modelId) => handleSlotModelChange(slot, modelId)}
+                    onChange={modelId => handleSlotModelChange(slot, modelId)}
                   />
 
                   {/* Context size */}
@@ -127,7 +131,8 @@ export function General() {
                     onChange={(e) => {
                       const newCtx = e.target.value
                       setSlotContexts(prev => ({ ...prev, [slot]: newCtx }))
-                      if (isCurrent) handleApply(slot, newCtx)
+                      if (isCurrent)
+                        handleApply(slot, newCtx)
                     }}
                     disabled={!isBound}
                     className={`text-[11px] px-1.5 py-1 rounded-[2px] border border-border bg-sidebar text-foreground w-[55px] ${
@@ -135,7 +140,7 @@ export function General() {
                     }`}
                   >
                     <option value="">{t('general.ctxDefault')}</option>
-                    {CONTEXT_OPTIONS.filter(c => c).map((c) => (
+                    {CONTEXT_OPTIONS.filter(c => c).map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -171,9 +176,8 @@ export function General() {
           <div className="flex items-center gap-2">
             <select
               value={(effortLevel?.value as string) || 'high'}
-              onChange={(e) =>
-                writeConfig(effortLevel?.scope || 'global', 'effortLevel', e.target.value)
-              }
+              onChange={e =>
+                writeConfig(effortLevel?.scope || 'global', 'effortLevel', e.target.value)}
               className="bg-sidebar border border-border text-foreground px-2.5 py-1 rounded-[2px] text-xs"
             >
               <option value="low">low</option>
@@ -199,8 +203,7 @@ export function General() {
                   skipDangerous?.scope || 'global',
                   'skipDangerousModePermissionPrompt',
                   !(skipDangerous?.value as boolean),
-                )
-              }
+                )}
               className={`w-9 h-5 rounded-full relative transition-colors ${
                 skipDangerous?.value ? 'bg-primary' : 'bg-border'
               }`}
@@ -224,7 +227,7 @@ export function General() {
           <div className="flex items-center gap-2">
             <select
               value={locale}
-              onChange={(e) => handleLocaleChange(e.target.value as Locale)}
+              onChange={e => handleLocaleChange(e.target.value as Locale)}
               className="bg-sidebar border border-border text-foreground px-2.5 py-1 rounded-[2px] text-xs"
             >
               <option value="zh">中文</option>

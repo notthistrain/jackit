@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import { useConfig } from '@/hooks/useConfig'
-import { SourceBadge } from '@/components/SourceBadge'
 import { Fab } from '@/components/Fab'
+import { SourceBadge } from '@/components/SourceBadge'
+import { useConfig } from '@/hooks/useConfig'
 import { useT } from '@/i18n'
 
 const MODEL_ENV_KEYS = [
@@ -15,13 +15,13 @@ const MODEL_ENV_KEYS = [
 
 export function EnvVars() {
   const { t } = useT()
-  const { config, writeConfig, deleteConfig } = useConfig()
+  const { config, writeConfig } = useConfig()
   const [showAdd, setShowAdd] = useState(false)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const pendingRef = useRef<Record<string, string>>({})
 
-  const envItem = config?.items.find((i) => i.key === 'env')
+  const envItem = config?.items.find(i => i.key === 'env')
   const envObj = (envItem?.value as Record<string, string>) || {}
   const envScope = envItem?.scope || 'global'
 
@@ -30,7 +30,8 @@ export function EnvVars() {
   const modelEntries = entries.filter(([key]) => MODEL_ENV_KEYS.includes(key))
 
   async function handleAdd() {
-    if (!newKey.trim()) return
+    if (!newKey.trim())
+      return
     const updated = { ...envObj, [newKey]: newValue }
     await writeConfig(envScope, 'env', updated)
     setNewKey('')
@@ -81,11 +82,13 @@ export function EnvVars() {
         {/* 普通变量 */}
         {regularEntries.map(([key, value]) => (
           <div key={key} className="flex items-center px-3.5 py-2.5 border-b border-border-light/50">
-            <div className="flex-[2] text-xs font-mono font-medium text-foreground truncate pr-2" title={key}>{key}</div>
+            <div className="flex-[2] text-xs font-mono font-medium text-foreground truncate pr-2" title={key}>
+              {key}
+            </div>
             <div className="flex-[3]">
               <input
                 defaultValue={value}
-                onChange={(e) => handleLocalChange(key, e.target.value)}
+                onChange={e => handleLocalChange(key, e.target.value)}
                 onBlur={() => handleBlur(key)}
                 className="w-[90%] bg-sidebar border border-border px-2 py-1 rounded-[2px] text-[11px] font-mono text-foreground"
               />
@@ -122,7 +125,7 @@ export function EnvVars() {
               <div className="text-[11px] text-muted mb-1">{t('envvars.add.name')}</div>
               <input
                 value={newKey}
-                onChange={(e) => setNewKey(e.target.value)}
+                onChange={e => setNewKey(e.target.value)}
                 placeholder="MY_VAR"
                 className="w-full bg-sidebar border border-border px-2 py-1.5 rounded-[2px] text-xs font-mono text-foreground"
               />
@@ -131,7 +134,7 @@ export function EnvVars() {
               <div className="text-[11px] text-muted mb-1">{t('envvars.add.value')}</div>
               <input
                 value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
+                onChange={e => setNewValue(e.target.value)}
                 placeholder="value"
                 className="w-full bg-sidebar border border-border px-2 py-1.5 rounded-[2px] text-xs font-mono text-foreground"
               />
@@ -139,7 +142,10 @@ export function EnvVars() {
             <button onClick={handleAdd} className="px-3 py-1.5 bg-primary text-white text-xs rounded-[2px]">
               {t('envvars.add.submit')}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 border border-border text-xs text-muted rounded-[2px]">
+            <button
+              onClick={() => setShowAdd(false)}
+              className="px-3 py-1.5 border border-border text-xs text-muted rounded-[2px]"
+            >
               {t('envvars.add.cancel')}
             </button>
           </div>

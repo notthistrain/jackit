@@ -1,5 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
+
+import { ModelSelect } from './ModelSelect'
 
 // Mock useAllModels
 const mockModels = [
@@ -20,23 +22,21 @@ vi.mock('@/i18n', () => ({
       'general.slot.searchPlaceholder': '搜索模型名 / 服务商...',
     }
     return map[key] || key
-  }}),
+  } }),
 }))
 
-import { ModelSelect } from './ModelSelect'
-
-describe('ModelSelect', () => {
-  test('renders placeholder when no value', () => {
+describe('modelSelect', () => {
+  it('renders placeholder when no value', () => {
     render(<ModelSelect value={null} onChange={vi.fn()} />)
     expect(screen.getByText('选择模型...')).toBeTruthy()
   })
 
-  test('renders selected model name when value provided', () => {
+  it('renders selected model name when value provided', () => {
     render(<ModelSelect value={1} onChange={vi.fn()} />)
     expect(screen.getByText('claude-opus-4-6')).toBeTruthy()
   })
 
-  test('opens dropdown on click and shows all models', () => {
+  it('opens dropdown on click and shows all models', () => {
     render(<ModelSelect value={null} onChange={vi.fn()} />)
     fireEvent.click(screen.getByText('选择模型...'))
     expect(screen.getByPlaceholderText('搜索模型名 / 服务商...')).toBeTruthy()
@@ -44,7 +44,7 @@ describe('ModelSelect', () => {
     expect(screen.getByText('gpt-4o')).toBeTruthy()
   })
 
-  test('filters models by search input', () => {
+  it('filters models by search input', () => {
     render(<ModelSelect value={null} onChange={vi.fn()} />)
     fireEvent.click(screen.getByText('选择模型...'))
     const input = screen.getByPlaceholderText('搜索模型名 / 服务商...')
@@ -54,7 +54,7 @@ describe('ModelSelect', () => {
     expect(items).toHaveLength(1)
   })
 
-  test('calls onChange and closes dropdown when model clicked', () => {
+  it('calls onChange and closes dropdown when model clicked', () => {
     const onChange = vi.fn()
     render(<ModelSelect value={null} onChange={onChange} />)
     fireEvent.click(screen.getByText('选择模型...'))

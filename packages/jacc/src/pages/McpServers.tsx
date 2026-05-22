@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { useConfig } from '@/hooks/useConfig'
-import { SourceBadge } from '@/components/SourceBadge'
+import { useState } from 'react'
 import { Fab } from '@/components/Fab'
+import { SourceBadge } from '@/components/SourceBadge'
+import { useConfig } from '@/hooks/useConfig'
 import { useT } from '@/i18n'
 
 interface McpServer {
@@ -20,7 +20,7 @@ export function McpServers() {
   const [newCommand, setNewCommand] = useState('')
   const [newArgs, setNewArgs] = useState('')
 
-  const mcpItem = config?.items.find((i) => i.key === 'mcpServers')
+  const mcpItem = config?.items.find(i => i.key === 'mcpServers')
   const servers = (mcpItem?.value as Record<string, McpServer>) || {}
   const mcpScope = mcpItem?.scope || 'global'
 
@@ -37,7 +37,8 @@ export function McpServers() {
   }
 
   async function handleAdd() {
-    if (!newName.trim() || !newCommand.trim()) return
+    if (!newName.trim() || !newCommand.trim())
+      return
     const server: McpServer = {
       command: newCommand,
       args: newArgs ? newArgs.split(' ') : undefined,
@@ -72,17 +73,21 @@ export function McpServers() {
                 <div>
                   <div className="text-[13px] font-medium text-foreground">{name}</div>
                   <div className="text-[11px] text-muted">
-                    {server.command} {server.args?.join(' ') || ''}
+                    {server.command}
+                    {' '}
+                    {server.args?.join(' ') || ''}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <SourceBadge scope={mcpScope} />
-                {expanded === name ? (
-                  <ChevronUp size={14} className="text-muted" />
-                ) : (
-                  <ChevronDown size={14} className="text-muted" />
-                )}
+                {expanded === name
+                  ? (
+                      <ChevronUp size={14} className="text-muted" />
+                    )
+                  : (
+                      <ChevronDown size={14} className="text-muted" />
+                    )}
               </div>
             </div>
 
@@ -94,7 +99,7 @@ export function McpServers() {
                     <div className="text-[11px] text-muted mb-1">{t('mcp.command')}</div>
                     <input
                       value={server.command}
-                      onChange={(e) => handleSave(name, { ...server, command: e.target.value })}
+                      onChange={e => handleSave(name, { ...server, command: e.target.value })}
                       className="w-full bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground"
                     />
                   </div>
@@ -102,12 +107,11 @@ export function McpServers() {
                     <div className="text-[11px] text-muted mb-1">{t('mcp.args')}</div>
                     <input
                       value={server.args?.join(' ') || ''}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleSave(name, {
                           ...server,
                           args: e.target.value ? e.target.value.split(' ') : undefined,
-                        })
-                      }
+                        })}
                       className="w-full bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground"
                     />
                   </div>
@@ -154,9 +158,9 @@ export function McpServers() {
         <div className="mt-3 p-3 bg-card border border-border-light rounded-[4px]">
           <div className="text-[13px] font-medium text-foreground mb-3">{t('mcp.add.title')}</div>
           <div className="flex flex-col gap-2">
-            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('mcp.add.name')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground" />
-            <input value={newCommand} onChange={(e) => setNewCommand(e.target.value)} placeholder={t('mcp.add.command')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
-            <input value={newArgs} onChange={(e) => setNewArgs(e.target.value)} placeholder={t('mcp.add.args')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('mcp.add.name')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs text-foreground" />
+            <input value={newCommand} onChange={e => setNewCommand(e.target.value)} placeholder={t('mcp.add.command')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
+            <input value={newArgs} onChange={e => setNewArgs(e.target.value)} placeholder={t('mcp.add.args')} className="bg-sidebar border border-border px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-foreground" />
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 border border-border text-xs text-muted rounded-[2px]">{t('mcp.add.cancel')}</button>
               <button onClick={handleAdd} className="px-3 py-1.5 bg-primary text-white text-xs rounded-[2px]">{t('mcp.add.submit')}</button>

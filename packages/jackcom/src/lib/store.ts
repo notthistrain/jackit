@@ -80,5 +80,5 @@ export const useMainStore = create<MainStore>(set => ({
   incrementClearSequence: () => set(s => ({ clearSequence: s.clearSequence + 1 })),
 
   connectionDialogOpen: false,
-  toggleConnectionDialog: (open) => set({ connectionDialogOpen: open }),
+  toggleConnectionDialog: open => set({ connectionDialogOpen: open }),
 }))

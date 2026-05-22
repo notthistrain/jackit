@@ -1,5 +1,8 @@
+import { invoke } from '@tauri-apps/api/core'
 import { renderHook, waitFor } from '@testing-library/react'
+
 import { vi } from 'vitest'
+import { useAllModels } from './useAllModels'
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
@@ -12,27 +15,63 @@ vi.mock('@/components/toast/ToastProvider', () => ({
   useToast: () => mockToast,
 }))
 
-import { invoke } from '@tauri-apps/api/core'
-import { useAllModels } from './useAllModels'
-
 describe('useAllModels', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  test('fetches providers → keys → models and flattens', async () => {
+  it('fetches providers → keys → models and flattens', async () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce([
-        { id: 1, name: 'Anthropic', base_url: 'https://api.anthropic.com', notes: null, created_at: '', updated_at: '' },
+        {
+          id: 1,
+          name: 'Anthropic',
+          base_url: 'https://api.anthropic.com',
+          notes: null,
+          created_at: '',
+          updated_at: '',
+        },
         { id: 2, name: 'OpenRouter', base_url: 'https://openrouter.ai', notes: null, created_at: '', updated_at: '' },
       ])
       .mockResolvedValueOnce([
-        { id: 10, provider_id: 1, name: 'Main Key', api_key_masked: 'sk-***', notes: null, created_at: '', updated_at: '' },
+        {
+          id: 10,
+          provider_id: 1,
+          name: 'Main Key',
+          api_key_masked: 'sk-***',
+          notes: null,
+          created_at: '',
+          updated_at: '',
+        },
       ])
       .mockResolvedValueOnce([
-        { id: 100, api_key_id: 10, model_name: 'claude-opus-4-6', context_size: '200k', created_at: '', updated_at: '' },
-        { id: 101, api_key_id: 10, model_name: 'claude-sonnet-4-6', context_size: null, created_at: '', updated_at: '' },
+        {
+          id: 100,
+          api_key_id: 10,
+          model_name: 'claude-opus-4-6',
+          context_size: '200k',
+          created_at: '',
+          updated_at: '',
+        },
+        {
+          id: 101,
+          api_key_id: 10,
+          model_name: 'claude-sonnet-4-6',
+          context_size: null,
+          created_at: '',
+          updated_at: '',
+        },
       ])
       .mockResolvedValueOnce([
-        { id: 20, provider_id: 2, name: 'router', api_key_masked: 'sk-or-***', notes: null, created_at: '', updated_at: '' },
+        {
+          id: 20,
+          provider_id: 2,
+          name: 'router',
+          api_key_masked: 'sk-or-***',
+          notes: null,
+          created_at: '',
+          updated_at: '',
+        },
       ])
       .mockResolvedValueOnce([
         { id: 200, api_key_id: 20, model_name: 'gpt-4o', context_size: null, created_at: '', updated_at: '' },
@@ -51,7 +90,7 @@ describe('useAllModels', () => {
     ])
   })
 
-  test('returns empty array when no providers', async () => {
+  it('returns empty array when no providers', async () => {
     vi.mocked(invoke).mockResolvedValueOnce([])
 
     const { result } = renderHook(() => useAllModels())
@@ -63,14 +102,18 @@ describe('useAllModels', () => {
     expect(result.current.models).toEqual([])
   })
 
-  test('refresh re-fetches all data', async () => {
+  it('refresh re-fetches all data', async () => {
     vi.mocked(invoke)
       // initial: empty
       .mockResolvedValueOnce([])
       // refresh: one provider
       .mockResolvedValueOnce([{ id: 1, name: 'P', base_url: '', notes: null, created_at: '', updated_at: '' }])
-      .mockResolvedValueOnce([{ id: 10, provider_id: 1, name: 'K', api_key_masked: '', notes: null, created_at: '', updated_at: '' }])
-      .mockResolvedValueOnce([{ id: 100, api_key_id: 10, model_name: 'm1', context_size: null, created_at: '', updated_at: '' }])
+      .mockResolvedValueOnce([
+        { id: 10, provider_id: 1, name: 'K', api_key_masked: '', notes: null, created_at: '', updated_at: '' },
+      ])
+      .mockResolvedValueOnce([
+        { id: 100, api_key_id: 10, model_name: 'm1', context_size: null, created_at: '', updated_at: '' },
+      ])
 
     const { result } = renderHook(() => useAllModels())
     await waitFor(() => expect(result.current.models).toEqual([]))
@@ -80,8 +123,6 @@ describe('useAllModels', () => {
       await result.current.refresh()
     })
 
-    expect(result.current.models).toEqual([
-      { modelId: 100, modelName: 'm1', providerName: 'P', keyName: 'K' },
-    ])
+    expect(result.current.models).toEqual([{ modelId: 100, modelName: 'm1', providerName: 'P', keyName: 'K' }])
   })
 })

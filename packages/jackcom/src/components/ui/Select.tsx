@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
 import { select } from './select.variants'
 
 export interface SelectOption {
@@ -42,7 +43,8 @@ export function Select({
 
   // 点击外部关闭
   useEffect(() => {
-    if (!open) return
+    if (!open)
+      return
     const handleClickOutside = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         close()
@@ -54,7 +56,8 @@ export function Select({
 
   // Esc 关闭
   useEffect(() => {
-    if (!open) return
+    if (!open)
+      return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -66,13 +69,15 @@ export function Select({
   }, [open, close])
 
   const handleTriggerClick = () => {
-    if (disabled) return
+    if (disabled)
+      return
     setOpen(prev => !prev)
     setHoveredIndex(-1)
   }
 
   const handleTriggerKeyDown = (e: React.KeyboardEvent) => {
-    if (disabled) return
+    if (disabled)
+      return
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       if (!open) {
@@ -81,18 +86,22 @@ export function Select({
         return
       }
       if (e.key === 'ArrowDown') {
-        if (enabledOptions.length === 0) return
-        setHoveredIndex(prev => {
+        if (enabledOptions.length === 0)
+          return
+        setHoveredIndex((prev) => {
           const next = prev + 1
           return next >= enabledOptions.length ? 0 : next
         })
-      } else if (e.key === 'ArrowUp') {
-        if (enabledOptions.length === 0) return
-        setHoveredIndex(prev => {
+      }
+      else if (e.key === 'ArrowUp') {
+        if (enabledOptions.length === 0)
+          return
+        setHoveredIndex((prev) => {
           const next = prev - 1
           return next < 0 ? enabledOptions.length - 1 : next
         })
-      } else if ((e.key === 'Enter' || e.key === ' ') && hoveredIndex >= 0) {
+      }
+      else if ((e.key === 'Enter' || e.key === ' ') && hoveredIndex >= 0) {
         const opt = enabledOptions[hoveredIndex]
         if (opt && !opt.disabled) {
           onChange(opt.value)
@@ -103,7 +112,8 @@ export function Select({
   }
 
   const handleOptionClick = (opt: SelectOption) => {
-    if (opt.disabled) return
+    if (opt.disabled)
+      return
     onChange(opt.value)
     close()
   }
@@ -124,7 +134,7 @@ export function Select({
     : null
 
   return (
-    <div ref={rootRef} className={`${root()}${className ? ` ${className}` : ''}`}>
+    <div ref={rootRef} className={cn(root(), className)}>
       <div
         role="combobox"
         tabIndex={disabled ? -1 : 0}
@@ -141,7 +151,7 @@ export function Select({
       </div>
       {open && (
         <div role="listbox" className={panel()}>
-          {options.map(opt => {
+          {options.map((opt) => {
             const isSelected = opt.value === value
             const isHovered = opt.value === hoveredValue
             return (
@@ -153,7 +163,8 @@ export function Select({
                 onMouseEnter={() => {
                   if (!opt.disabled) {
                     const idx = enabledOptions.indexOf(opt)
-                    if (idx >= 0) handleOptionMouseEnter(idx)
+                    if (idx >= 0)
+                      handleOptionMouseEnter(idx)
                   }
                 }}
                 className={option({

@@ -1,18 +1,22 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::infra::db::pool;
+use crate::infra::watcher::watcher::PortWatcher;
 use crate::logging::{self, LogGuard};
+use crate::services::db_writer;
 use crate::services::event_bus::EventBus;
 use crate::services::serial_state::SerialState;
 use crate::services::storage_state::StorageState;
-use crate::infra::db::pool;
-use crate::infra::watcher::watcher::PortWatcher;
+use crate::services::tauri_bridge;
 
 /// 构建 App -- 按依赖顺序初始化
 ///
 /// 返回 (LogGuard, SerialState, StorageState)
 /// LogGuard 必须注册为 Tauri managed state 保持存活
-pub async fn build_app(app_handle: tauri::AppHandle) -> anyhow::Result<(LogGuard, SerialState, StorageState)> {
+pub async fn build_app(
+    app_handle: tauri::AppHandle,
+) -> anyhow::Result<(LogGuard, SerialState, StorageState)> {
     // 1. 日志（guard 必须在 main 作用域存活）
     let log_guard = logging::init_logging("jackcom");
 
@@ -27,12 +31,9 @@ pub async fn build_app(app_handle: tauri::AppHandle) -> anyhow::Result<(LogGuard
     let event_bus = Arc::new(EventBus::new(256));
 
     // 5. 启动独立消费者（保存 JoinHandle 以检测 panic）
-    let _bridge_handle = crate::services::tauri_bridge::spawn(
-        event_bus.subscribe(),
-        app_handle,
-        Duration::from_millis(10),
-    );
-    let _db_writer_handle = crate::services::db_writer::spawn(
+    let _bridge_handle =
+        tauri_bridge::spawn(event_bus.subscribe(), app_handle, Duration::from_millis(10));
+    let _db_writer_handle = db_writer::spawn(
         event_bus.subscribe(),
         storage_state.pool().clone(),
         100,

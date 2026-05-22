@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
 import { menuDropdown } from './menu-dropdown.variants'
 
 interface MenuDropdownProps {

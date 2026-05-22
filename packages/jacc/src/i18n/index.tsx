@@ -1,6 +1,6 @@
+import type { ReactNode } from 'react'
 /// <reference types="vite/client" />
 import { createContext, useCallback, useContext, useState } from 'react'
-import type { ReactNode } from 'react'
 
 const localeModules = import.meta.glob<Record<string, string>>(
   './locales/*.json',
@@ -10,7 +10,8 @@ const localeModules = import.meta.glob<Record<string, string>>(
 const messages: Record<string, Record<string, string>> = {}
 for (const [path, mod] of Object.entries(localeModules)) {
   const locale = path.match(/\/([^/]+)\.json$/)?.[1] ?? ''
-  if (locale) messages[locale] = (mod as any).default ?? mod
+  if (locale)
+    messages[locale] = (mod as any).default ?? mod
 }
 
 export type Locale = 'zh' | 'en'
@@ -30,9 +31,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved === 'zh' || saved === 'en') return saved
+      if (saved === 'zh' || saved === 'en')
+        return saved
       return DEFAULT_LOCALE
-    } catch {
+    }
+    catch {
       return DEFAULT_LOCALE
     }
   })
@@ -41,7 +44,8 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setLocaleState(newLocale)
     try {
       localStorage.setItem(STORAGE_KEY, newLocale)
-    } catch {
+    }
+    catch {
       // localStorage unavailable
     }
   }, [])
@@ -68,6 +72,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
 export function useT(): I18nContextValue {
   const ctx = useContext(I18nContext)
-  if (!ctx) throw new Error('useT must be used within LocaleProvider')
+  if (!ctx)
+    throw new Error('useT must be used within LocaleProvider')
   return ctx
 }

@@ -15,50 +15,66 @@ export interface SlotBinding {
 export function useSlotBindings() {
   const [bindings, setBindings] = useState<SlotBinding[]>([])
   const [loading, setLoading] = useState(false)
-  const { success, error } = useToast()
+  const { error } = useToast()
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
       const list = await invoke<SlotBinding[]>('get_slot_bindings')
       setBindings(list)
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }, [error])
 
-  const bind = useCallback(async (slot: string, modelId: number) => {
-    try {
-      await invoke('bind_slot', { slot, modelId })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const bind = useCallback(
+    async (slot: string, modelId: number) => {
+      try {
+        await invoke('bind_slot', { slot, modelId })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const unbind = useCallback(async (slot: string) => {
-    try {
-      await invoke('unbind_slot', { slot })
-      await refresh()
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [refresh, error])
+  const unbind = useCallback(
+    async (slot: string) => {
+      try {
+        await invoke('unbind_slot', { slot })
+        await refresh()
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [refresh, error],
+  )
 
-  const setCurrentModel = useCallback(async (slot: string, contextSize: string | null) => {
-    try {
-      await invoke('set_current_model', { slot, contextSize })
-    } catch (e) {
-      error(String(e))
-      throw e
-    }
-  }, [error])
+  const setCurrentModel = useCallback(
+    async (slot: string, contextSize: string | null) => {
+      try {
+        await invoke('set_current_model', { slot, contextSize })
+      }
+      catch (e) {
+        error(String(e))
+        throw e
+      }
+    },
+    [error],
+  )
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return { bindings, loading, refresh, bind, unbind, setCurrentModel }
 }

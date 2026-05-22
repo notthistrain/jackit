@@ -2,6 +2,7 @@ import type { DisplayFrame } from './TerminalLine'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMainStore } from '@/lib/store'
+import { terminalView } from './terminal-view.variants'
 import { TerminalLine } from './TerminalLine'
 
 interface TerminalViewProps {
@@ -35,36 +36,25 @@ export function TerminalView({ frames }: TerminalViewProps) {
     setAutoScroll(isAtBottom)
   }, [])
 
+  const { root, inner, row } = terminalView()
+
   return (
     <div
       ref={parentRef}
       onScroll={handleScroll}
-      style={{
-        flex: 1,
-        overflow: 'auto',
-        background: 'var(--color-editor-bg)',
-        position: 'relative',
-      }}
+      className={root()}
     >
       <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
+        className={inner()}
+        style={{ height: `${virtualizer.getTotalSize()}px` }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const frame = frames[virtualRow.index]
           return (
             <div
-              key={virtualRow.index}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
+              key={frame.id}
+              className={row()}
+              style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
               <TerminalLine frame={frame} hexMode={hexDisplay} />
             </div>

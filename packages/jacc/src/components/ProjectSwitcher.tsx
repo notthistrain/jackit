@@ -1,9 +1,10 @@
+import type { Project } from '@/hooks/useProjects'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ChevronDown, FolderOpen, Pin } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useAppStore } from '@/stores/useAppStore'
-import { useProjects, type Project } from '@/hooks/useProjects'
+import { useProjects } from '@/hooks/useProjects'
 import { useT } from '@/i18n'
+import { useAppStore } from '@/stores/useAppStore'
 
 export function ProjectSwitcher() {
   const { t } = useT()
@@ -71,9 +72,9 @@ export function ProjectSwitcher() {
             <div className="py-1.5">
               <div className="px-3 py-1 text-[10px] text-muted">{t('project.recent')}</div>
               {projects
-                .filter((p) => p.path !== currentProject)
+                .filter(p => p.path !== currentProject)
                 .slice(0, 5)
-                .map((project) => (
+                .map(project => (
                   <div
                     key={project.id}
                     onClick={() => handleSwitchProject(project)}

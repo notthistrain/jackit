@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { useCallback, useEffect, useState } from 'react'
 import { windowControls } from './window-controls.variants'
 
 export function WindowControls() {
@@ -8,34 +8,43 @@ export function WindowControls() {
   useEffect(() => {
     const currentWin = getCurrentWindow()
     const unlisten = currentWin.onResized(() => {
-      currentWin.isMaximized().then(setMaximized).catch(() => {})
+      currentWin
+        .isMaximized()
+        .then(setMaximized)
+        .catch(() => {})
     })
-    currentWin.isMaximized().then(setMaximized).catch(() => {})
-    return () => { unlisten.then(fn => fn()).catch(() => {}) }
+    currentWin
+      .isMaximized()
+      .then(setMaximized)
+      .catch(() => {})
+    return () => {
+      unlisten.then(fn => fn()).catch(() => {})
+    }
   }, [])
 
   const handleMinimize = useCallback(() => {
-    getCurrentWindow().minimize().catch(() => {})
+    getCurrentWindow()
+      .minimize()
+      .catch(() => {})
   }, [])
 
   const handleToggleMaximize = useCallback(() => {
-    getCurrentWindow().toggleMaximize().catch(() => {})
+    getCurrentWindow()
+      .toggleMaximize()
+      .catch(() => {})
   }, [])
 
   const handleClose = useCallback(() => {
-    getCurrentWindow().close().catch(() => {})
+    getCurrentWindow()
+      .close()
+      .catch(() => {})
   }, [])
 
   const { root, btn } = windowControls()
 
   return (
     <div className={root()}>
-      <WindowButton
-        onClick={handleMinimize}
-        hoverBg="var(--color-border)"
-        title="Minimize"
-        btn={btn}
-      >
+      <WindowButton onClick={handleMinimize} hoverBg="var(--color-border)" title="Minimize" btn={btn}>
         <MinimizeIcon />
       </WindowButton>
       <WindowButton
@@ -46,12 +55,7 @@ export function WindowControls() {
       >
         {maximized ? <RestoreIcon /> : <MaximizeIcon />}
       </WindowButton>
-      <WindowButton
-        onClick={handleClose}
-        hoverBg="#e81123"
-        title="Close"
-        btn={btn}
-      >
+      <WindowButton onClick={handleClose} hoverBg="#e81123" title="Close" btn={btn}>
         <CloseIcon />
       </WindowButton>
     </div>

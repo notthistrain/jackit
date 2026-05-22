@@ -1,6 +1,6 @@
+import { useSerialPort } from '@/hooks/useSerialPort'
 import { useT } from '@/i18n'
 import { useMainStore } from '@/lib/store'
-import { useSerialPort } from '@/hooks/useSerialPort'
 import { openDecoderWindow, openWaveformWindow } from '@/lib/window'
 import { toolbar } from './toolbar.variants'
 
@@ -10,7 +10,9 @@ interface ToolbarProps {
 
 export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
   const { t } = useT()
-  const { connections, activePortId, toggleSidebar } = useMainStore()
+  const connections = useMainStore(s => s.connections)
+  const activePortId = useMainStore(s => s.activePortId)
+  const toggleSidebar = useMainStore(s => s.toggleSidebar)
   const { close } = useSerialPort()
   const activeConn = activePortId ? connections[activePortId] : null
   const isOnline = activeConn?.online ?? false
@@ -23,7 +25,8 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
         onClick={() => {
           if (isOnline && activePortId) {
             close(activePortId).catch(() => {})
-          } else {
+          }
+          else {
             onOpenConnectionDialog()
           }
         }}
@@ -56,7 +59,9 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
         title={t('toolbar.wave')}
         className={windowBtn({ active: !!activePortId })}
       >
-        📊 {t('toolbar.wave')}
+        📊
+        {' '}
+        {t('toolbar.wave')}
       </button>
       <button
         onClick={() => activePortId && openDecoderWindow(activePortId)}
@@ -64,12 +69,16 @@ export function Toolbar({ onOpenConnectionDialog }: ToolbarProps) {
         title={t('toolbar.decode')}
         className={windowBtn({ active: !!activePortId })}
       >
-        🔬 {t('toolbar.decode')}
+        🔬
+        {' '}
+        {t('toolbar.decode')}
       </button>
       <span className={spacer()}>
         {isOnline && (
           <span className={onlineIndicator()}>
-            ● {t('toolbar.online')}
+            ●
+            {' '}
+            {t('toolbar.online')}
           </span>
         )}
       </span>

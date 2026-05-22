@@ -8,8 +8,9 @@ import { useSerialPort } from '@/hooks/useSerialPort'
 import { bytesToHex } from '@/lib/formatters'
 import { useMainStore } from '@/lib/store'
 
-export default function MainApp() {
-  const { activePortId, clearSequence } = useMainStore()
+export function MainApp() {
+  const activePortId = useMainStore(s => s.activePortId)
+  const clearSequence = useMainStore(s => s.clearSequence)
   const { frames } = useDataFeed({ portId: activePortId, clearSequence })
   const { send } = useSerialPort()
 
@@ -20,8 +21,8 @@ export default function MainApp() {
       const hexData = bytesToHex(data)
       await send(activePortId, hexData)
     }
-    catch (err) {
-      console.error('Send failed:', err)
+    catch {
+      /* send failure silently ignored */
     }
   }, [activePortId, send])
 

@@ -1,19 +1,20 @@
+import type { Page } from '@/stores/useAppStore'
 import {
   Bot,
+  Brain,
   Key,
+  Moon,
   Plug,
   Puzzle,
   Settings,
   Shield,
-  Brain,
-  Moon,
   Sun,
 } from 'lucide-react'
-import { useAppStore, type Page } from '@/stores/useAppStore'
 import { usePreferences } from '@/hooks/usePreferences'
-import { ProjectSwitcher } from './ProjectSwitcher'
-import { cn } from '@/lib/utils'
 import { useT } from '@/i18n'
+import { cn } from '@/lib/utils'
+import { useAppStore } from '@/stores/useAppStore'
+import { ProjectSwitcher } from './ProjectSwitcher'
 
 interface NavItem {
   id: Page
@@ -57,7 +58,7 @@ export function Sidebar() {
 
       <nav className="flex-1 py-2 overflow-y-auto">
         <div className="px-3 py-1 text-[10px] text-muted uppercase tracking-wider">{t('sidebar.config')}</div>
-        {settingsNav.map((item) => (
+        {settingsNav.map(item => (
           <button
             key={item.id}
             onClick={() => setPage(item.id)}
@@ -75,7 +76,7 @@ export function Sidebar() {
         ))}
 
         <div className="px-3 py-1 mt-3 text-[10px] text-muted uppercase tracking-wider">{t('sidebar.extensions')}</div>
-        {extensionsNav.map((item) => (
+        {extensionsNav.map(item => (
           <button
             key={item.id}
             onClick={() => setPage(item.id)}

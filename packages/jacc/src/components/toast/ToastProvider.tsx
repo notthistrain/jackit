@@ -15,7 +15,8 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext)
-  if (!ctx) throw new Error('useToast must be used within ToastProvider')
+  if (!ctx)
+    throw new Error('useToast must be used within ToastProvider')
   return ctx
 }
 
@@ -26,7 +27,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
 
   const remove = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
+    setToasts(prev => prev.filter(t => t.id !== id))
     const timer = timers.current.get(id)
     if (timer) {
       clearTimeout(timer)
@@ -37,9 +38,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const add = useCallback(
     (type: ToastItem['type'], message: string) => {
       const id = nextId++
-      setToasts((prev) => [...prev, { id, type, message }])
+      setToasts(prev => [...prev, { id, type, message }])
       const duration = type === 'error' ? 4000 : 2000
-      timers.current.set(id, setTimeout(() => remove(id), duration))
+      timers.current.set(id, setTimeout(remove, duration, id))
     },
     [remove],
   )
@@ -52,7 +53,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {/* Toast container */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-[360px]">
-        {toasts.map((t) => (
+        {toasts.map(t => (
           <div
             key={t.id}
             className={`flex items-center gap-2 px-3 py-2 rounded-[4px] text-xs shadow-md border animate-in slide-in-from-right ${

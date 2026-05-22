@@ -18,7 +18,8 @@ export function useProjects() {
     try {
       const list = await invoke<Project[]>('list_projects')
       setProjects(list)
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
     }
   }, [error])
@@ -27,7 +28,8 @@ export function useProjects() {
     try {
       await invoke('add_project', { path, name })
       await refresh()
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
       throw e
     }
@@ -37,7 +39,8 @@ export function useProjects() {
     try {
       await invoke('open_project', { path })
       await refresh()
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
       throw e
     }
@@ -47,7 +50,8 @@ export function useProjects() {
     try {
       await invoke('remove_project', { id })
       await refresh()
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
       throw e
     }
@@ -57,7 +61,8 @@ export function useProjects() {
     try {
       await invoke('pin_project', { id, pinned })
       await refresh()
-    } catch (e) {
+    }
+    catch (e) {
       error(String(e))
       throw e
     }

@@ -1,5 +1,5 @@
-import { useMainStore } from '@/lib/store'
 import { useT } from '@/i18n'
+import { useMainStore } from '@/lib/store'
 import { activityBar } from './activity-bar.variants'
 
 const ICONS = [
@@ -8,7 +8,10 @@ const ICONS = [
 ] as const
 
 export function ActivityBar() {
-  const { sidebarTab, setSidebarTab, sidebarVisible, toggleSidebar } = useMainStore()
+  const sidebarTab = useMainStore(s => s.sidebarTab)
+  const setSidebarTab = useMainStore(s => s.setSidebarTab)
+  const sidebarVisible = useMainStore(s => s.sidebarVisible)
+  const toggleSidebar = useMainStore(s => s.toggleSidebar)
   const { t } = useT()
 
   const { root, item } = activityBar()

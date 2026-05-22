@@ -1,14 +1,14 @@
-import { useCallback } from 'react'
 import type { ReactNode } from 'react'
+import { useCallback } from 'react'
+import { ConnectionDialog } from '@/components/connection/ConnectionDialog'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useMainStore } from '@/lib/store'
 import { openDecoderWindow, openHistoryWindow, openWaveformWindow } from '@/lib/window'
-import { ConnectionDialog } from '@/components/connection/ConnectionDialog'
 import { ActivityBar } from './ActivityBar'
+import { appLayout } from './app-layout.variants'
 import { StatusBar } from './StatusBar'
 import { TitleBar } from './TitleBar'
 import { Toolbar } from './Toolbar'
-import { appLayout } from './app-layout.variants'
 
 interface AppLayoutProps {
   sidebar: ReactNode
@@ -17,7 +17,10 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps) {
-  const { activePortId, toggleSidebar, toggleHexDisplay, incrementClearSequence, connectionDialogOpen, toggleConnectionDialog } = useMainStore()
+  const toggleHexDisplay = useMainStore(s => s.toggleHexDisplay)
+  const incrementClearSequence = useMainStore(s => s.incrementClearSequence)
+  const connectionDialogOpen = useMainStore(s => s.connectionDialogOpen)
+  const toggleConnectionDialog = useMainStore(s => s.toggleConnectionDialog)
 
   const closeConnectionDialog = useCallback(() => {
     toggleConnectionDialog(false)
@@ -26,8 +29,8 @@ export function AppLayout({ sidebar, mainContent, bottomPanel }: AppLayoutProps)
   useKeyboardShortcuts([
     { key: 'h', ctrl: true, handler: toggleHexDisplay },
     { key: 'l', ctrl: true, handler: incrementClearSequence },
-    { key: 'w', ctrl: true, shift: true, handler: () => activePortId && openWaveformWindow(activePortId) },
-    { key: 'd', ctrl: true, shift: true, handler: () => activePortId && openDecoderWindow(activePortId) },
+    { key: 'w', ctrl: true, shift: true, handler: () => useMainStore.getState().activePortId && openWaveformWindow(useMainStore.getState().activePortId!) },
+    { key: 'd', ctrl: true, shift: true, handler: () => useMainStore.getState().activePortId && openDecoderWindow(useMainStore.getState().activePortId!) },
     { key: 'h', ctrl: true, shift: true, handler: () => openHistoryWindow() },
   ])
 

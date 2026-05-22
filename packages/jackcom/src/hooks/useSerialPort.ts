@@ -16,7 +16,8 @@ interface PortInfo {
  * 封装 Tauri invoke 调用：enumerate / open / close / send
  */
 export function useSerialPort() {
-  const { addConnection, removeConnection } = useMainStore()
+  const addConnection = useMainStore(s => s.addConnection)
+  const removeConnection = useMainStore(s => s.removeConnection)
 
   const enumerate = useCallback(async () => {
     return invoke<PortInfo[]>('enumerate_ports')

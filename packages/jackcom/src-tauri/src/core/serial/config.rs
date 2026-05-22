@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+// 直接使用 serialport 的枚举类型，消除映射层
+pub use serialport::{DataBits, FlowControl, Parity, StopBits};
+
 /// 串口配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerialConfig {
@@ -30,38 +33,6 @@ impl Default for SerialConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum DataBits {
-    Five,
-    Six,
-    Seven,
-    Eight,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum StopBits {
-    One,
-    Two,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Parity {
-    None,
-    Odd,
-    Even,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum FlowControl {
-    None,
-    Hardware,
-    Software,
-}
-
 /// 连接关闭原因
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -83,10 +54,10 @@ mod tests {
     }
 
     #[test]
-    fn data_bits_serde_lowercase() {
+    fn data_bits_serde() {
         let json = serde_json::to_string(&DataBits::Eight).unwrap();
-        assert_eq!(json, "\"eight\"");
-        let back: DataBits = serde_json::from_str("\"eight\"").unwrap();
+        assert_eq!(json, "\"Eight\"");
+        let back: DataBits = serde_json::from_str("\"Eight\"").unwrap();
         assert_eq!(back, DataBits::Eight);
     }
 

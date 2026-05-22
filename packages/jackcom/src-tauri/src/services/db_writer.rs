@@ -27,53 +27,79 @@ pub fn spawn(
         loop {
             tokio::select! {
                 result = rx.recv() => {
-                    match result {
-                        Ok(arc) => {
-                            if let PortEvent::Data { port_id, frames, direction } = arc.as_ref() {
-                                let session_id: Option<SessionId> = session_lookup.get(port_id)
-                                    .map(|s| *s);
-                                for f in frames {
-                                    buffer.push(FrameRow::new(
-                                        session_id,
-                                        protocol_to_str(f.protocol),
-                                        &f.raw_hex(),
-                                        *direction,
-                                        f.formatted(),
-                                        &f.summary(),
-                                    ));
-                                }
-                                if buffer.len() >= batch_size {
-                                    if flush_to_db(&pool, &buffer).await.is_err() {
-                                        // S2: flush 失败保留 buffer，下次重试
-                                        continue;
-                                    }
-                                    buffer.clear();
-                                }
-                            }
-                        }
-                        Err(broadcast::error::RecvError::Lagged(n)) => {
-                            // S1: Lagged 时打 warn 日志
-                            tracing::warn!("DB Writer: 跳过 {n} 个事件");
-                            continue;
-                        }
-                        Err(_) => break, // channel closed
+                    if handle_recv(result, &mut buffer, &session_lookup) {
+                        continue;
+                    } else {
+                        break;
                     }
                 }
                 _ = interval.tick() => {
-                    if !buffer.is_empty() {
-                        if flush_to_db(&pool, &buffer).await.is_err() {
-                            continue; // S2: 失败保留 buffer
-                        }
-                        buffer.clear();
-                    }
+                    try_flush(&pool, &mut buffer).await;
                 }
+            }
+
+            if buffer.len() >= batch_size {
+                try_flush(&pool, &mut buffer).await;
             }
         }
     })
 }
 
-async fn flush_to_db(pool: &SqlitePool, rows: &[FrameRow]) -> anyhow::Result<()> {
-    frame_repo::insert_frames_batch(pool, rows).await
+/// 处理接收结果，返回 true=继续 false=退出
+fn handle_recv(
+    result: Result<Arc<PortEvent>, broadcast::error::RecvError>,
+    buffer: &mut Vec<FrameRow>,
+    session_lookup: &DashMap<PortName, SessionId>,
+) -> bool {
+    match result {
+        Ok(arc) => {
+            collect_data_frames(arc.as_ref(), buffer, session_lookup);
+            true
+        }
+        Err(broadcast::error::RecvError::Lagged(n)) => {
+            tracing::warn!("DB Writer: 跳过 {n} 个事件");
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// 从 PortEvent::Data 中提取帧写入 buffer
+fn collect_data_frames(
+    event: &PortEvent,
+    rows: &mut Vec<FrameRow>,
+    session_lookup: &DashMap<PortName, SessionId>,
+) {
+    let PortEvent::Data {
+        port_id,
+        frames,
+        direction,
+    } = event
+    else {
+        return;
+    };
+    let session_id = session_lookup.get(port_id).map(|s| *s);
+    for f in frames {
+        rows.push(FrameRow::new(
+            session_id,
+            protocol_to_str(f.protocol),
+            &f.raw_hex(),
+            *direction,
+            f.formatted(),
+            &f.summary(),
+        ));
+    }
+}
+
+/// 攒批写入，失败时保留 buffer 下次重试
+async fn try_flush(pool: &SqlitePool, buffer: &mut Vec<FrameRow>) {
+    if buffer.is_empty() {
+        return;
+    }
+    if frame_repo::insert_frames_batch(pool, buffer).await.is_err() {
+        return;
+    }
+    buffer.clear();
 }
 
 /// 将 ProtocolType 转为小写字符串用于 DB 存储（不依赖 Debug trait）

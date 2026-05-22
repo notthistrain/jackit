@@ -50,7 +50,10 @@ impl SerialState {
         removed
     }
 
-    pub fn get_port(&self, port_name: &PortName) -> Option<dashmap::mapref::one::Ref<'_, PortName, PortEntry>> {
+    pub fn get_port(
+        &self,
+        port_name: &PortName,
+    ) -> Option<dashmap::mapref::one::Ref<'_, PortName, PortEntry>> {
         self.ports.get(port_name)
     }
 

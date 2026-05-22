@@ -1,8 +1,8 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
-import { describe, expect, it, beforeEach, beforeAll } from 'vitest'
-
-import { LocaleProvider, useT, __injectMessages } from '../index'
 import type { ReactNode } from 'react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { __injectMessages, LocaleProvider, useT } from '../index'
 
 function wrapper({ children }: { children: ReactNode }) {
   return <LocaleProvider>{children}</LocaleProvider>
