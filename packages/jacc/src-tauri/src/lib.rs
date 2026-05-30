@@ -1,6 +1,7 @@
 #[macro_use]
 mod macros;
 
+mod claude_settings;
 mod commands;
 mod db;
 mod error;
