@@ -6,6 +6,7 @@ mod commands;
 mod db;
 mod error;
 mod logging;
+mod path_guard;
 
 use tracing_appender::non_blocking::WorkerGuard;
 use tauri::Manager;
