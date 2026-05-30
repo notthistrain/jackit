@@ -87,6 +87,84 @@ where
     Ok(())
 }
 
+fn slot_env_key(slot: &str) -> &'static str {
+    match slot {
+        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
+        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
+        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+        _ => "ANTHROPIC_MODEL",
+    }
+}
+
+pub async fn write_slot_env(
+    path: &Path,
+    slot: &str,
+    base_url: &str,
+    api_key: &str,
+    model_name: &str,
+) -> AppResult<()> {
+    let env_key = slot_env_key(slot);
+    update(path, |obj| {
+        let env = obj.entry("env").or_insert_with(|| serde_json::json!({}));
+        let env_obj = env.as_object_mut().ok_or_else(|| {
+            AppError::Custom("env is not an object".into())
+        })?;
+        env_obj.insert("ANTHROPIC_BASE_URL".into(), serde_json::json!(base_url));
+        env_obj.insert("ANTHROPIC_AUTH_TOKEN".into(), serde_json::json!(api_key));
+        env_obj.insert(env_key.into(), serde_json::json!(model_name));
+        Ok(())
+    }).await
+}
+
+pub async fn clear_slot_env(path: &Path, slot: &str) -> AppResult<()> {
+    let env_key = slot_env_key(slot);
+    update(path, |obj| {
+        if let Some(env) = obj.get_mut("env").and_then(|v| v.as_object_mut()) {
+            env.remove("ANTHROPIC_BASE_URL");
+            env.remove("ANTHROPIC_AUTH_TOKEN");
+            env.remove(env_key);
+        }
+        if obj.get("model").and_then(|v| v.as_str()) == Some(slot) {
+            obj.remove("model");
+        }
+        Ok(())
+    }).await
+}
+
+pub async fn write_kv(path: &Path, key: &str, value: serde_json::Value) -> AppResult<()> {
+    update(path, |obj| {
+        obj.insert(key.to_string(), value);
+        Ok(())
+    }).await
+}
+
+pub async fn delete_kv(path: &Path, key: &str) -> AppResult<()> {
+    update(path, |obj| {
+        obj.remove(key);
+        Ok(())
+    }).await
+}
+
+pub async fn purge_token(path: &Path, base_url: &str, api_key: &str) -> AppResult<()> {
+    update(path, |obj| {
+        let env_match = obj.get("env").and_then(|v| v.as_object()).map(|env| {
+            env.get("ANTHROPIC_BASE_URL").and_then(|v| v.as_str()) == Some(base_url)
+                && env.get("ANTHROPIC_AUTH_TOKEN").and_then(|v| v.as_str()) == Some(api_key)
+        }).unwrap_or(false);
+
+        if env_match {
+            if let Some(env) = obj.get_mut("env").and_then(|v| v.as_object_mut()) {
+                env.remove("ANTHROPIC_BASE_URL");
+                env.remove("ANTHROPIC_AUTH_TOKEN");
+                env.remove("ANTHROPIC_DEFAULT_OPUS_MODEL");
+                env.remove("ANTHROPIC_DEFAULT_SONNET_MODEL");
+                env.remove("ANTHROPIC_DEFAULT_HAIKU_MODEL");
+            }
+        }
+        Ok(())
+    }).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,5 +271,63 @@ mod tests {
         let obj = v.as_object().unwrap();
         // 40 个 key 都不应丢失
         assert_eq!(obj.len(), 40);
+    }
+
+    fn read_value(path: &Path) -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn write_slot_env_writes_three_keys() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+
+        write_slot_env(&path, "opus", "https://api.anthropic.com", "sk-ant-aaa", "claude-opus-4-6")
+            .await.unwrap();
+
+        let v = read_value(&path);
+        assert_eq!(v["env"]["ANTHROPIC_BASE_URL"], "https://api.anthropic.com");
+        assert_eq!(v["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-aaa");
+        assert_eq!(v["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-4-6");
+    }
+
+    #[tokio::test]
+    async fn clear_slot_env_removes_keys_and_top_model() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        write_slot_env(&path, "opus", "https://x.com", "sk-x", "m").await.unwrap();
+        write_kv(&path, "model", serde_json::json!("opus")).await.unwrap();
+
+        clear_slot_env(&path, "opus").await.unwrap();
+
+        let v = read_value(&path);
+        assert!(v["env"].get("ANTHROPIC_BASE_URL").is_none());
+        assert!(v["env"].get("ANTHROPIC_AUTH_TOKEN").is_none());
+        assert!(v["env"].get("ANTHROPIC_DEFAULT_OPUS_MODEL").is_none());
+        assert!(v.get("model").is_none(), "top-level model should be cleared when matches slot");
+    }
+
+    #[tokio::test]
+    async fn purge_token_clears_all_slots_with_matching_creds() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        write_slot_env(&path, "opus", "https://a.com", "sk-aaa", "m1").await.unwrap();
+
+        purge_token(&path, "https://a.com", "sk-aaa").await.unwrap();
+
+        let v = read_value(&path);
+        assert!(v["env"].get("ANTHROPIC_BASE_URL").is_none());
+        assert!(v["env"].get("ANTHROPIC_AUTH_TOKEN").is_none());
+        assert!(v["env"].get("ANTHROPIC_DEFAULT_OPUS_MODEL").is_none());
+    }
+
+    #[tokio::test]
+    async fn write_kv_and_delete_kv() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        write_kv(&path, "foo", serde_json::json!("bar")).await.unwrap();
+        assert_eq!(read_value(&path)["foo"], "bar");
+        delete_kv(&path, "foo").await.unwrap();
+        assert!(read_value(&path).get("foo").is_none());
     }
 }
