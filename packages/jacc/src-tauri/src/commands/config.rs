@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::error::AppResult;
 
@@ -25,11 +25,19 @@ pub struct MergedConfig {
 #[tauri::command]
 pub async fn read_merged_config(project_path: String) -> AppResult<MergedConfig> {
     log_command!("read_merged_config", {
-        let global = read_settings_file(&get_global_settings_path());
-        let project = if project_path.is_empty() {
-            serde_json::json!({})
+        let global_path = crate::claude_settings::global_settings_path();
+        let project_path_buf = if project_path.is_empty() {
+            None
         } else {
-            read_settings_file(&get_project_settings_path(&project_path))
+            Some(crate::claude_settings::project_settings_path(Path::new(
+                &project_path,
+            )))
+        };
+
+        let global = crate::claude_settings::read(&global_path).await?;
+        let project = match project_path_buf.as_deref() {
+            Some(p) => crate::claude_settings::read(p).await?,
+            None => serde_json::json!({}),
         };
 
         let mut items: Vec<MergedConfigItem> = vec![];
@@ -72,23 +80,17 @@ pub async fn write_config(
 ) -> AppResult<()> {
     log_command!("write_config", {
         let path = match scope {
-            ConfigScope::Global => get_global_settings_path(),
+            ConfigScope::Global => crate::claude_settings::global_settings_path(),
             ConfigScope::Project => {
                 let pp = project_path.ok_or_else(|| {
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
-                get_project_settings_path(&pp)
+                crate::claude_settings::project_settings_path(Path::new(&pp))
             }
         };
 
-        let mut settings = read_settings_file(&path);
-        if !settings.is_object() {
-            settings = serde_json::json!({});
-        }
-        settings.as_object_mut().unwrap().insert(key.clone(), value);
-
-        write_settings_file(&path, &settings)?;
-        tracing::info!(scope = ?scope, key = %key, "config written");
+        crate::claude_settings::write_kv(&path, &key, value).await?;
+        tracing::info!(scope = ?scope, key = %key, path = %path.display(), "config written");
         Ok(())
     })
 }
@@ -101,48 +103,17 @@ pub async fn delete_config(
 ) -> AppResult<()> {
     log_command!("delete_config", {
         let path = match scope {
-            ConfigScope::Global => get_global_settings_path(),
+            ConfigScope::Global => crate::claude_settings::global_settings_path(),
             ConfigScope::Project => {
                 let pp = project_path.ok_or_else(|| {
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
-                get_project_settings_path(&pp)
+                crate::claude_settings::project_settings_path(Path::new(&pp))
             }
         };
 
-        let mut settings = read_settings_file(&path);
-        if let Some(obj) = settings.as_object_mut() {
-            obj.remove(&key);
-        }
-
-        write_settings_file(&path, &settings)?;
-        tracing::info!(scope = ?scope, key = %key, "config deleted");
+        crate::claude_settings::delete_kv(&path, &key).await?;
+        tracing::info!(scope = ?scope, key = %key, path = %path.display(), "config deleted");
         Ok(())
     })
-}
-
-fn get_global_settings_path() -> PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    home.join(".claude").join("settings.json")
-}
-
-fn get_project_settings_path(project_path: &str) -> PathBuf {
-    PathBuf::from(project_path).join(".claude").join("settings.json")
-}
-
-fn read_settings_file(path: &PathBuf) -> serde_json::Value {
-    if path.exists() {
-        let content = std::fs::read_to_string(path).unwrap_or_default();
-        serde_json::from_str(&content).unwrap_or(serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    }
-}
-
-fn write_settings_file(path: &PathBuf, value: &serde_json::Value) -> std::io::Result<()> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let content = serde_json::to_string_pretty(value).unwrap_or_default();
-    std::fs::write(path, content)
 }
