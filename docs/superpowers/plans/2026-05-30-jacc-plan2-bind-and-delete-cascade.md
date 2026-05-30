@@ -10,6 +10,8 @@
 
 **前置依赖：** plan1 已完成（claude_settings 模块就位）。
 
+**执行顺序提示：** 本 plan 与 plan3 都改 `commands/slots.rs`。**强烈建议串行：先合 plan2，再合 plan3**，避免 merge 冲突。plan4 与本 plan 无冲突，可并行。
+
 **设计文档：** `docs/superpowers/specs/2026-05-30-jacc-backend-consistency-design.md` 第 3 节
 
 ---
@@ -223,7 +225,21 @@ pub(crate) async fn bind_slot_at(
 }
 ```
 
-`SlotBindingIntent` 结构（在 `slots.rs` 顶部新增）和 `mask_api_key` helper（4 头 + 4 尾，长度 < 8 时 `***`）一并加上。
+`SlotBindingIntent` 结构（在 `slots.rs` 顶部新增）。`mask_api_key` helper（4 头 + 4 尾，长度 < 8 时 `***`）放在 `commands/api_keys.rs` 作为单一来源；本任务额外新增以下内容到 `api_keys.rs`：
+
+```rust
+pub fn mask_api_key(s: &str) -> String {
+    if s.len() < 8 {
+        "***".to_string()
+    } else {
+        let head = &s[..4];
+        let tail = &s[s.len() - 4..];
+        format!("{head}***{tail}")
+    }
+}
+```
+
+`slots.rs` 顶部 `use super::api_keys::mask_api_key;` 即可。注意：`api_keys.rs::ApiKeyView::from_api_key` 现有 mask 逻辑保持原样（前 8 + ***），不在本任务里改——plan4 任务 1 才统一替换为调用 `mask_api_key`。
 
 - [ ] **步骤 4：运行测试确认通过**
 
@@ -731,8 +747,23 @@ git commit -m "feat(jacc): update_provider/update_api_key 联动刷 env"
 
 **文件：**
 - 创建：`packages/jacc/src-tauri/tests/integration_settings_sync.rs`
+- 修改：`packages/jacc/src-tauri/src/commands/providers.rs`（pub 化）
+- 修改：`packages/jacc/src-tauri/src/commands/api_keys.rs`（pub 化）
+- 修改：`packages/jacc/src-tauri/src/commands/models.rs`（pub 化）
+- 修改：`packages/jacc/src-tauri/src/commands/slots.rs`（pub 化）
 
-- [ ] **步骤 1：创建集成测试**
+- [ ] **步骤 1：把 inner / _at 函数从 pub(crate) 改为 pub**
+
+为让外部 `tests/` 集成测试可见，把以下函数的 `pub(crate)` 改为 `pub`：
+
+- `commands/providers.rs::add_provider_inner` / `update_provider_inner` / `delete_provider_inner` / `update_provider_at` / `delete_provider_at`
+- `commands/api_keys.rs::add_api_key_inner` / `update_api_key_inner` / `delete_api_key_inner` / `update_api_key_at` / `delete_api_key_at`
+- `commands/models.rs::add_model_inner` / `update_model_inner` / `delete_model_inner` / `delete_model_at`
+- `commands/slots.rs::bind_slot_at` / `unbind_slot_at` / `set_current_model_at` / `get_slot_bindings_full_at`
+
+输入结构体（如 `CreateProviderInput` / `UpdateProviderInput` / 其他 `*Input`）必须已经是 `pub`（多数已经是，确认一遍即可）。
+
+- [ ] **步骤 2：创建集成测试**
 
 ```rust
 //! 端到端：add provider → key → model → bind → 改 token → 验 env 已刷 → 删 provider → 验 env 清空
@@ -745,7 +776,6 @@ async fn setup() -> SqlitePool {
         .connect("sqlite::memory:")
         .await.unwrap();
     sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await.unwrap();
-    // 完整复制 slots.rs::tests::setup_test_db 中的四表 DDL：
     sqlx::query("CREATE TABLE providers (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, base_url TEXT NOT NULL,
         notes TEXT, created_at TEXT DEFAULT (datetime('now')),
@@ -820,25 +850,24 @@ async fn full_lifecycle_keeps_settings_in_sync() {
 }
 ```
 
-> 子代理实现时根据 jacc_lib 的实际 pub 可见性补 `pub` 标记或调整模块路径。
-
-- [ ] **步骤 2：运行集成测试**
+- [ ] **步骤 3：运行集成测试**
 
 运行：`cd packages/jacc/src-tauri && cargo test --test integration_settings_sync`
 预期：通过。
 
-- [ ] **步骤 3：完整 cargo test + clippy**
+- [ ] **步骤 4：完整 cargo test + clippy**
 
 ```bash
 cargo test
 cargo clippy --all-targets -- -D warnings
 ```
 
-- [ ] **步骤 4：Commit + tag**
+- [ ] **步骤 5：Commit + tag**
 
 ```bash
-git add packages/jacc/src-tauri/tests/integration_settings_sync.rs
-git commit -m "test(jacc): bind/update/delete settings 同步集成测试"
+git add packages/jacc/src-tauri/tests/integration_settings_sync.rs \
+        packages/jacc/src-tauri/src/commands/
+git commit -m "test(jacc): bind/update/delete settings 同步集成测试 + pub 化 inner 函数"
 git tag jacc-plan2-done
 ```
 

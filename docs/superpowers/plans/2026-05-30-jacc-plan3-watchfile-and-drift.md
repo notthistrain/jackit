@@ -8,7 +8,7 @@
 
 **技术栈：** Rust, Tauri 2, notify 6, notify-debouncer-mini 0.4
 
-**前置依赖：** plan1 已完成（claude_settings 模块）。可与 plan2 并行（不互相依赖）。
+**前置依赖：** plan1 已完成（claude_settings 模块）。**强烈建议在 plan2 合入之后再开始 plan3**：本 plan 任务 4 改造 `get_slot_bindings` 依赖 plan2 引入的 `SlotBindingIntent` 类型与 `bind_slot_at` 函数；二者并行会产生 `slots.rs` merge 冲突。plan4 独立，可与本 plan 并行。
 
 **设计文档：** `docs/superpowers/specs/2026-05-30-jacc-backend-consistency-design.md` 第 4 节
 

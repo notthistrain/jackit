@@ -8,7 +8,7 @@
 
 **技术栈：** Rust, Tauri 2, parking_lot, std::sync::OnceLock, reqwest
 
-**前置依赖：** 无（独立）。但若 plan2 已合，slot 白名单部分会自然合并；若 plan1 已合，path_guard 接入是补完。
+**前置依赖：** 无（独立）。可与 plan1/2/3 任一并行。任务 5（slot 白名单）已自包含 fallback：若 plan2 未合，本任务会自行声明 `ALLOWED_SLOTS` 并补到 bind/unbind/set_current_model 三处。
 
 **设计文档：** `docs/superpowers/specs/2026-05-30-jacc-backend-consistency-design.md` 第 5、6 节
 
@@ -293,18 +293,32 @@ git commit -m "fix(jacc): test_model 加超时 + 仅 2xx 成功 + 错误脱敏"
 
 ---
 
-### 任务 5：slot 白名单接入（若 plan2 已做则补完）
+### 任务 5：set_current_model 接入 slot 白名单
 
 **文件：**
 - 修改：`packages/jacc/src-tauri/src/commands/slots.rs`
 
-- [ ] **步骤 1：检查现状**
+> 背景：plan2 任务 2/3 已为 `bind_slot_at` / `unbind_slot_at` 加了 `ALLOWED_SLOTS` 校验。但现有 `set_current_model_at` 没校验。本任务补完。
 
-如果 plan2 已在 `bind_slot_at` 加了 `ALLOWED_SLOTS` 校验，本任务只需补充 `unbind_slot_at` / `set_current_model` 的入口校验，并把 `ALLOWED_SLOTS` 提到模块顶部 `pub`。
+- [ ] **步骤 1：编写失败的测试**
 
-- [ ] **步骤 2：补 unbind_slot_at / set_current_model 校验**
+```rust
+#[tokio::test]
+async fn set_current_model_invalid_slot_rejected() {
+    let pool = setup_test_db().await;
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("settings.json");
+    let r = set_current_model_at(&pool, "evil", None, &p).await;
+    assert!(r.unwrap_err().to_string().contains("INVALID_SLOT:evil"));
+}
+```
 
-`unbind_slot_at` 顶部加：
+- [ ] **步骤 2：运行测试确认失败**
+
+运行：`cargo test set_current_model_invalid_slot_rejected`
+预期：FAIL，"evil" 仍被接受。
+
+- [ ] **步骤 3：在 set_current_model_at 函数顶部加校验**
 
 ```rust
 if !ALLOWED_SLOTS.contains(&slot) {
@@ -312,28 +326,23 @@ if !ALLOWED_SLOTS.contains(&slot) {
 }
 ```
 
-`set_current_model_at` 同样。
+> 若 plan4 在 plan2 之前合，则 `ALLOWED_SLOTS` 常量尚未存在——本任务先在 `slots.rs` 顶部声明：
+>
+> ```rust
+> pub const ALLOWED_SLOTS: &[&str] = &["opus", "sonnet", "haiku"];
+> ```
+>
+> 并把同样的校验补到 `bind_slot_inner` / `unbind_slot_inner`（保持 plan2 / plan4 顺序无关）。
 
-- [ ] **步骤 3：补失败测试**
+- [ ] **步骤 4：cargo test 通过**
 
-```rust
-#[tokio::test]
-async fn bind_invalid_slot_rejected() {
-    let pool = setup_test_db().await;
-    let mid = insert_full_model(&pool, "A", "https://a.com", "sk-x12345678", "m").await;
-    let dir = tempfile::tempdir().unwrap();
-    let p = dir.path().join("settings.json");
-    let r = bind_slot_at(&pool, "evil", mid, &p).await;
-    assert!(r.unwrap_err().to_string().contains("INVALID_SLOT:evil"));
-}
-```
+运行：`cargo test commands::slots`
 
-- [ ] **步骤 4：cargo test + Commit**
+- [ ] **步骤 5：Commit**
 
 ```bash
-cargo test commands::slots
 git add packages/jacc/src-tauri/src/commands/slots.rs
-git commit -m "feat(jacc): slot 白名单全面接入 unbind/set_current_model"
+git commit -m "feat(jacc): set_current_model 接入 slot 白名单"
 ```
 
 ---
@@ -470,11 +479,21 @@ pub async fn confirm_install_skill(
 
 运行：`cargo test commands::skills && cargo clippy --all-targets -- -D warnings`
 
-- [ ] **步骤 4：Commit**
+- [ ] **步骤 4：前端同步适配（破坏性 API 改动）**
+
+旧返回 `{ temp_dir, skills }`，新返回 `{ token, skills }`。前端调用方需同步：
+
+- 在 `packages/jacc/src/` 内 grep `install_skill_from_github`，找到调用方组件；
+- 把读 `result.temp_dir` 的代码改为读 `result.token`；
+- `confirm_install_skill` 调用入参从 `{ projectPath, tempDir, skillNames }` 改为 `{ projectPath, token, skillNames }`；
+- 测试：手动跑 `pnpm tauri dev`（在 `packages/jacc/`），完整走一遍"从 GitHub 装 skill → 选择 → 确认"流程。
+
+- [ ] **步骤 5：Commit**
 
 ```bash
-git add packages/jacc/src-tauri/Cargo.toml packages/jacc/src-tauri/src/commands/skills.rs
-git commit -m "fix(jacc): install_skill_from_github 改 token map + GC + 异步 git + path_guard"
+git add packages/jacc/src-tauri/Cargo.toml packages/jacc/src-tauri/src/commands/skills.rs \
+        packages/jacc/src/
+git commit -m "fix(jacc): install_skill_from_github 改 token map + GC + 前端同步"
 ```
 
 ---
