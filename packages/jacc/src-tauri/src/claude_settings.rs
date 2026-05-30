@@ -58,6 +58,35 @@ pub async fn read(path: &Path) -> AppResult<serde_json::Value> {
     }
 }
 
+pub async fn update<F>(path: &Path, mutator: F) -> AppResult<()>
+where
+    F: FnOnce(&mut serde_json::Map<String, serde_json::Value>) -> AppResult<()>,
+{
+    let _guard = SETTINGS_LOCK.lock().await;
+
+    let mut value = read(path).await?;
+    if !value.is_object() {
+        tracing::warn!(path = %path.display(), "settings.json top-level is not an object, resetting");
+        value = serde_json::json!({});
+    }
+    let obj = value.as_object_mut().expect("guaranteed object above");
+    mutator(obj)?;
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
+    let content = serde_json::to_string_pretty(&value)?;
+    use std::io::Write;
+    tmp.write_all(content.as_bytes())?;
+    tmp.flush()?;
+    tmp.persist(path).map_err(|e| std::io::Error::other(e.to_string()))?;
+
+    tracing::info!(path = %path.display(), "settings.json written");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,5 +128,70 @@ mod tests {
             .filter(|e| e.file_name().to_string_lossy().contains(".broken-"))
             .collect();
         assert_eq!(entries.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn update_creates_file_when_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+
+        update(&path, |obj| {
+            obj.insert("model".into(), serde_json::json!("opus"));
+            Ok(())
+        }).await.unwrap();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["model"], "opus");
+    }
+
+    #[tokio::test]
+    async fn update_preserves_other_keys() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        std::fs::write(&path, r#"{"foo":"bar","model":"old"}"#).unwrap();
+
+        update(&path, |obj| {
+            obj.insert("model".into(), serde_json::json!("new"));
+            Ok(())
+        }).await.unwrap();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["foo"], "bar");
+        assert_eq!(v["model"], "new");
+    }
+
+    #[tokio::test]
+    async fn update_concurrent_writes_serialize() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+
+        let p1 = path.clone();
+        let p2 = path.clone();
+        let h1 = tokio::spawn(async move {
+            for i in 0..20 {
+                update(&p1, move |obj| {
+                    obj.insert(format!("a{i}"), serde_json::json!(i));
+                    Ok(())
+                }).await.unwrap();
+            }
+        });
+        let h2 = tokio::spawn(async move {
+            for i in 0..20 {
+                update(&p2, move |obj| {
+                    obj.insert(format!("b{i}"), serde_json::json!(i));
+                    Ok(())
+                }).await.unwrap();
+            }
+        });
+        h1.await.unwrap();
+        h2.await.unwrap();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let obj = v.as_object().unwrap();
+        // 40 个 key 都不应丢失
+        assert_eq!(obj.len(), 40);
     }
 }
