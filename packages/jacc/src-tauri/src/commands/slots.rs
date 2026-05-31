@@ -269,6 +269,9 @@ pub async fn set_current_model_at(
     context_size: Option<&str>,
     settings_path: &Path,
 ) -> AppResult<()> {
+    if !ALLOWED_SLOTS.contains(&slot) {
+        return Err(AppError::Custom(format!("INVALID_SLOT:{}", slot)));
+    }
     let row = sqlx::query_as::<_, (String, Option<String>, String, String)>(
         "SELECT m.model_name, ms.context_size, ak.api_key, p.base_url
          FROM model_slots ms
@@ -723,5 +726,16 @@ mod tests {
         assert!(!full[0].matches.api_key);
         assert!(full[0].matches.model_name);
         assert!(full[0].matches.base_url);
+    }
+
+    #[tokio::test]
+    async fn set_current_model_invalid_slot_rejected() {
+        let pool = setup_test_db().await;
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("settings.json");
+        let r = set_current_model_at(&pool, "evil", None, &p).await;
+        assert!(r.is_err());
+        let err_str = r.unwrap_err().to_string();
+        assert!(err_str.contains("INVALID_SLOT") && err_str.contains("evil"));
     }
 }
