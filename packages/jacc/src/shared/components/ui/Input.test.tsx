@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Input } from './Input'
 
-describe('Input', () => {
+describe('input', () => {
   it('renders with value', () => {
     render(<Input value="test" onChange={vi.fn()} />)
     expect(screen.getByDisplayValue('test')).toBeTruthy()

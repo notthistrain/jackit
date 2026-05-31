@@ -27,7 +27,8 @@ export function Dialog({ open, onClose, title, children, footer, size }: DialogP
     }
   }, [open, onClose])
 
-  if (!open) return null
+  if (!open)
+    return null
 
   const { overlay, content, header, title: titleClass, body, footer: footerClass } = dialog({ size })
 

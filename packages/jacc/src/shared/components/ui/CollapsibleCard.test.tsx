@@ -1,14 +1,14 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { CollapsibleCard } from './CollapsibleCard'
 
-describe('CollapsibleCard', () => {
+describe('collapsibleCard', () => {
   it('renders header', () => {
     render(
       <CollapsibleCard expanded={false} onToggle={vi.fn()} header={<div>Header</div>}>
         Content
-      </CollapsibleCard>
+      </CollapsibleCard>,
     )
     expect(screen.getByText('Header')).toBeTruthy()
   })
@@ -17,7 +17,7 @@ describe('CollapsibleCard', () => {
     render(
       <CollapsibleCard expanded={true} onToggle={vi.fn()} header={<div>Header</div>}>
         Content
-      </CollapsibleCard>
+      </CollapsibleCard>,
     )
     expect(screen.getByText('Content')).toBeTruthy()
   })
@@ -26,7 +26,7 @@ describe('CollapsibleCard', () => {
     render(
       <CollapsibleCard expanded={false} onToggle={vi.fn()} header={<div>Header</div>}>
         Content
-      </CollapsibleCard>
+      </CollapsibleCard>,
     )
     expect(screen.queryByText('Content')).toBeNull()
   })
@@ -36,7 +36,7 @@ describe('CollapsibleCard', () => {
     render(
       <CollapsibleCard expanded={false} onToggle={onToggle} header={<div>Header</div>}>
         Content
-      </CollapsibleCard>
+      </CollapsibleCard>,
     )
     await userEvent.click(screen.getByText('Header'))
     expect(onToggle).toHaveBeenCalledOnce()
@@ -52,7 +52,7 @@ describe('CollapsibleCard', () => {
         headerRight={<button>Action</button>}
       >
         Content
-      </CollapsibleCard>
+      </CollapsibleCard>,
     )
     await userEvent.click(screen.getByText('Action'))
     expect(onToggle).not.toHaveBeenCalled()
@@ -62,7 +62,7 @@ describe('CollapsibleCard', () => {
     const { container } = render(
       <CollapsibleCard expanded={true} onToggle={vi.fn()} header={<div>Header</div>}>
         Content
-      </CollapsibleCard>
+      </CollapsibleCard>,
     )
     expect(container.querySelector('svg')).toBeTruthy()
   })

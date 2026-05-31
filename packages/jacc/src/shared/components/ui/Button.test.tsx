@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Button } from './Button'
 
-describe('Button', () => {
+describe('button', () => {
   it('renders children', () => {
     render(<Button>Click me</Button>)
     expect(screen.getByText('Click me')).toBeTruthy()

@@ -17,22 +17,24 @@ export function CollapsibleCard({
   headerRight,
   children,
 }: CollapsibleCardProps) {
-  const { root, header: headerClass, headerLeft, headerRight: headerRightClass, icon, content } =
-    collapsibleCard({ expanded })
+  const { root, header: headerClass, headerLeft, headerRight: headerRightClass, icon, content }
+    = collapsibleCard({ expanded })
 
   return (
     <div className={root()}>
       <div className={headerClass()} onClick={onToggle}>
         <div className={headerLeft()}>
-          {expanded ? (
-            <ChevronDown size={14} className={icon()} />
-          ) : (
-            <ChevronRight size={14} className={icon()} />
-          )}
+          {expanded
+            ? (
+                <ChevronDown size={14} className={icon()} />
+              )
+            : (
+                <ChevronRight size={14} className={icon()} />
+              )}
           {header}
         </div>
         {headerRight && (
-          <div className={headerRightClass()} onClick={(e) => e.stopPropagation()}>
+          <div className={headerRightClass()} onClick={e => e.stopPropagation()}>
             {headerRight}
           </div>
         )}

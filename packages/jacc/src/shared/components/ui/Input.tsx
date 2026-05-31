@@ -35,7 +35,7 @@ export function Input({
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
         className={root()}
