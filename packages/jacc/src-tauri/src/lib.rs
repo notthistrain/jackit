@@ -73,6 +73,7 @@ pub fn run() {
             commands::config::read_merged_config,
             commands::config::write_config,
             commands::config::delete_config,
+            commands::config::reset_corrupted_settings,
             // skills
             commands::skills::list_skills,
             commands::skills::toggle_skill,

@@ -117,3 +117,30 @@ pub async fn delete_config(
         Ok(())
     })
 }
+
+#[tauri::command]
+pub async fn reset_corrupted_settings(
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<()> {
+    use std::io::Write;
+    let path = match scope {
+        ConfigScope::Global => crate::claude_settings::global_settings_path(),
+        ConfigScope::Project => {
+            let pp = project_path.ok_or_else(|| {
+                crate::error::AppError::Custom("项目路径不能为空".into())
+            })?;
+            crate::claude_settings::project_settings_path(Path::new(&pp))
+        }
+    };
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
+    tmp.write_all(b"{}\n")?;
+    tmp.flush()?;
+    tmp.persist(&path).map_err(|e| std::io::Error::other(e.to_string()))?;
+    tracing::warn!(path = %path.display(), "settings.json reset to empty object by user");
+    Ok(())
+}
