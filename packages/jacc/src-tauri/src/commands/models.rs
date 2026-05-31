@@ -97,6 +97,32 @@ pub(crate) async fn delete_model_inner(pool: &SqlitePool, id: i64) -> AppResult<
     Ok(())
 }
 
+pub(crate) async fn delete_model_at(
+    pool: &SqlitePool,
+    id: i64,
+    settings_path: &std::path::Path,
+) -> AppResult<()> {
+    // 仅当该 model 被 slot 使用时才需 purge；找出关联 token
+    let row: Option<(String, String)> = sqlx::query_as(
+        "SELECT p.base_url, ak.api_key
+         FROM models m JOIN api_keys ak ON m.api_key_id = ak.id
+         JOIN providers p ON ak.provider_id = p.id
+         JOIN model_slots ms ON ms.model_id = m.id
+         WHERE m.id = ?",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    sqlx::query("DELETE FROM models WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if let Some((base_url, api_key)) = row {
+        crate::claude_settings::purge_token(settings_path, &base_url, &api_key).await?;
+    }
+    Ok(())
+}
+
 /// 测试模型连接：联查 3 层获取 base_url + api_key + model_name
 pub(crate) async fn test_model_inner(pool: &SqlitePool, id: i64) -> AppResult<String> {
     let row = sqlx::query_as::<_, (String, String, String)>(
@@ -167,7 +193,8 @@ pub async fn update_model(pool: State<'_, SqlitePool>, id: i64, input: UpdateMod
 #[tauri::command]
 pub async fn delete_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
     log_command!("delete_model", {
-        delete_model_inner(pool.inner(), id).await?;
+        let path = crate::claude_settings::global_settings_path();
+        delete_model_at(pool.inner(), id, &path).await?;
         tracing::info!(id, "model deleted");
         Ok(())
     })

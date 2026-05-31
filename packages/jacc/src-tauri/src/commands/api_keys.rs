@@ -135,6 +135,29 @@ pub(crate) async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResul
     Ok(())
 }
 
+pub(crate) async fn delete_api_key_at(
+    pool: &SqlitePool,
+    id: i64,
+    settings_path: &std::path::Path,
+) -> AppResult<()> {
+    let row: Option<(String, String)> = sqlx::query_as(
+        "SELECT p.base_url, ak.api_key
+         FROM api_keys ak JOIN providers p ON ak.provider_id = p.id
+         WHERE ak.id = ?",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    sqlx::query("DELETE FROM api_keys WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if let Some((base_url, api_key)) = row {
+        crate::claude_settings::purge_token(settings_path, &base_url, &api_key).await?;
+    }
+    Ok(())
+}
+
 /// 4 头 + 4 尾掩码：长度 < 8 时返回 "***"
 pub fn mask_api_key(s: &str) -> String {
     if s.len() < 8 {
@@ -184,7 +207,8 @@ pub async fn update_api_key(
 #[tauri::command]
 pub async fn delete_api_key(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
     log_command!("delete_api_key", {
-        delete_api_key_inner(pool.inner(), id).await?;
+        let path = crate::claude_settings::global_settings_path();
+        delete_api_key_at(pool.inner(), id, &path).await?;
         tracing::info!(id, "api_key deleted");
         Ok(())
     })

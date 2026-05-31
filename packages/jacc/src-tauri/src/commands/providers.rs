@@ -98,6 +98,33 @@ pub(crate) async fn delete_provider_inner(pool: &SqlitePool, id: i64) -> AppResu
     Ok(())
 }
 
+pub(crate) async fn delete_provider_at(
+    pool: &SqlitePool,
+    id: i64,
+    settings_path: &std::path::Path,
+) -> AppResult<()> {
+    // 收集受影响 (base_url, api_key)
+    let creds: Vec<(String, String)> = sqlx::query_as(
+        "SELECT p.base_url, ak.api_key
+         FROM providers p JOIN api_keys ak ON ak.provider_id = p.id
+         WHERE p.id = ?",
+    )
+    .bind(id)
+    .fetch_all(pool)
+    .await?;
+
+    sqlx::query("DELETE FROM providers WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    for (base_url, api_key) in &creds {
+        crate::claude_settings::purge_token(settings_path, base_url, api_key).await?;
+    }
+    tracing::info!(id, affected = creds.len(), "provider deleted, settings purged");
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn add_provider(
     pool: State<'_, SqlitePool>,
@@ -133,7 +160,8 @@ pub async fn update_provider(
 #[tauri::command]
 pub async fn delete_provider(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
     log_command!("delete_provider", {
-        delete_provider_inner(pool.inner(), id).await?;
+        let path = crate::claude_settings::global_settings_path();
+        delete_provider_at(pool.inner(), id, &path).await?;
         tracing::info!(id, "provider deleted");
         Ok(())
     })
@@ -271,5 +299,44 @@ mod tests {
         delete_provider_inner(&pool, p.id).await.unwrap();
         let list = list_providers_inner(&pool).await.unwrap();
         assert!(list.is_empty());
+    }
+
+    #[tokio::test]
+    async fn delete_provider_purges_settings_env() {
+        let pool = setup_test_db().await;
+        sqlx::query(
+            "CREATE TABLE api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, provider_id INTEGER NOT NULL,
+                name TEXT NOT NULL, api_key TEXT NOT NULL, notes TEXT,
+                created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE)"
+        ).execute(&pool).await.unwrap();
+        sqlx::query(
+            "CREATE TABLE models (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, api_key_id INTEGER NOT NULL,
+                model_name TEXT NOT NULL, context_size TEXT,
+                created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE)"
+        ).execute(&pool).await.unwrap();
+
+        let pid = add_provider_inner(&pool, CreateProviderInput {
+            name: "A".into(), base_url: "https://a.com".into(), notes: None
+        }).await.unwrap().id;
+        let ak_id = sqlx::query("INSERT INTO api_keys (provider_id, name, api_key) VALUES (?,?,?)")
+            .bind(pid).bind("k").bind("sk-xx12345678").execute(&pool).await.unwrap().last_insert_rowid();
+        sqlx::query("INSERT INTO models (api_key_id, model_name) VALUES (?,?)")
+            .bind(ak_id).bind("m").execute(&pool).await.unwrap();
+
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+        crate::claude_settings::write_slot_env(&settings_path, "opus", "https://a.com", "sk-xx12345678", "m")
+            .await.unwrap();
+
+        delete_provider_at(&pool, pid, &settings_path).await.unwrap();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
+        assert!(v["env"].get("ANTHROPIC_BASE_URL").is_none());
+        assert!(v["env"].get("ANTHROPIC_AUTH_TOKEN").is_none());
     }
 }
