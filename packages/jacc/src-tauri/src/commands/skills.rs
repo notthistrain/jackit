@@ -44,7 +44,7 @@ pub struct GithubInstallResult {
 
 #[tauri::command]
 pub async fn list_skills(project_path: String) -> AppResult<Vec<SkillInfo>> {
-    log_command!("list_skills", {
+    log_read_command!("list_skills", {
         let project = crate::path_guard::validate_project_path(&project_path)?;
         let mut skills = vec![];
 

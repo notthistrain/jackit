@@ -24,7 +24,7 @@ pub struct MergedConfig {
 
 #[tauri::command]
 pub async fn read_merged_config(project_path: String) -> AppResult<MergedConfig> {
-    log_command!("read_merged_config", {
+    log_read_command!("read_merged_config", {
         let global_path = crate::claude_settings::global_settings_path();
         let project_path_buf = if project_path.is_empty() {
             None

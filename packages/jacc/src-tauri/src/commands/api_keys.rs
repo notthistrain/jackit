@@ -202,7 +202,7 @@ pub async fn list_api_keys(
     pool: State<'_, SqlitePool>,
     provider_id: i64,
 ) -> AppResult<Vec<ApiKeyView>> {
-    log_command!("list_api_keys", {
+    log_read_command!("list_api_keys", {
         list_api_keys_inner(pool.inner(), provider_id).await
     })
 }

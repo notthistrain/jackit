@@ -198,7 +198,7 @@ pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> 
 
 #[tauri::command]
 pub async fn list_models(pool: State<'_, SqlitePool>, api_key_id: i64) -> AppResult<Vec<Model>> {
-    log_command!("list_models", {
+    log_read_command!("list_models", {
         list_models_inner(pool.inner(), api_key_id).await
     })
 }

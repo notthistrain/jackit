@@ -15,7 +15,7 @@ pub struct Project {
 
 #[tauri::command]
 pub async fn list_projects(pool: State<'_, SqlitePool>) -> AppResult<Vec<Project>> {
-    log_command!("list_projects", {
+    log_read_command!("list_projects", {
         let projects = sqlx::query_as::<_, Project>(
             "SELECT id, path, name, last_opened_at, pinned FROM projects
              ORDER BY pinned DESC, last_opened_at DESC",

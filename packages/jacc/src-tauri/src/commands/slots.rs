@@ -347,7 +347,7 @@ fn get_global_settings_path() -> std::path::PathBuf {
 
 #[tauri::command]
 pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<SlotBindingFull>> {
-    log_command!("get_slot_bindings", {
+    log_read_command!("get_slot_bindings", {
         get_slot_bindings_full_at(pool.inner(), &crate::claude_settings::global_settings_path()).await
     })
 }

@@ -160,7 +160,7 @@ pub async fn add_provider(
 
 #[tauri::command]
 pub async fn list_providers(pool: State<'_, SqlitePool>) -> AppResult<Vec<Provider>> {
-    log_command!("list_providers", {
+    log_read_command!("list_providers", {
         list_providers_inner(pool.inner()).await
     })
 }
