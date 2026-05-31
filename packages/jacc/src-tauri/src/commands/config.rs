@@ -85,7 +85,8 @@ pub async fn write_config(
                 let pp = project_path.ok_or_else(|| {
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
-                crate::claude_settings::project_settings_path(Path::new(&pp))
+                let validated = crate::path_guard::validate_project_path(&pp)?;
+                crate::claude_settings::project_settings_path(&validated)
             }
         };
 
@@ -108,7 +109,8 @@ pub async fn delete_config(
                 let pp = project_path.ok_or_else(|| {
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
-                crate::claude_settings::project_settings_path(Path::new(&pp))
+                let validated = crate::path_guard::validate_project_path(&pp)?;
+                crate::claude_settings::project_settings_path(&validated)
             }
         };
 

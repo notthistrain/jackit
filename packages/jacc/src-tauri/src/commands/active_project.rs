@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::State;
 use crate::error::{AppError, AppResult};
@@ -13,11 +12,8 @@ pub async fn set_active_project(
             None => None,
             Some(s) if s.is_empty() => None,
             Some(s) => {
-                let p = PathBuf::from(&s);
-                if !p.is_dir() {
-                    return Err(AppError::Custom(format!("INVALID_PROJECT_PATH:{}", s)));
-                }
-                Some(crate::claude_settings::project_settings_path(&p))
+                let canonical = crate::path_guard::validate_project_path(&s)?;
+                Some(crate::claude_settings::project_settings_path(&canonical))
             }
         };
         let mut w = watcher.lock().map_err(|e| AppError::Custom(format!("watcher lock: {e}")))?;

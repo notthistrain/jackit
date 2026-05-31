@@ -20,9 +20,10 @@ pub struct GithubInstallResult {
 #[tauri::command]
 pub async fn list_skills(project_path: String) -> AppResult<Vec<SkillInfo>> {
     log_command!("list_skills", {
+        let project = crate::path_guard::validate_project_path(&project_path)?;
         let mut skills = vec![];
 
-        let project_skills_dir = PathBuf::from(&project_path).join(".claude").join("skills");
+        let project_skills_dir = project.join(".claude").join("skills");
         if project_skills_dir.exists() {
             collect_skills(&project_skills_dir, "project", true, &mut skills)?;
         }
@@ -45,7 +46,9 @@ pub async fn list_skills(project_path: String) -> AppResult<Vec<SkillInfo>> {
 #[tauri::command]
 pub async fn toggle_skill(project_path: String, name: String, enabled: bool) -> AppResult<()> {
     log_command!("toggle_skill", {
-        let skills_dir = PathBuf::from(&project_path).join(".claude").join("skills");
+        let project = crate::path_guard::validate_project_path(&project_path)?;
+        let name = crate::path_guard::validate_skill_name(&name)?;
+        let skills_dir = project.join(".claude").join("skills");
         let disabled_dir = skills_dir.join(".disabled");
 
         if enabled {
@@ -70,6 +73,7 @@ pub async fn toggle_skill(project_path: String, name: String, enabled: bool) -> 
 #[tauri::command]
 pub async fn import_skill(project_path: String, source_path: String) -> AppResult<()> {
     log_command!("import_skill", {
+        let project = crate::path_guard::validate_project_path(&project_path)?;
         let source = PathBuf::from(&source_path);
         if !source.exists() {
             return Err(AppError::Custom("源路径不存在".to_string()));
@@ -81,7 +85,7 @@ pub async fn import_skill(project_path: String, source_path: String) -> AppResul
             .to_string_lossy()
             .to_string();
 
-        let dst = PathBuf::from(&project_path)
+        let dst = project
             .join(".claude")
             .join("skills")
             .join(&name);

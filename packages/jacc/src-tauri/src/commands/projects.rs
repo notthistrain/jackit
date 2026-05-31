@@ -33,6 +33,7 @@ pub async fn add_project(
     name: Option<String>,
 ) -> AppResult<()> {
     log_command!("add_project", {
+        crate::path_guard::validate_project_path(&path)?;
         let display_name = name.unwrap_or_else(|| {
             std::path::Path::new(&path)
                 .file_name()
@@ -56,6 +57,7 @@ pub async fn add_project(
 #[tauri::command]
 pub async fn open_project(pool: State<'_, SqlitePool>, path: String) -> AppResult<()> {
     log_command!("open_project", {
+        crate::path_guard::validate_project_path(&path)?;
         sqlx::query("UPDATE projects SET last_opened_at = datetime('now') WHERE path = ?")
             .bind(&path)
             .execute(pool.inner())

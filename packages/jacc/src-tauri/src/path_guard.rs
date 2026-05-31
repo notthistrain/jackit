@@ -23,8 +23,36 @@ pub fn validate_project_path(s: &str) -> AppResult<PathBuf> {
     let canonical = p.canonicalize()
         .map_err(|e| AppError::Custom(format!("INVALID_PROJECT_PATH:canonicalize_failed:{}", e)))?;
     let canon_str = canonical.to_string_lossy().to_string();
+
+    // Windows 上 canonicalize 会返回 \\?\C:\... 的 verbatim 前缀，
+    // 与 SYSTEM_PREFIXES 中的 "C:\Windows" 失配，先 strip 掉。
+    #[cfg(target_os = "windows")]
+    let canon_for_cmp = canon_str
+        .strip_prefix(r"\\?\")
+        .unwrap_or(&canon_str)
+        .to_string();
+    #[cfg(not(target_os = "windows"))]
+    let canon_for_cmp = canon_str.clone();
+
+    // Windows 大小写不敏感比对
+    #[cfg(target_os = "windows")]
+    let canon_cmp = canon_for_cmp.to_ascii_lowercase();
+    #[cfg(not(target_os = "windows"))]
+    let canon_cmp = canon_for_cmp.clone();
+
     for prefix in SYSTEM_PREFIXES {
-        if canon_str.starts_with(prefix) {
+        #[cfg(target_os = "windows")]
+        let prefix_cmp = prefix.to_ascii_lowercase();
+        #[cfg(not(target_os = "windows"))]
+        let prefix_cmp = prefix.to_string();
+
+        // 组件边界：完全相等，或 prefix 后紧跟路径分隔符（避免 /etc 误伤 /etcfoo）
+        let is_under = canon_cmp == prefix_cmp
+            || canon_cmp
+                .strip_prefix(&prefix_cmp)
+                .map(|rest| rest.starts_with('/') || rest.starts_with('\\'))
+                .unwrap_or(false);
+        if is_under {
             return Err(AppError::Custom(format!("INVALID_PROJECT_PATH:system_path:{}", canon_str)));
         }
     }
