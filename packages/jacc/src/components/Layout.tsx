@@ -12,7 +12,7 @@ import { Skills } from '@/pages/Skills'
 import { useAppStore } from '@/stores/useAppStore'
 import { EmptyState } from './EmptyState'
 import { Sidebar } from './Sidebar'
-import { TitleBar } from './TitleBar'
+import { TitleBar } from '@/shared/components/layout/TitleBar'
 
 export function Layout() {
   const { currentPage, currentProject, setProject } = useAppStore()
