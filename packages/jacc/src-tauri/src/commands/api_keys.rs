@@ -135,6 +135,17 @@ pub(crate) async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResul
     Ok(())
 }
 
+/// 4 头 + 4 尾掩码：长度 < 8 时返回 "***"
+pub fn mask_api_key(s: &str) -> String {
+    if s.len() < 8 {
+        "***".to_string()
+    } else {
+        let head = &s[..4];
+        let tail = &s[s.len() - 4..];
+        format!("{head}***{tail}")
+    }
+}
+
 #[tauri::command]
 pub async fn add_api_key(
     pool: State<'_, SqlitePool>,

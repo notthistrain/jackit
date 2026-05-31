@@ -3,6 +3,7 @@ use sqlx::SqlitePool;
 use std::path::Path;
 use tauri::State;
 
+use super::api_keys::mask_api_key;
 use crate::error::{AppError, AppResult};
 
 #[derive(Debug, Serialize)]
@@ -15,6 +16,20 @@ pub struct SlotBinding {
     pub base_url: String,
     pub provider_name: String,
 }
+
+#[derive(Debug, Serialize)]
+pub struct SlotBindingIntent {
+    pub slot: String,
+    pub model_id: i64,
+    pub model_name: String,
+    pub provider_id: i64,
+    pub provider_name: String,
+    pub base_url: String,
+    pub api_key_masked: String,
+    pub context_size: Option<String>,
+}
+
+const ALLOWED_SLOTS: &[&str] = &["opus", "sonnet", "haiku"];
 
 pub(crate) async fn get_slot_bindings_inner(pool: &SqlitePool) -> AppResult<Vec<SlotBinding>> {
     let rows = sqlx::query_as::<_, (String, i64, String, Option<String>, String, String, String)>(
@@ -81,6 +96,53 @@ pub(crate) async fn bind_slot_inner(
         api_key,
         base_url,
         provider_name,
+    })
+}
+
+pub(crate) async fn bind_slot_at(
+    pool: &SqlitePool,
+    slot: &str,
+    model_id: i64,
+    settings_path: &Path,
+) -> AppResult<SlotBindingIntent> {
+    if !ALLOWED_SLOTS.contains(&slot) {
+        return Err(AppError::Custom(format!("INVALID_SLOT:{}", slot)));
+    }
+    let row = sqlx::query_as::<_, (String, String, String, String, i64)>(
+        "SELECT m.model_name, ak.api_key, p.base_url, p.name, p.id
+         FROM models m
+         JOIN api_keys ak ON m.api_key_id = ak.id
+         JOIN providers p ON ak.provider_id = p.id
+         WHERE m.id = ?",
+    )
+    .bind(model_id)
+    .fetch_one(pool)
+    .await
+    .map_err(|_| AppError::Custom(format!("MODEL_NOT_FOUND:{}", model_id)))?;
+    let (model_name, api_key, base_url, provider_name, provider_id) = row;
+
+    sqlx::query(
+        "INSERT INTO model_slots (slot, model_id, updated_at) VALUES (?, ?, datetime('now'))
+         ON CONFLICT(slot) DO UPDATE SET model_id = excluded.model_id, updated_at = datetime('now')",
+    )
+    .bind(slot)
+    .bind(model_id)
+    .execute(pool)
+    .await?;
+
+    crate::claude_settings::write_slot_env(
+        settings_path, slot, &base_url, &api_key, &model_name,
+    ).await?;
+
+    Ok(SlotBindingIntent {
+        slot: slot.to_string(),
+        model_id,
+        model_name,
+        provider_id,
+        provider_name,
+        base_url,
+        api_key_masked: mask_api_key(&api_key),
+        context_size: None,
     })
 }
 
@@ -233,7 +295,8 @@ pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<Slo
 #[tauri::command]
 pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64) -> AppResult<()> {
     log_command!("bind_slot", {
-        bind_slot_inner(pool.inner(), &slot, model_id).await?;
+        let path = crate::claude_settings::global_settings_path();
+        bind_slot_at(pool.inner(), &slot, model_id, &path).await?;
         tracing::info!(slot = %slot, model_id, "slot bound");
         Ok(())
     })
@@ -525,5 +588,37 @@ mod tests {
 
         let bindings = get_slot_bindings_inner(&pool).await.unwrap();
         assert!(bindings.is_empty());
+    }
+
+    #[tokio::test]
+    async fn bind_slot_writes_settings_env() {
+        let pool = setup_test_db().await;
+        let mid = insert_full_model(
+            &pool, "Anthropic", "https://api.anthropic.com", "sk-ant-aaa", "claude-opus-4-6",
+        ).await;
+
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+
+        bind_slot_at(&pool, "opus", mid, &settings_path).await.unwrap();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
+        assert_eq!(v["env"]["ANTHROPIC_BASE_URL"], "https://api.anthropic.com");
+        assert_eq!(v["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-aaa");
+        assert_eq!(v["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-4-6");
+    }
+
+    #[tokio::test]
+    async fn bind_slot_rejects_invalid_slot() {
+        let pool = setup_test_db().await;
+        let mid = insert_full_model(
+            &pool, "A", "https://a.com", "key-a-12345678", "model-a",
+        ).await;
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+
+        let err = bind_slot_at(&pool, "INVALID", mid, &settings_path).await.unwrap_err();
+        assert!(err.to_string().contains("INVALID_SLOT:INVALID"));
     }
 }
