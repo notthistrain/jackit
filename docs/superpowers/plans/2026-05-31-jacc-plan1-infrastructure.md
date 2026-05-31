@@ -40,30 +40,37 @@ packages/jacc/package.json          # 依赖调整
 **文件：**
 - 修改：`packages/jacc/package.json`
 
-- [ ] **步骤 1：移除 class-variance-authority**
+- [ ] **步骤 1：读取当前 package.json**
+
+读取：`packages/jacc/package.json`
+目的：确认当前依赖配置
+
+- [ ] **步骤 2：修改 package.json 依赖**
+
+在 `packages/jacc/package.json` 的 `dependencies` 中：
+- 移除：`"class-variance-authority": "catalog:"`
+- 添加：`"tailwind-variants": "catalog:"`
+
+注意：catalog 中已经有 `tailwind-variants: ^1.0.0`，直接引用即可。
+
+- [ ] **步骤 3：安装依赖**
 
 ```bash
-cd packages/jacc && pnpm remove class-variance-authority
+cd "D:\Project\jackit" && pnpm install
 ```
 
-- [ ] **步骤 2：安装 tailwind-variants**
-
-```bash
-cd packages/jacc && pnpm add tailwind-variants
-```
-
-- [ ] **步骤 3：验证依赖安装**
+- [ ] **步骤 4：验证依赖安装**
 
 运行：`cd packages/jacc && pnpm list tailwind-variants`
-预期：显示 tailwind-variants 版本信息（例如：tailwind-variants 0.x.x）
+预期：显示 tailwind-variants 1.0.0（从 catalog）
 
-- [ ] **步骤 4：Commit**
+- [ ] **步骤 5：Commit**
 
 ```bash
-cd "D:\Project\jackit" && git add packages/jacc/package.json packages/jacc/pnpm-lock.yaml && git commit -m "$(cat <<'EOF'
+cd "D:\Project\jackit" && git add packages/jacc/package.json pnpm-lock.yaml && git commit -m "$(cat <<'EOF'
 chore(jacc): 替换 cva 为 tailwind-variants
 
-移除 class-variance-authority，安装 tailwind-variants 以对齐 jackcom 架构。
+移除 class-variance-authority，添加 tailwind-variants（从 catalog）以对齐 jackcom 架构。
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
