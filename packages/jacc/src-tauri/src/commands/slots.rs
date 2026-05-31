@@ -158,51 +158,22 @@ pub(crate) async fn unbind_slot_inner(pool: &SqlitePool, slot: &str) -> AppResul
     Ok(())
 }
 
-pub(crate) fn write_slot_to_settings_at(
+pub(crate) async fn unbind_slot_at(
+    pool: &SqlitePool,
     slot: &str,
-    binding: &SlotBinding,
     settings_path: &Path,
 ) -> AppResult<()> {
-    let mut settings: serde_json::Value = if settings_path.exists() {
-        let content = std::fs::read_to_string(settings_path)?;
-        serde_json::from_str(&content)?
-    } else {
-        serde_json::json!({})
-    };
-
-    let env = settings
-        .as_object_mut()
-        .unwrap()
-        .entry("env")
-        .or_insert_with(|| serde_json::json!({}));
-
-    let env_obj = env.as_object_mut().unwrap();
-
-    env_obj.insert(
-        "ANTHROPIC_BASE_URL".to_string(),
-        serde_json::Value::String(binding.base_url.clone()),
-    );
-    env_obj.insert(
-        "ANTHROPIC_AUTH_TOKEN".to_string(),
-        serde_json::Value::String(binding.api_key.clone()),
-    );
-
-    let env_key = match slot {
-        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
-        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
-        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
-        _ => "ANTHROPIC_MODEL",
-    };
-    env_obj.insert(
-        env_key.to_string(),
-        serde_json::Value::String(binding.model_name.clone()),
-    );
-
-    let content = serde_json::to_string_pretty(&settings)?;
-    if let Some(parent) = settings_path.parent() {
-        std::fs::create_dir_all(parent)?;
+    if !ALLOWED_SLOTS.contains(&slot) {
+        return Err(AppError::Custom(format!("INVALID_SLOT:{}", slot)));
     }
-    std::fs::write(settings_path, content)?;
+    let rows = sqlx::query("DELETE FROM model_slots WHERE slot = ?")
+        .bind(slot)
+        .execute(pool)
+        .await?;
+    if rows.rows_affected() == 0 {
+        return Err(AppError::Custom(format!("SLOT_UNBOUND:{}", slot)));
+    }
+    crate::claude_settings::clear_slot_env(settings_path, slot).await?;
     Ok(())
 }
 
@@ -305,7 +276,8 @@ pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64)
 #[tauri::command]
 pub async fn unbind_slot(pool: State<'_, SqlitePool>, slot: String) -> AppResult<()> {
     log_command!("unbind_slot", {
-        unbind_slot_inner(pool.inner(), &slot).await?;
+        let path = crate::claude_settings::global_settings_path();
+        unbind_slot_at(pool.inner(), &slot, &path).await?;
         tracing::info!(slot = %slot, "slot unbound");
         Ok(())
     })
@@ -508,28 +480,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_write_slot_to_settings() {
-        let pool = setup_test_db().await;
-        let mid = insert_full_model(
-            &pool, "Anthropic", "https://api.anthropic.com", "sk-ant-aaa", "claude-opus-4-6",
-        ).await;
-        let binding = bind_slot_inner(&pool, "opus", mid).await.unwrap();
-
-        let dir = tempfile::tempdir().unwrap();
-        let settings_path = dir.path().join("settings.json");
-
-        write_slot_to_settings_at("opus", &binding, &settings_path).unwrap();
-
-        let content = std::fs::read_to_string(&settings_path).unwrap();
-        let settings: serde_json::Value = serde_json::from_str(&content).unwrap();
-        let env = settings.get("env").unwrap();
-
-        assert_eq!(env["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-4-6");
-        assert_eq!(env["ANTHROPIC_BASE_URL"], "https://api.anthropic.com");
-        assert_eq!(env["ANTHROPIC_AUTH_TOKEN"], "sk-ant-aaa");
-    }
-
-    #[tokio::test]
     async fn test_set_current_model_updates_credentials() {
         let pool = setup_test_db().await;
         let opus_mid = insert_full_model(
@@ -619,6 +569,37 @@ mod tests {
         let settings_path = dir.path().join("settings.json");
 
         let err = bind_slot_at(&pool, "INVALID", mid, &settings_path).await.unwrap_err();
+        assert!(err.to_string().contains("INVALID_SLOT:INVALID"));
+    }
+
+    #[tokio::test]
+    async fn unbind_slot_clears_settings_env() {
+        let pool = setup_test_db().await;
+        let mid = insert_full_model(
+            &pool, "Anthropic", "https://api.anthropic.com", "sk-ant-aaa", "claude-opus-4-6",
+        ).await;
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+        bind_slot_at(&pool, "opus", mid, &settings_path).await.unwrap();
+        crate::claude_settings::write_kv(&settings_path, "model", serde_json::json!("opus"))
+            .await.unwrap();
+
+        unbind_slot_at(&pool, "opus", &settings_path).await.unwrap();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
+        assert!(v["env"].get("ANTHROPIC_BASE_URL").is_none());
+        assert!(v["env"].get("ANTHROPIC_AUTH_TOKEN").is_none());
+        assert!(v["env"].get("ANTHROPIC_DEFAULT_OPUS_MODEL").is_none());
+        assert!(v.get("model").is_none(), "top-level model should be cleared");
+    }
+
+    #[tokio::test]
+    async fn unbind_slot_rejects_invalid_slot() {
+        let pool = setup_test_db().await;
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+        let err = unbind_slot_at(&pool, "INVALID", &settings_path).await.unwrap_err();
         assert!(err.to_string().contains("INVALID_SLOT:INVALID"));
     }
 }
