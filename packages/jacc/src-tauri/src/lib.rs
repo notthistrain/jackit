@@ -74,6 +74,8 @@ pub fn run() {
             commands::config::write_config,
             commands::config::delete_config,
             commands::config::reset_corrupted_settings,
+            // delete preview
+            commands::delete_preview::preview_delete_impact,
             // skills
             commands::skills::list_skills,
             commands::skills::toggle_skill,
