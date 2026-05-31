@@ -29,7 +29,93 @@ pub struct SlotBindingIntent {
     pub context_size: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ActualSlotEnv {
+    pub model_name: Option<String>,
+    pub base_url: Option<String>,
+    pub api_key_masked: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SlotMatchFlags {
+    pub model_name: bool,
+    pub base_url: bool,
+    pub api_key: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SlotBindingFull {
+    pub intent: SlotBindingIntent,
+    pub actual: ActualSlotEnv,
+    pub matches: SlotMatchFlags,
+}
+
 const ALLOWED_SLOTS: &[&str] = &["opus", "sonnet", "haiku"];
+
+fn slot_default_env_key(slot: &str) -> &'static str {
+    match slot {
+        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
+        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
+        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+        _ => "ANTHROPIC_MODEL",
+    }
+}
+
+pub(crate) async fn get_slot_bindings_full_at(
+    pool: &SqlitePool,
+    settings_path: &std::path::Path,
+) -> AppResult<Vec<SlotBindingFull>> {
+    let rows = sqlx::query_as::<_, (String, i64, String, Option<String>, String, String, String, i64)>(
+        "SELECT ms.slot, ms.model_id, m.model_name, ms.context_size,
+                ak.api_key, p.base_url, p.name, p.id
+         FROM model_slots ms
+         JOIN models m ON ms.model_id = m.id
+         JOIN api_keys ak ON m.api_key_id = ak.id
+         JOIN providers p ON ak.provider_id = p.id
+         ORDER BY ms.slot",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let settings = crate::claude_settings::read(settings_path)
+        .await
+        .unwrap_or_else(|_| serde_json::json!({}));
+    let env = settings.get("env").cloned().unwrap_or(serde_json::json!({}));
+
+    let mut out = Vec::new();
+    for (slot, model_id, model_name, _ctx, api_key, base_url, provider_name, provider_id) in rows {
+        let env_model_key = slot_default_env_key(&slot);
+        let actual_model = env.get(env_model_key).and_then(|v| v.as_str()).map(String::from);
+        let actual_base = env.get("ANTHROPIC_BASE_URL").and_then(|v| v.as_str()).map(String::from);
+        let actual_token = env.get("ANTHROPIC_AUTH_TOKEN").and_then(|v| v.as_str()).map(String::from);
+
+        let matches = SlotMatchFlags {
+            model_name: actual_model.as_deref() == Some(model_name.as_str()),
+            base_url: actual_base.as_deref() == Some(base_url.as_str()),
+            api_key: actual_token.as_deref() == Some(api_key.as_str()),
+        };
+        let actual = ActualSlotEnv {
+            model_name: actual_model,
+            base_url: actual_base,
+            api_key_masked: actual_token.as_deref().map(mask_api_key),
+        };
+        out.push(SlotBindingFull {
+            intent: SlotBindingIntent {
+                slot,
+                model_id,
+                model_name,
+                provider_id,
+                provider_name,
+                base_url,
+                api_key_masked: mask_api_key(&api_key),
+                context_size: None,
+            },
+            actual,
+            matches,
+        });
+    }
+    Ok(out)
+}
 
 pub(crate) async fn get_slot_bindings_inner(pool: &SqlitePool) -> AppResult<Vec<SlotBinding>> {
     let rows = sqlx::query_as::<_, (String, i64, String, Option<String>, String, String, String)>(
@@ -257,9 +343,9 @@ fn get_global_settings_path() -> std::path::PathBuf {
 }
 
 #[tauri::command]
-pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<SlotBinding>> {
+pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<SlotBindingFull>> {
     log_command!("get_slot_bindings", {
-        get_slot_bindings_inner(pool.inner()).await
+        get_slot_bindings_full_at(pool.inner(), &crate::claude_settings::global_settings_path()).await
     })
 }
 
@@ -601,5 +687,41 @@ mod tests {
         let settings_path = dir.path().join("settings.json");
         let err = unbind_slot_at(&pool, "INVALID", &settings_path).await.unwrap_err();
         assert!(err.to_string().contains("INVALID_SLOT:INVALID"));
+    }
+
+    #[tokio::test]
+    async fn get_slot_bindings_full_returns_match_when_aligned() {
+        let pool = setup_test_db().await;
+        let mid = insert_full_model(&pool, "A", "https://a.com", "sk-aaa12345", "m").await;
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+        bind_slot_at(&pool, "opus", mid, &settings_path).await.unwrap();
+
+        let full = get_slot_bindings_full_at(&pool, &settings_path).await.unwrap();
+        assert_eq!(full.len(), 1);
+        let b = &full[0];
+        assert_eq!(b.intent.slot, "opus");
+        assert_eq!(b.actual.model_name.as_deref(), Some("m"));
+        assert!(b.matches.model_name);
+        assert!(b.matches.base_url);
+        assert!(b.matches.api_key);
+    }
+
+    #[tokio::test]
+    async fn get_slot_bindings_full_detects_drift() {
+        let pool = setup_test_db().await;
+        let mid = insert_full_model(&pool, "A", "https://a.com", "sk-aaa12345", "m").await;
+        let dir = tempfile::tempdir().unwrap();
+        let settings_path = dir.path().join("settings.json");
+        bind_slot_at(&pool, "opus", mid, &settings_path).await.unwrap();
+        // 模拟外部修改：把 token 改了
+        crate::claude_settings::write_slot_env(
+            &settings_path, "opus", "https://a.com", "sk-EXTERNAL", "m"
+        ).await.unwrap();
+
+        let full = get_slot_bindings_full_at(&pool, &settings_path).await.unwrap();
+        assert!(!full[0].matches.api_key);
+        assert!(full[0].matches.model_name);
+        assert!(full[0].matches.base_url);
     }
 }
