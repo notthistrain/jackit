@@ -73,7 +73,9 @@ impl SettingsWatcher {
     }
 
     pub fn set_active_project(&mut self, path: Option<PathBuf>) -> notify::Result<()> {
-        let mut guard = self.project.lock().unwrap();
+        let mut guard = self.project.lock().map_err(|_| {
+            notify::Error::generic("settings watcher project lock poisoned")
+        })?;
         // 卸载旧 project watch
         if let Some(old) = guard.take() {
             if let Some(parent) = old.parent() {

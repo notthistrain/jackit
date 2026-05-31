@@ -44,6 +44,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // active project
+            commands::active_project::set_active_project,
             // log
             commands::log::log_debug,
             commands::log::log_info,
