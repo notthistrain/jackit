@@ -7,6 +7,7 @@ mod db;
 pub mod error;
 mod logging;
 mod path_guard;
+pub mod settings_watcher;
 
 use tracing_appender::non_blocking::WorkerGuard;
 use tauri::Manager;
@@ -31,6 +32,15 @@ pub fn run() {
                 .expect("failed to init database");
             app.manage(pool);
             tracing::info!("database initialized");
+
+            let global = claude_settings::global_settings_path();
+            match settings_watcher::SettingsWatcher::start(app.handle().clone(), global) {
+                Ok(w) => {
+                    app.manage(std::sync::Mutex::new(w));
+                    tracing::info!("settings watcher started");
+                }
+                Err(e) => tracing::error!(?e, "settings watcher start failed"),
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
