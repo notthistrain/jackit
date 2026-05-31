@@ -17,17 +17,17 @@ struct LogGuard(#[allow(dead_code)] WorkerGuard);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 第一道闸：HOME 缺失则 fail-fast（此时 tracing 未初始化，用 eprintln 落 stderr）
+    if dirs::home_dir().is_none() {
+        eprintln!("FATAL: HOME not found, jacc cannot start");
+        panic!("HOME not found, jacc cannot start");
+    }
+
     // 初始化日志（必须在 Builder 之前，确保整个启动过程都有日志）
     let log_dir = logging::get_log_dir();
     let guard = logging::init("jacc", &log_dir);
 
     tracing::info!("app started");
-
-    // 启动期校验 HOME：找不到则 fail-fast，避免数据写到随机工作目录
-    let _home = dirs::home_dir().unwrap_or_else(|| {
-        tracing::error!("HOME not found, jacc cannot start");
-        panic!("HOME not found, jacc cannot start");
-    });
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
