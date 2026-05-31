@@ -23,7 +23,7 @@ vi.mock('@/stores/useAppStore', () => ({
   }),
 }))
 
-vi.mock('@/components/ProjectSwitcher', () => ({
+vi.mock('@/shared/components/ui/ProjectSwitcher', () => ({
   ProjectSwitcher: () => <div>ProjectSwitcher</div>,
 }))
 
