@@ -218,9 +218,8 @@ pub async fn bind_slot_at(
     .execute(pool)
     .await?;
 
-    crate::claude_settings::write_slot_env(
-        settings_path, slot, &base_url, &api_key, &model_name,
-    ).await?;
+    // 注意：不在这里写入 settings.json，只写 DB
+    // settings.json 的写入由 set_current_model（"应用"按钮）负责
 
     Ok(SlotBindingIntent {
         slot: slot.to_string(),
@@ -633,7 +632,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn bind_slot_writes_settings_env() {
+    async fn bind_slot_only_writes_db_not_settings() {
         let pool = setup_test_db().await;
         let mid = insert_full_model(
             &pool, "Anthropic", "https://api.anthropic.com", "sk-ant-aaa", "claude-opus-4-6",
@@ -642,7 +641,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let settings_path = dir.path().join("settings.json");
 
+        // bind_slot 只写 DB，不写 settings.json
         bind_slot_at(&pool, "opus", mid, &settings_path).await.unwrap();
+
+        // 验证 settings.json 不存在或为空
+        if settings_path.exists() {
+            let v: serde_json::Value =
+                serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
+            assert!(v.get("env").is_none() || v["env"].as_object().unwrap().is_empty());
+        }
+
+        // set_current_model 才写入 settings.json
+        set_current_model_at(&pool, "opus", None, &settings_path).await.unwrap();
 
         let v: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
@@ -702,6 +712,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let settings_path = dir.path().join("settings.json");
         bind_slot_at(&pool, "opus", mid, &settings_path).await.unwrap();
+
+        // 应用配置，写入 settings.json
+        set_current_model_at(&pool, "opus", None, &settings_path).await.unwrap();
 
         let full = get_slot_bindings_full_at(&pool, &settings_path).await.unwrap();
         assert_eq!(full.len(), 1);

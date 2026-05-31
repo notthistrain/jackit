@@ -54,15 +54,25 @@ async fn full_lifecycle_keeps_settings_in_sync() {
             api_key_id: ak.id, model_name: "m".into(), context_size: None,
         }).await.unwrap();
 
-    // 2. bind opus
+    // 2. bind opus (只写 DB，不写 settings.json)
     jacc_lib::commands::slots::bind_slot_at(&pool, "opus", m.id, &settings_path).await.unwrap();
+
+    // 验证 settings.json 还不存在或为空（bind 不应写入）
+    if settings_path.exists() {
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
+        assert!(v.get("env").is_none() || v["env"].as_object().unwrap().is_empty());
+    }
+
+    // 3. 应用配置（set_current_model 才写入 settings.json）
+    jacc_lib::commands::slots::set_current_model_at(&pool, "opus", None, &settings_path).await.unwrap();
 
     let v: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
     assert_eq!(v["env"]["ANTHROPIC_BASE_URL"], "https://a.com");
     assert_eq!(v["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-xx12345678");
 
-    // 3. 改 token
+    // 4. 改 token
     jacc_lib::commands::api_keys::update_api_key_at(
         &pool, ak.id,
         jacc_lib::commands::api_keys::UpdateApiKeyInput {
@@ -73,7 +83,7 @@ async fn full_lifecycle_keeps_settings_in_sync() {
         serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
     assert_eq!(v["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-NEW12345678");
 
-    // 4. 删 provider
+    // 5. 删 provider
     jacc_lib::commands::providers::delete_provider_at(&pool, p.id, &settings_path).await.unwrap();
     let v: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&settings_path).unwrap()).unwrap();
