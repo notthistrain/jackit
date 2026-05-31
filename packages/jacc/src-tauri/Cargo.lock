@@ -1838,6 +1838,7 @@ dependencies = [
  "dirs",
  "notify",
  "notify-debouncer-mini",
+ "parking_lot",
  "regex",
  "reqwest 0.12.28",
  "serde",
@@ -1853,6 +1854,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

@@ -1,7 +1,32 @@
 use serde::Serialize;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+use std::time::Instant;
+use std::collections::HashMap;
 
 use crate::error::{AppError, AppResult};
+
+static INSTALL_TOKENS: OnceLock<parking_lot::Mutex<HashMap<String, (PathBuf, Instant)>>> = OnceLock::new();
+
+fn tokens_map() -> &'static parking_lot::Mutex<HashMap<String, (PathBuf, Instant)>> {
+    INSTALL_TOKENS.get_or_init(|| parking_lot::Mutex::new(HashMap::new()))
+}
+
+fn gc_tokens() {
+    let now = Instant::now();
+    let mut map = tokens_map().lock();
+    let stale: Vec<_> = map
+        .iter()
+        .filter(|(_, (_, t))| now.duration_since(*t) > std::time::Duration::from_secs(30 * 60))
+        .map(|(k, _)| k.clone())
+        .collect();
+    for k in stale {
+        if let Some((path, _)) = map.remove(&k) {
+            let _ = std::fs::remove_dir_all(&path);
+            tracing::info!(path = %path.display(), "stale install token GC'd");
+        }
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct SkillInfo {
@@ -13,7 +38,7 @@ pub struct SkillInfo {
 
 #[derive(Debug, Serialize)]
 pub struct GithubInstallResult {
-    pub temp_dir: String,
+    pub token: String,
     pub skills: Vec<SkillInfo>,
 }
 
@@ -102,22 +127,21 @@ pub async fn install_skill_from_github(
     repo_url: String,
 ) -> AppResult<GithubInstallResult> {
     log_command!("install_skill_from_github", {
-        let temp_dir = std::env::temp_dir().join(format!(
-            "jacc-skill-{}",
-            chrono::Utc::now().timestamp()
-        ));
+        gc_tokens();
+        let temp_dir = std::env::temp_dir().join(format!("jacc-skill-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&temp_dir)?;
 
-        let output = std::process::Command::new("git")
-            .args([
-                "clone",
-                "--depth",
-                "1",
-                &repo_url,
-                &temp_dir.to_string_lossy(),
-            ])
-            .output()
-            .map_err(|e| AppError::Custom(format!("git clone 失败: {}", e)))?;
+        // 异步跑 git（避免阻塞 Tauri 主线程）
+        let url = repo_url.clone();
+        let tmp_path = temp_dir.clone();
+        let output = tokio::task::spawn_blocking(move || {
+            std::process::Command::new("git")
+                .args(["clone", "--depth", "1", &url, &tmp_path.to_string_lossy()])
+                .output()
+        })
+        .await
+        .map_err(|e| AppError::Custom(format!("git spawn: {}", e)))?
+        .map_err(|e| AppError::Custom(format!("git clone failed: {}", e)))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -127,9 +151,12 @@ pub async fn install_skill_from_github(
         let mut available_skills = vec![];
         scan_for_skills(&temp_dir, &mut available_skills)?;
 
-        tracing::info!(url = %repo_url, count = available_skills.len(), "skills fetched from github");
+        let token = uuid::Uuid::new_v4().to_string();
+        tokens_map().lock().insert(token.clone(), (temp_dir.clone(), Instant::now()));
+
+        tracing::info!(url = %repo_url, count = available_skills.len(), token = %token, "skills fetched");
         Ok(GithubInstallResult {
-            temp_dir: temp_dir.to_string_lossy().to_string(),
+            token,
             skills: available_skills,
         })
     })
@@ -138,22 +165,41 @@ pub async fn install_skill_from_github(
 #[tauri::command]
 pub async fn confirm_install_skill(
     project_path: String,
-    temp_dir: String,
+    token: String,
     skill_names: Vec<String>,
 ) -> AppResult<()> {
     log_command!("confirm_install_skill", {
-        let temp_path = PathBuf::from(&temp_dir);
-        let dst_base = PathBuf::from(&project_path).join(".claude").join("skills");
+        let project = crate::path_guard::validate_project_path(&project_path)?;
+        let names: Vec<String> = skill_names
+            .iter()
+            .map(|n| crate::path_guard::validate_skill_name(n))
+            .collect::<AppResult<_>>()?;
+
+        gc_tokens();
+
+        let temp_path = {
+            let map = tokens_map().lock();
+            map.get(&token)
+                .map(|(p, _)| p.clone())
+                .ok_or_else(|| AppError::Custom("INSTALL_TOKEN_EXPIRED".into()))?
+        };
+
+        // 二次校验路径仍在 temp 下
+        crate::path_guard::validate_temp_dir(&temp_path.to_string_lossy())?;
+
+        let dst_base = project.join(".claude").join("skills");
         std::fs::create_dir_all(&dst_base)?;
 
-        for name in &skill_names {
+        for name in &names {
             let src = find_skill_dir(&temp_path, name)?;
             let dst = dst_base.join(name);
             copy_dir_recursive(&src, &dst)?;
         }
 
-        std::fs::remove_dir_all(&temp_path).ok();
-        tracing::info!(names = ?skill_names, "skills installed");
+        let _ = std::fs::remove_dir_all(&temp_path);
+        tokens_map().lock().remove(&token);
+
+        tracing::info!(names = ?names, "skills installed");
         Ok(())
     })
 }

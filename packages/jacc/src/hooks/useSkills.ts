@@ -11,7 +11,7 @@ export interface SkillInfo {
 }
 
 interface GithubInstallResult {
-  temp_dir: string
+  token: string
   skills: SkillInfo[]
 }
 
@@ -96,13 +96,13 @@ export function useSkills() {
   )
 
   const confirmInstall = useCallback(
-    async (tempDir: string, skillNames: string[]) => {
+    async (token: string, skillNames: string[]) => {
       if (!currentProject)
         return
       try {
         await invoke('confirm_install_skill', {
           projectPath: currentProject,
-          tempDir,
+          token,
           skillNames,
         })
         await refresh()

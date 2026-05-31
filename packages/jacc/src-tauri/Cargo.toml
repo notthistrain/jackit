@@ -29,5 +29,7 @@ tempfile = "3"
 notify = "6"
 notify-debouncer-mini = "0.4"
 regex = "1"
+parking_lot = "0.12"
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
