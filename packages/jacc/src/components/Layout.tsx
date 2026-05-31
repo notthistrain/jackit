@@ -9,10 +9,10 @@ import { McpServers } from '@/pages/McpServers'
 import { Models } from '@/pages/Models'
 import { Permissions } from '@/pages/Permissions'
 import { Skills } from '@/pages/Skills'
-import { useAppStore } from '@/stores/useAppStore'
-import { EmptyState } from './EmptyState'
-import { Sidebar } from './Sidebar'
+import { Sidebar } from '@/shared/components/layout/Sidebar'
 import { TitleBar } from '@/shared/components/layout/TitleBar'
+import { EmptyState } from '@/shared/components/ui/EmptyState'
+import { useAppStore } from '@/stores/useAppStore'
 
 export function Layout() {
   const { currentPage, currentProject, setProject } = useAppStore()

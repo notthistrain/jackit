@@ -12,8 +12,8 @@ import {
 } from 'lucide-react'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useT } from '@/i18n'
+import { ProjectSwitcher } from '@/shared/components/ui/ProjectSwitcher'
 import { useAppStore } from '@/stores/useAppStore'
-import { ProjectSwitcher } from '@/components/ProjectSwitcher'
 import { sidebar } from './sidebar.variants'
 
 interface NavItem {

@@ -3,9 +3,9 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { InstallSkillDialog } from '@/components/dialogs/InstallSkillDialog'
-import { Fab } from '@/components/Fab'
-import { SourceBadge } from '@/components/SourceBadge'
 import { useT } from '@/i18n'
+import { Fab } from '@/shared/components/ui/Fab'
+import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 
 type Tab = 'enabled' | 'disabled'
 

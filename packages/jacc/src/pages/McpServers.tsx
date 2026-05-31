@@ -1,9 +1,9 @@
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
-import { Fab } from '@/components/Fab'
-import { SourceBadge } from '@/components/SourceBadge'
 import { useConfig } from '@/hooks/useConfig'
 import { useT } from '@/i18n'
+import { Fab } from '@/shared/components/ui/Fab'
+import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 
 interface McpServer {
   command: string

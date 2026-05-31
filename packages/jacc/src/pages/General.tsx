@@ -2,11 +2,11 @@ import type { Locale } from '@/i18n'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ModelSelect } from '@/components/ModelSelect'
-import { SourceBadge } from '@/components/SourceBadge'
 import { useConfig } from '@/hooks/useConfig'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useSlotBindings } from '@/hooks/useSlotBindings'
 import { useT } from '@/i18n'
+import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 
 type Slot = 'opus' | 'sonnet' | 'haiku'
 
