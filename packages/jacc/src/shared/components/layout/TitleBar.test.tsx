@@ -1,7 +1,7 @@
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import { TitleBar } from './TitleBar'
 
 vi.mock('@tauri-apps/api/window', () => ({

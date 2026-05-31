@@ -23,7 +23,8 @@ export function ConfirmDialog({
   const { t } = useT()
   const { overlay, content, title: titleClass, message: messageClass, footer, cancelButton, confirmButton } = confirmDialog({ danger })
 
-  if (!open) return null
+  if (!open)
+    return null
 
   return (
     <div className={overlay()} onClick={onCancel}>
