@@ -28,16 +28,11 @@ pub struct ApiKeyView {
 
 impl ApiKeyView {
     pub fn from_api_key(ak: &ApiKey) -> Self {
-        let masked = if ak.api_key.len() > 8 {
-            format!("{}***", &ak.api_key[..8])
-        } else {
-            "***".to_string()
-        };
         Self {
             id: ak.id,
             provider_id: ak.provider_id,
             name: ak.name.clone(),
-            api_key_masked: masked,
+            api_key_masked: mask_api_key(&ak.api_key),
             notes: ak.notes.clone(),
             created_at: ak.created_at.clone(),
             updated_at: ak.updated_at.clone(),
@@ -327,7 +322,7 @@ mod tests {
 
         let views = list_api_keys_inner(&pool, pid).await.unwrap();
         assert_eq!(views.len(), 1);
-        assert_eq!(views[0].api_key_masked, "sk-ant-1***");
+        assert_eq!(views[0].api_key_masked, "sk-a***9abc");
         assert_eq!(views[0].name, "Key1");
     }
 
@@ -442,16 +437,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_mask_long_key() {
+    async fn test_mask_long_key_4_4() {
         let view = ApiKeyView::from_api_key(&ApiKey {
             id: 1,
             provider_id: 1,
             name: "test".to_string(),
-            api_key: "sk-ant-api123456789abcdef".to_string(),
+            api_key: "sk-ant-api123ef89".to_string(),
             notes: None,
             created_at: "2024-01-01".to_string(),
             updated_at: "2024-01-01".to_string(),
         });
-        assert_eq!(view.api_key_masked, "sk-ant-a***");
+        assert_eq!(view.api_key_masked, "sk-a***ef89");
     }
 }
