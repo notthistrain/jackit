@@ -338,7 +338,7 @@ pub async fn set_current_model_at(
 }
 
 fn get_global_settings_path() -> std::path::PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+    let home = dirs::home_dir().expect("HOME not found, jacc cannot start");
     home.join(".claude").join("settings.json")
 }
 

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 /// 获取数据库文件路径: ~/.jackit/toolbox/tools/jacc/data/jacc.db
 pub fn get_db_path() -> PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let home = dirs::home_dir().expect("HOME not found, jacc cannot start");
     let dir = home.join(".jackit").join("toolbox").join("tools").join("jacc").join("data");
     std::fs::create_dir_all(&dir).ok();
     dir.join("jacc.db")

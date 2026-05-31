@@ -33,7 +33,7 @@ pub async fn list_skills(project_path: String) -> AppResult<Vec<SkillInfo>> {
             collect_skills(&disabled_dir, "project", false, &mut skills)?;
         }
 
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        let home = dirs::home_dir().expect("HOME not found, jacc cannot start");
         let user_skills_dir = home.join(".claude").join("skills");
         if user_skills_dir.exists() {
             collect_skills(&user_skills_dir, "user", true, &mut skills)?;

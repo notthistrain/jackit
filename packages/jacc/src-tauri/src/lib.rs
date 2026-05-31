@@ -23,6 +23,12 @@ pub fn run() {
 
     tracing::info!("app started");
 
+    // 启动期校验 HOME：找不到则 fail-fast，避免数据写到随机工作目录
+    let _home = dirs::home_dir().unwrap_or_else(|| {
+        tracing::error!("HOME not found, jacc cannot start");
+        panic!("HOME not found, jacc cannot start");
+    });
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())

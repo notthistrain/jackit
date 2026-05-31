@@ -42,10 +42,7 @@ pub fn init(app_name: &str, log_dir: &Path) -> WorkerGuard {
 
 /// 获取 jacc 日志目录: ~/.jackit/toolbox/tools/jacc/log/
 pub fn get_log_dir() -> std::path::PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| {
-        eprintln!("warning: could not determine home directory, using current directory for logs");
-        std::path::PathBuf::from(".")
-    });
+    let home = dirs::home_dir().expect("HOME not found, jacc cannot start");
     home.join(".jackit").join("toolbox").join("tools").join("jacc").join("log")
 }
 
