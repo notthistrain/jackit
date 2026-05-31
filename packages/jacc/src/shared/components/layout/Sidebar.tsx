@@ -12,9 +12,9 @@ import {
 } from 'lucide-react'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useT } from '@/i18n'
-import { cn } from '@/lib/utils'
 import { useAppStore } from '@/stores/useAppStore'
-import { ProjectSwitcher } from './ProjectSwitcher'
+import { ProjectSwitcher } from '@/components/ProjectSwitcher'
+import { sidebar } from './sidebar.variants'
 
 interface NavItem {
   id: Page
@@ -39,6 +39,7 @@ export function Sidebar() {
   const { t } = useT()
   const { currentPage, setPage, theme, setTheme } = useAppStore()
   const { set: setPreference } = usePreferences()
+  const { root, nav, sectionTitle, navItem, footer, themeButton } = sidebar()
 
   function toggleTheme() {
     const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
@@ -53,21 +54,16 @@ export function Sidebar() {
       : t('sidebar.theme.dark')
 
   return (
-    <div className="w-[180px] bg-sidebar border-r border-border flex flex-col h-full">
+    <div className={root()}>
       <ProjectSwitcher />
 
-      <nav className="flex-1 py-2 overflow-y-auto">
-        <div className="px-3 py-1 text-[10px] text-muted uppercase tracking-wider">{t('sidebar.config')}</div>
+      <nav className={nav()}>
+        <div className={sectionTitle()}>{t('sidebar.config')}</div>
         {settingsNav.map(item => (
           <button
             key={item.id}
             onClick={() => setPage(item.id)}
-            className={cn(
-              'w-full text-left px-4 py-[7px] mx-2 text-xs flex items-center gap-2 rounded-[4px] cursor-pointer',
-              currentPage === item.id
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
-            )}
+            className={navItem({ active: currentPage === item.id })}
             style={{ width: 'calc(100% - 16px)' }}
           >
             {item.icon}
@@ -75,17 +71,14 @@ export function Sidebar() {
           </button>
         ))}
 
-        <div className="px-3 py-1 mt-3 text-[10px] text-muted uppercase tracking-wider">{t('sidebar.extensions')}</div>
+        <div className={sectionTitle()} style={{ marginTop: '12px' }}>
+          {t('sidebar.extensions')}
+        </div>
         {extensionsNav.map(item => (
           <button
             key={item.id}
             onClick={() => setPage(item.id)}
-            className={cn(
-              'w-full text-left px-4 py-[7px] mx-2 text-xs flex items-center gap-2 rounded-[4px] cursor-pointer',
-              currentPage === item.id
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
-            )}
+            className={navItem({ active: currentPage === item.id })}
             style={{ width: 'calc(100% - 16px)' }}
           >
             {item.icon}
@@ -94,8 +87,8 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-3 py-2 border-t border-border flex items-center justify-between text-[11px] text-muted">
-        <button onClick={toggleTheme} className="cursor-pointer hover:text-foreground flex items-center gap-1">
+      <div className={footer()}>
+        <button onClick={toggleTheme} className={themeButton()}>
           {theme === 'dark' ? <Moon size={12} /> : <Sun size={12} />}
           <span>{themeLabel}</span>
         </button>
