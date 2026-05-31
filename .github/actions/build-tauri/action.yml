@@ -39,6 +39,12 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
+    - name: Clippy gate
+      shell: bash
+      run: |
+        cd packages/${{ inputs.app-name }}/src-tauri
+        cargo clippy --all-targets -- -D warnings
+
     - name: Build Tauri app
       shell: bash
       run: pnpm --filter @app/${{ inputs.app-name }} tauri build

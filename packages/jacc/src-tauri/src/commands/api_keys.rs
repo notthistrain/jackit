@@ -67,7 +67,7 @@ pub async fn add_api_key_inner(
     .bind(input.provider_id)
     .bind(&input.name)
     .bind(&input.api_key)
-    .bind(&notes)
+    .bind(notes)
     .fetch_one(pool)
     .await?;
     Ok(ak)

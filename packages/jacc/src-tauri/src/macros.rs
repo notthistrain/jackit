@@ -9,7 +9,6 @@
 ///       tracing::info!(id = result.id, "resource created");
 ///       Ok(result)
 ///   })
-
 /// 读命令宏：debug 级别日志
 #[macro_export]
 macro_rules! log_read_command {

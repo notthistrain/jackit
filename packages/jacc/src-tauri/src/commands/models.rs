@@ -38,7 +38,7 @@ pub async fn add_model_inner(
     )
     .bind(input.api_key_id)
     .bind(&input.model_name)
-    .bind(&context_size)
+    .bind(context_size)
     .fetch_one(pool)
     .await?;
     Ok(model)

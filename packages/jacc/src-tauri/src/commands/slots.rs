@@ -117,6 +117,7 @@ pub(crate) async fn get_slot_bindings_full_at(
     Ok(out)
 }
 
+#[cfg(test)]
 pub(crate) async fn get_slot_bindings_inner(pool: &SqlitePool) -> AppResult<Vec<SlotBinding>> {
     let rows = sqlx::query_as::<_, (String, i64, String, Option<String>, String, String, String)>(
         "SELECT ms.slot, ms.model_id, m.model_name, ms.context_size,
@@ -146,6 +147,7 @@ pub(crate) async fn get_slot_bindings_inner(pool: &SqlitePool) -> AppResult<Vec<
         .collect())
 }
 
+#[cfg(test)]
 pub(crate) async fn bind_slot_inner(
     pool: &SqlitePool,
     slot: &str,
@@ -232,6 +234,7 @@ pub async fn bind_slot_at(
     })
 }
 
+#[cfg(test)]
 pub(crate) async fn unbind_slot_inner(pool: &SqlitePool, slot: &str) -> AppResult<()> {
     let rows = sqlx::query("DELETE FROM model_slots WHERE slot = ?")
         .bind(slot)

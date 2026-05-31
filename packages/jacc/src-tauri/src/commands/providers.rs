@@ -39,7 +39,7 @@ pub async fn add_provider_inner(
     )
     .bind(&input.name)
     .bind(&input.base_url)
-    .bind(&notes)
+    .bind(notes)
     .fetch_one(pool)
     .await?;
     Ok(provider)

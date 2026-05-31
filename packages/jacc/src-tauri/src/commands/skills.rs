@@ -241,8 +241,7 @@ fn extract_description(skill_md: &Path) -> String {
     let content = std::fs::read_to_string(skill_md).unwrap_or_default();
 
     // 尝试从 YAML frontmatter 中提取 description
-    if content.starts_with("---") {
-        let rest = &content[3..];
+    if let Some(rest) = content.strip_prefix("---") {
         if let Some(end) = rest.find("---") {
             let frontmatter = &rest[..end];
             for line in frontmatter.lines() {
