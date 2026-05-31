@@ -1,4 +1,6 @@
+import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
+import { useEffect } from 'react'
 import { useProjects } from '@/hooks/useProjects'
 import { Agents } from '@/pages/Agents'
 import { EnvVars } from '@/pages/EnvVars'
@@ -15,6 +17,13 @@ import { TitleBar } from './TitleBar'
 export function Layout() {
   const { currentPage, currentProject, setProject } = useAppStore()
   const { add, open: openProject } = useProjects()
+
+  // 同步当前激活项目到后端 settings watcher（项目变化时切换监听目标）
+  useEffect(() => {
+    invoke('set_active_project', { path: currentProject ?? null }).catch(() => {
+      // watcher 非关键路径，失败静默
+    })
+  }, [currentProject])
 
   async function handleSelectProject() {
     const selected = await open({ directory: true })

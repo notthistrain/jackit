@@ -1,26 +1,46 @@
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/toast/ToastProvider'
 
-export interface SlotBinding {
+export interface SlotBindingIntent {
   slot: string
   model_id: number
   model_name: string
-  context_size: string | null
-  api_key: string
-  base_url: string
+  provider_id: number
   provider_name: string
+  base_url: string
+  api_key_masked: string
+  context_size: string | null
+}
+
+export interface ActualSlotEnv {
+  model_name: string | null
+  base_url: string | null
+  api_key_masked: string | null
+}
+
+export interface SlotMatchFlags {
+  model_name: boolean
+  base_url: boolean
+  api_key: boolean
+}
+
+export interface SlotBindingFull {
+  intent: SlotBindingIntent
+  actual: ActualSlotEnv
+  matches: SlotMatchFlags
 }
 
 export function useSlotBindings() {
-  const [bindings, setBindings] = useState<SlotBinding[]>([])
+  const [bindings, setBindings] = useState<SlotBindingFull[]>([])
   const [loading, setLoading] = useState(false)
   const { error } = useToast()
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const list = await invoke<SlotBinding[]>('get_slot_bindings')
+      const list = await invoke<SlotBindingFull[]>('get_slot_bindings')
       setBindings(list)
     }
     catch (e) {
@@ -74,6 +94,19 @@ export function useSlotBindings() {
 
   useEffect(() => {
     refresh()
+  }, [refresh])
+
+  // 订阅后端 settings-changed event，settings.json 变化时刷新 drift 状态
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+    listen('settings-changed', () => {
+      refresh()
+    }).then((fn) => {
+      unlisten = fn
+    })
+    return () => {
+      unlisten?.()
+    }
   }, [refresh])
 
   return { bindings, loading, refresh, bind, unbind, setCurrentModel }
