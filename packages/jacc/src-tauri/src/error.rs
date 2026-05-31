@@ -13,6 +13,13 @@ pub enum AppError {
 
     #[error("{0}")]
     Custom(String),
+
+    #[error("settings.json corrupted at {path}: {reason}")]
+    SettingsCorrupted {
+        path: String,
+        backup_path: String,
+        reason: String,
+    },
 }
 
 impl Serialize for AppError {

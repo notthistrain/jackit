@@ -14,8 +14,8 @@ interface SkillListProps {
   loading: boolean
   onToggle: (name: string, enabled: boolean) => Promise<void>
   onImport: (sourcePath: string) => Promise<void>
-  onInstallFromGithub: (repoUrl: string) => Promise<{ temp_dir: string, skills: SkillInfo[] }>
-  onConfirmInstall: (tempDir: string, skillNames: string[]) => Promise<void>
+  onInstallFromGithub: (repoUrl: string) => Promise<{ token: string, skills: SkillInfo[] }>
+  onConfirmInstall: (token: string, skillNames: string[]) => Promise<void>
 }
 
 export function SkillList({

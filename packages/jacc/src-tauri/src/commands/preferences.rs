@@ -5,7 +5,7 @@ use crate::error::AppResult;
 
 #[tauri::command]
 pub async fn get_preference(pool: State<'_, SqlitePool>, key: String) -> AppResult<Option<String>> {
-    log_command!("get_preference", {
+    log_read_command!("get_preference", {
         let row: Option<(String,)> =
             sqlx::query_as("SELECT value FROM preferences WHERE key = ?")
                 .bind(&key)

@@ -1,10 +1,13 @@
 #[macro_use]
 mod macros;
 
-mod commands;
+pub mod claude_settings;
+pub mod commands;
 mod db;
-mod error;
+pub mod error;
 mod logging;
+mod path_guard;
+pub mod settings_watcher;
 
 use tracing_appender::non_blocking::WorkerGuard;
 use tauri::Manager;
@@ -14,6 +17,12 @@ struct LogGuard(#[allow(dead_code)] WorkerGuard);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 第一道闸：HOME 缺失则 fail-fast（此时 tracing 未初始化，用 eprintln 落 stderr）
+    if dirs::home_dir().is_none() {
+        eprintln!("FATAL: HOME not found, jacc cannot start");
+        panic!("HOME not found, jacc cannot start");
+    }
+
     // 初始化日志（必须在 Builder 之前，确保整个启动过程都有日志）
     let log_dir = logging::get_log_dir();
     let guard = logging::init("jacc", &log_dir);
@@ -29,9 +38,20 @@ pub fn run() {
                 .expect("failed to init database");
             app.manage(pool);
             tracing::info!("database initialized");
+
+            let global = claude_settings::global_settings_path();
+            match settings_watcher::SettingsWatcher::start(app.handle().clone(), global) {
+                Ok(w) => {
+                    app.manage(std::sync::Mutex::new(w));
+                    tracing::info!("settings watcher started");
+                }
+                Err(e) => tracing::error!(?e, "settings watcher start failed"),
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // active project
+            commands::active_project::set_active_project,
             // log
             commands::log::log_debug,
             commands::log::log_info,
@@ -71,6 +91,9 @@ pub fn run() {
             commands::config::read_merged_config,
             commands::config::write_config,
             commands::config::delete_config,
+            commands::config::reset_corrupted_settings,
+            // delete preview
+            commands::delete_preview::preview_delete_impact,
             // skills
             commands::skills::list_skills,
             commands::skills::toggle_skill,

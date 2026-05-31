@@ -1,4 +1,5 @@
 import type { Locale } from '@/i18n'
+import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ModelSelect } from '@/components/ModelSelect'
 import { SourceBadge } from '@/components/SourceBadge'
@@ -55,7 +56,7 @@ export function General() {
   const skipDangerous = getItem('skipDangerousModePermissionPrompt')
 
   function getBinding(slot: Slot) {
-    return bindings.find(b => b.slot === slot)
+    return bindings.find(b => b.intent.slot === slot)
   }
 
   async function handleSlotModelChange(slot: Slot, modelId: number) {
@@ -100,6 +101,15 @@ export function General() {
               const binding = getBinding(slot)
               const isCurrent = slot === currentSlot
               const isBound = !!binding
+              const driftItems = binding
+                ? [
+                    !binding.matches.model_name && t('general.slot.driftModel'),
+                    !binding.matches.base_url && t('general.slot.driftUrl'),
+                    !binding.matches.api_key && t('general.slot.driftKey'),
+                  ].filter(Boolean)
+                : []
+              const isDrifted = driftItems.length > 0
+              const driftTip = `${t('general.slot.driftTip')}：${driftItems.join('、')}`
               return (
                 <div
                   key={slot}
@@ -117,11 +127,20 @@ export function General() {
                         {t('general.slot.current')}
                       </span>
                     )}
+                    {isDrifted && (
+                      <span
+                        title={driftTip}
+                        className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-[8px] bg-amber-100 text-amber-700 leading-none whitespace-nowrap"
+                      >
+                        <AlertTriangle size={9} />
+                        {t('general.slot.drift')}
+                      </span>
+                    )}
                   </div>
 
                   {/* Model select */}
                   <ModelSelect
-                    value={binding?.model_id ?? null}
+                    value={binding?.intent.model_id ?? null}
                     onChange={modelId => handleSlotModelChange(slot, modelId)}
                   />
 

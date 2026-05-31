@@ -28,16 +28,11 @@ pub struct ApiKeyView {
 
 impl ApiKeyView {
     pub fn from_api_key(ak: &ApiKey) -> Self {
-        let masked = if ak.api_key.len() > 8 {
-            format!("{}***", &ak.api_key[..8])
-        } else {
-            "***".to_string()
-        };
         Self {
             id: ak.id,
             provider_id: ak.provider_id,
             name: ak.name.clone(),
-            api_key_masked: masked,
+            api_key_masked: mask_api_key(&ak.api_key),
             notes: ak.notes.clone(),
             created_at: ak.created_at.clone(),
             updated_at: ak.updated_at.clone(),
@@ -60,7 +55,7 @@ pub struct UpdateApiKeyInput {
     pub notes: Option<String>,
 }
 
-pub(crate) async fn add_api_key_inner(
+pub async fn add_api_key_inner(
     pool: &SqlitePool,
     input: CreateApiKeyInput,
 ) -> AppResult<ApiKey> {
@@ -72,7 +67,7 @@ pub(crate) async fn add_api_key_inner(
     .bind(input.provider_id)
     .bind(&input.name)
     .bind(&input.api_key)
-    .bind(&notes)
+    .bind(notes)
     .fetch_one(pool)
     .await?;
     Ok(ak)
@@ -91,7 +86,7 @@ pub(crate) async fn list_api_keys_inner(
     Ok(keys.iter().map(ApiKeyView::from_api_key).collect())
 }
 
-pub(crate) async fn update_api_key_inner(
+pub async fn update_api_key_inner(
     pool: &SqlitePool,
     id: i64,
     input: UpdateApiKeyInput,
@@ -127,12 +122,67 @@ pub(crate) async fn update_api_key_inner(
     Ok(())
 }
 
-pub(crate) async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
+pub async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
     sqlx::query("DELETE FROM api_keys WHERE id = ?")
         .bind(id)
         .execute(pool)
         .await?;
     Ok(())
+}
+
+pub async fn update_api_key_at(
+    pool: &SqlitePool,
+    id: i64,
+    input: UpdateApiKeyInput,
+    settings_path: &std::path::Path,
+) -> AppResult<()> {
+    update_api_key_inner(pool, id, input).await?;
+    let bindings: Vec<(String, String, String, String)> = sqlx::query_as(
+        "SELECT ms.slot, m.model_name, ak.api_key, p.base_url
+         FROM model_slots ms
+         JOIN models m ON ms.model_id = m.id
+         JOIN api_keys ak ON m.api_key_id = ak.id
+         JOIN providers p ON ak.provider_id = p.id
+         WHERE ak.id = ?"
+    ).bind(id).fetch_all(pool).await?;
+    for (slot, model_name, api_key, base_url) in bindings {
+        crate::claude_settings::write_slot_env(settings_path, &slot, &base_url, &api_key, &model_name).await?;
+    }
+    Ok(())
+}
+
+pub async fn delete_api_key_at(
+    pool: &SqlitePool,
+    id: i64,
+    settings_path: &std::path::Path,
+) -> AppResult<()> {
+    let row: Option<(String, String)> = sqlx::query_as(
+        "SELECT p.base_url, ak.api_key
+         FROM api_keys ak JOIN providers p ON ak.provider_id = p.id
+         WHERE ak.id = ?",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    sqlx::query("DELETE FROM api_keys WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if let Some((base_url, api_key)) = row {
+        crate::claude_settings::purge_token(settings_path, &base_url, &api_key).await?;
+    }
+    Ok(())
+}
+
+/// 4 头 + 4 尾掩码：长度 < 8 时返回 "***"
+pub fn mask_api_key(s: &str) -> String {
+    if s.len() < 8 {
+        "***".to_string()
+    } else {
+        let head = &s[..4];
+        let tail = &s[s.len() - 4..];
+        format!("{head}***{tail}")
+    }
 }
 
 #[tauri::command]
@@ -152,7 +202,7 @@ pub async fn list_api_keys(
     pool: State<'_, SqlitePool>,
     provider_id: i64,
 ) -> AppResult<Vec<ApiKeyView>> {
-    log_command!("list_api_keys", {
+    log_read_command!("list_api_keys", {
         list_api_keys_inner(pool.inner(), provider_id).await
     })
 }
@@ -164,7 +214,8 @@ pub async fn update_api_key(
     input: UpdateApiKeyInput,
 ) -> AppResult<()> {
     log_command!("update_api_key", {
-        update_api_key_inner(pool.inner(), id, input).await?;
+        let path = crate::claude_settings::global_settings_path();
+        update_api_key_at(pool.inner(), id, input, &path).await?;
         tracing::info!(id, "api_key updated");
         Ok(())
     })
@@ -173,7 +224,8 @@ pub async fn update_api_key(
 #[tauri::command]
 pub async fn delete_api_key(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
     log_command!("delete_api_key", {
-        delete_api_key_inner(pool.inner(), id).await?;
+        let path = crate::claude_settings::global_settings_path();
+        delete_api_key_at(pool.inner(), id, &path).await?;
         tracing::info!(id, "api_key deleted");
         Ok(())
     })
@@ -270,7 +322,7 @@ mod tests {
 
         let views = list_api_keys_inner(&pool, pid).await.unwrap();
         assert_eq!(views.len(), 1);
-        assert_eq!(views[0].api_key_masked, "sk-ant-1***");
+        assert_eq!(views[0].api_key_masked, "sk-a***9abc");
         assert_eq!(views[0].name, "Key1");
     }
 
@@ -385,16 +437,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_mask_long_key() {
+    async fn test_mask_long_key_4_4() {
         let view = ApiKeyView::from_api_key(&ApiKey {
             id: 1,
             provider_id: 1,
             name: "test".to_string(),
-            api_key: "sk-ant-api123456789abcdef".to_string(),
+            api_key: "sk-ant-api123ef89".to_string(),
             notes: None,
             created_at: "2024-01-01".to_string(),
             updated_at: "2024-01-01".to_string(),
         });
-        assert_eq!(view.api_key_masked, "sk-ant-a***");
+        assert_eq!(view.api_key_masked, "sk-a***ef89");
     }
 }

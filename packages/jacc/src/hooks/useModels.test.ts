@@ -12,6 +12,11 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }))
 
+// Mock Tauri event (useSlotBindings subscribes to settings-changed)
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(() => Promise.resolve(() => {})),
+}))
+
 // Mock toast (stable references to avoid infinite re-renders)
 const mockToast = { success: vi.fn(), error: vi.fn() }
 vi.mock('@/components/toast/ToastProvider', () => ({
@@ -195,13 +200,26 @@ describe('useSlotBindings', () => {
   it('calls get_slot_bindings on mount', async () => {
     vi.mocked(invoke).mockResolvedValueOnce([
       {
-        slot: 'opus',
-        model_id: 1,
-        model_name: 'claude-opus-4-6',
-        context_size: null,
-        api_key: 'sk-ant-aaa',
-        base_url: 'https://api.anthropic.com',
-        provider_name: 'Anthropic',
+        intent: {
+          slot: 'opus',
+          model_id: 1,
+          model_name: 'claude-opus-4-6',
+          provider_id: 1,
+          provider_name: 'Anthropic',
+          base_url: 'https://api.anthropic.com',
+          api_key_masked: 'sk-ant-***',
+          context_size: null,
+        },
+        actual: {
+          model_name: 'claude-opus-4-6',
+          base_url: 'https://api.anthropic.com',
+          api_key_masked: 'sk-ant-***',
+        },
+        matches: {
+          model_name: true,
+          base_url: true,
+          api_key: true,
+        },
       },
     ])
 

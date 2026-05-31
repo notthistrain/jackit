@@ -27,7 +27,7 @@ pub struct UpdateModelInput {
     pub context_size: Option<String>,
 }
 
-pub(crate) async fn add_model_inner(
+pub async fn add_model_inner(
     pool: &SqlitePool,
     input: CreateModelInput,
 ) -> AppResult<Model> {
@@ -38,7 +38,7 @@ pub(crate) async fn add_model_inner(
     )
     .bind(input.api_key_id)
     .bind(&input.model_name)
-    .bind(&context_size)
+    .bind(context_size)
     .fetch_one(pool)
     .await?;
     Ok(model)
@@ -57,7 +57,7 @@ pub(crate) async fn list_models_inner(
     Ok(models)
 }
 
-pub(crate) async fn update_model_inner(
+pub async fn update_model_inner(
     pool: &SqlitePool,
     id: i64,
     input: UpdateModelInput,
@@ -89,12 +89,45 @@ pub(crate) async fn update_model_inner(
     Ok(())
 }
 
-pub(crate) async fn delete_model_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
+pub async fn delete_model_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
     sqlx::query("DELETE FROM models WHERE id = ?")
         .bind(id)
         .execute(pool)
         .await?;
     Ok(())
+}
+
+pub async fn delete_model_at(
+    pool: &SqlitePool,
+    id: i64,
+    settings_path: &std::path::Path,
+) -> AppResult<()> {
+    // 仅当该 model 被 slot 使用时才需 purge；找出关联 token
+    let row: Option<(String, String)> = sqlx::query_as(
+        "SELECT p.base_url, ak.api_key
+         FROM models m JOIN api_keys ak ON m.api_key_id = ak.id
+         JOIN providers p ON ak.provider_id = p.id
+         JOIN model_slots ms ON ms.model_id = m.id
+         WHERE m.id = ?",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    sqlx::query("DELETE FROM models WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if let Some((base_url, api_key)) = row {
+        crate::claude_settings::purge_token(settings_path, &base_url, &api_key).await?;
+    }
+    Ok(())
+}
+
+/// 脱敏敏感信息：替换 sk- token + 截断到 200 字符
+fn redact_sensitive(body: &str) -> String {
+    let truncated: String = body.chars().take(200).collect();
+    let re = regex::Regex::new(r"sk-[A-Za-z0-9_\-]{6,}").unwrap();
+    re.replace_all(&truncated, "***").to_string()
 }
 
 /// 测试模型连接：联查 3 层获取 base_url + api_key + model_name
@@ -113,13 +146,19 @@ pub(crate) async fn test_model_inner(pool: &SqlitePool, id: i64) -> AppResult<St
 
     let (base_url, api_key, model_name) = row;
 
-    let client = reqwest::Client::new();
+    // 1. 超时：10s timeout
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| AppError::Custom(format!("CLIENT_BUILD_FAILED:{}", e)))?;
+
     let url = format!("{}/v1/messages", base_url.trim_end_matches('/'));
     let body = serde_json::json!({
         "model": model_name,
         "max_tokens": 1,
         "messages": [{"role": "user", "content": "hi"}]
     });
+
     let resp = client
         .post(&url)
         .header("x-api-key", &api_key)
@@ -130,12 +169,21 @@ pub(crate) async fn test_model_inner(pool: &SqlitePool, id: i64) -> AppResult<St
         .await
         .map_err(|e| AppError::Custom(format!("CONNECTION_FAILED:{}", e)))?;
 
-    if resp.status().is_success() || resp.status().as_u16() == 400 {
+    let status = resp.status();
+
+    // 2. 仅 2xx 成功：区分 auth 错误 vs 其它 HTTP 错误
+    if status.is_success() {
         Ok("CONNECTION_SUCCESS".to_string())
+    } else if status.as_u16() == 401 || status.as_u16() == 403 {
+        Err(AppError::Custom(format!("AUTH_FAILED:{}", status.as_u16())))
     } else {
-        let status = resp.status();
+        // 3. 错误脱敏：HTTP 错误体可能含 token
         let body = resp.text().await.unwrap_or_default();
-        Err(AppError::Custom(format!("HTTP_ERROR:{}:{}", status.as_u16(), body)))
+        Err(AppError::Custom(format!(
+            "HTTP_ERROR:{}:{}",
+            status.as_u16(),
+            redact_sensitive(&body)
+        )))
     }
 }
 
@@ -150,7 +198,7 @@ pub async fn add_model(pool: State<'_, SqlitePool>, input: CreateModelInput) -> 
 
 #[tauri::command]
 pub async fn list_models(pool: State<'_, SqlitePool>, api_key_id: i64) -> AppResult<Vec<Model>> {
-    log_command!("list_models", {
+    log_read_command!("list_models", {
         list_models_inner(pool.inner(), api_key_id).await
     })
 }
@@ -167,7 +215,8 @@ pub async fn update_model(pool: State<'_, SqlitePool>, id: i64, input: UpdateMod
 #[tauri::command]
 pub async fn delete_model(pool: State<'_, SqlitePool>, id: i64) -> AppResult<()> {
     log_command!("delete_model", {
-        delete_model_inner(pool.inner(), id).await?;
+        let path = crate::claude_settings::global_settings_path();
+        delete_model_at(pool.inner(), id, &path).await?;
         tracing::info!(id, "model deleted");
         Ok(())
     })
@@ -368,5 +417,20 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("https://api.test.com"));
+    }
+
+    #[test]
+    fn redact_sk_tokens_in_body() {
+        let s = "error: invalid token sk-ant-abcdefg12345 in request";
+        let r = redact_sensitive(s);
+        assert!(!r.contains("sk-ant-abcdefg12345"));
+        assert!(r.contains("***"));
+    }
+
+    #[test]
+    fn body_truncated_to_200_chars() {
+        let s = "x".repeat(500);
+        let r = redact_sensitive(&s);
+        assert!(r.len() <= 210);  // 200 + "...(truncated)" 之类的后缀
     }
 }

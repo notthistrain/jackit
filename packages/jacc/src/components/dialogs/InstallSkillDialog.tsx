@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useT } from '@/i18n'
 
 interface GithubInstallResult {
-  temp_dir: string
+  token: string
   skills: SkillInfo[]
 }
 
@@ -11,7 +11,7 @@ interface InstallSkillDialogProps {
   open: boolean
   onClose: () => void
   onFetch: (repoUrl: string) => Promise<GithubInstallResult>
-  onConfirm: (tempDir: string, skillNames: string[]) => Promise<void>
+  onConfirm: (token: string, skillNames: string[]) => Promise<void>
 }
 
 export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: InstallSkillDialogProps) {
@@ -21,7 +21,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
   const [available, setAvailable] = useState<SkillInfo[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [installing, setInstalling] = useState(false)
-  const [tempDir, setTempDir] = useState('')
+  const [token, setToken] = useState('')
   const [error, setError] = useState('')
 
   if (!open)
@@ -36,7 +36,7 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
     setError('')
     try {
       const result = await onFetch(repoUrl)
-      setTempDir(result.temp_dir)
+      setToken(result.token)
       setAvailable(result.skills)
       if (result.skills.length === 0) {
         setError(t('skills.install.noSkills'))
@@ -62,11 +62,11 @@ export function InstallSkillDialog({ open, onClose, onFetch, onConfirm }: Instal
   }
 
   async function handleInstall() {
-    if (selected.size === 0 || !tempDir)
+    if (selected.size === 0 || !token)
       return
     setInstalling(true)
     try {
-      await onConfirm(tempDir, Array.from(selected))
+      await onConfirm(token, Array.from(selected))
       onClose()
       setRepoUrl('')
       setAvailable([])
