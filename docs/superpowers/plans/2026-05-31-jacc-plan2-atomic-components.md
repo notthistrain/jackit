@@ -6,7 +6,7 @@
 
 **架构：** 将组件从 `src/components/` 迁移到 `src/shared/components/`，按类型分类（ui/layout），所有组件使用 tailwind-variants 的 tv() 函数定义样式变体，组件和变体文件分离
 
-**技术栈：** React 18、TypeScript、tailwind-variants、Vitest + Testing Library
+**技术栈：** React 19、TypeScript、tailwind-variants、Vitest + Testing Library
 
 ---
 
