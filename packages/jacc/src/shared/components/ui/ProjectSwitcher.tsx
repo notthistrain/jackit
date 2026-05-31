@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useProjects } from '@/hooks/useProjects'
 import { useT } from '@/i18n'
 import { useAppStore } from '@/stores/useAppStore'
+import { projectSwitcher } from './project-switcher.variants'
 
 export function ProjectSwitcher() {
   const { t } = useT()
@@ -12,6 +13,30 @@ export function ProjectSwitcher() {
   const ref = useRef<HTMLDivElement>(null)
   const { currentProject, setProject } = useAppStore()
   const { projects, add, open: openProject, pin } = useProjects()
+
+  const {
+    root,
+    trigger,
+    triggerLeft,
+    triggerLabel,
+    triggerValue,
+    triggerIcon,
+    dropdown,
+    currentSection,
+    currentLabel,
+    currentName,
+    currentPath,
+    listSection,
+    listTitle,
+    listItem,
+    listItemIcon,
+    listItemContent,
+    listItemName,
+    listItemPath,
+    pinButton,
+    footer,
+    footerButton,
+  } = projectSwitcher()
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -23,9 +48,7 @@ export function ProjectSwitcher() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const currentName = currentProject
-    ? currentProject.split(/[/\\]/).pop()
-    : null
+  const currentName_ = currentProject ? currentProject.split(/[/\\]/).pop() : null
 
   async function handleSelectFolder() {
     const selected = await open({ directory: true })
@@ -44,33 +67,28 @@ export function ProjectSwitcher() {
   }
 
   return (
-    <div ref={ref} className="relative px-3 pt-3 pb-2 border-b border-border">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-2.5 py-1.5 bg-card border border-border rounded-[4px] flex items-center justify-between cursor-pointer hover:border-muted"
-      >
-        <div className="text-left">
-          <div className="text-[11px] text-muted">{t('project.current')}</div>
-          <div className="text-xs font-medium text-foreground truncate">
-            {currentName || t('project.none')}
-          </div>
+    <div ref={ref} className={root()}>
+      <button onClick={() => setIsOpen(!isOpen)} className={trigger()}>
+        <div className={triggerLeft()}>
+          <div className={triggerLabel()}>{t('project.current')}</div>
+          <div className={triggerValue()}>{currentName_ || t('project.none')}</div>
         </div>
-        <ChevronDown size={14} className="text-muted shrink-0" />
+        <ChevronDown size={14} className={triggerIcon()} />
       </button>
 
       {isOpen && (
-        <div className="absolute left-3 right-3 top-full mt-1 bg-card border border-border rounded-[4px] shadow-lg z-50 overflow-hidden">
+        <div className={dropdown()}>
           {currentProject && (
-            <div className="px-3 py-2 bg-primary-light border-b border-border">
-              <div className="text-[11px] text-primary">{t('project.currentLabel')}</div>
-              <div className="text-xs font-medium text-foreground truncate">{currentName}</div>
-              <div className="text-[10px] text-muted truncate">{currentProject}</div>
+            <div className={currentSection()}>
+              <div className={currentLabel()}>{t('project.currentLabel')}</div>
+              <div className={currentName()}>{currentName_}</div>
+              <div className={currentPath()}>{currentProject}</div>
             </div>
           )}
 
           {projects.length > 0 && (
-            <div className="py-1.5">
-              <div className="px-3 py-1 text-[10px] text-muted">{t('project.recent')}</div>
+            <div className={listSection()}>
+              <div className={listTitle()}>{t('project.recent')}</div>
               {projects
                 .filter(p => p.path !== currentProject)
                 .slice(0, 5)
@@ -78,19 +96,19 @@ export function ProjectSwitcher() {
                   <div
                     key={project.id}
                     onClick={() => handleSwitchProject(project)}
-                    className="px-3 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-border/30"
+                    className={listItem()}
                   >
-                    <FolderOpen size={12} className="text-muted shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-foreground truncate">{project.name}</div>
-                      <div className="text-[10px] text-muted truncate">{project.path}</div>
+                    <FolderOpen size={12} className={listItemIcon()} />
+                    <div className={listItemContent()}>
+                      <div className={listItemName()}>{project.name}</div>
+                      <div className={listItemPath()}>{project.path}</div>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         pin(project.id, !project.pinned)
                       }}
-                      className="text-muted hover:text-foreground"
+                      className={pinButton()}
                     >
                       <Pin size={10} className={project.pinned ? 'fill-current' : ''} />
                     </button>
@@ -99,11 +117,8 @@ export function ProjectSwitcher() {
             </div>
           )}
 
-          <div className="border-t border-border px-3 py-2">
-            <button
-              onClick={handleSelectFolder}
-              className="text-xs text-primary cursor-pointer hover:underline"
-            >
+          <div className={footer()}>
+            <button onClick={handleSelectFolder} className={footerButton()}>
               {t('project.openOther')}
             </button>
           </div>
