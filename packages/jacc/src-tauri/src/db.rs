@@ -146,14 +146,19 @@ struct OldModel {
 
 /// 将旧版扁平 models 表迁移为 Provider -> APIKey -> Model 三层结构
 async fn migrate_flat_models(pool: &SqlitePool) -> Result<(), sqlx::Error> {
-    // 暂时禁用外键，避免 RENAME/DROP 触发 CASCADE 删除
+    let start = std::time::Instant::now();
+    tracing::info!("flat-models migration started");
+
+    // 暂时禁用外键约束（必须在事务外设置）
     sqlx::query("PRAGMA foreign_keys = OFF")
         .execute(pool)
         .await?;
 
+    let mut tx = pool.begin().await?;
+
     // 1. 重命名旧表
     sqlx::query("ALTER TABLE models RENAME TO models_old")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
 
     // 2. 创建新 models 表
@@ -168,15 +173,16 @@ async fn migrate_flat_models(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE
         )",
     )
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // 3. 读取所有旧数据
     let old_models = sqlx::query_as::<_, OldModel>(
         "SELECT id, alias, base_url, api_key, model_name, context_size FROM models_old ORDER BY id",
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
+    tracing::info!(count = old_models.len(), "old models loaded");
 
     // 4. 按 base_url 分组创建 Provider
     let mut provider_map: HashMap<String, i64> = HashMap::new();
@@ -185,12 +191,13 @@ async fn migrate_flat_models(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             let id = sqlx::query("INSERT INTO providers (name, base_url) VALUES (?, ?)")
                 .bind(format!("{} Provider", m.alias))
                 .bind(&m.base_url)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?
                 .last_insert_rowid();
             provider_map.insert(m.base_url.clone(), id);
         }
     }
+    tracing::info!(provider_count = provider_map.len(), "providers created");
 
     // 5. 为每行旧数据创建 APIKey + Model，建立 id 映射
     let mut id_map: HashMap<i64, i64> = HashMap::new();
@@ -203,7 +210,7 @@ async fn migrate_flat_models(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         .bind(provider_id)
         .bind(format!("{} Key", m.alias))
         .bind(&m.api_key)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?
         .last_insert_rowid();
 
@@ -213,32 +220,37 @@ async fn migrate_flat_models(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         .bind(ak_id)
         .bind(&m.model_name)
         .bind(&m.context_size)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?
         .last_insert_rowid();
 
         id_map.insert(m.id, new_id);
     }
+    tracing::info!(model_count = id_map.len(), "new models created");
 
     // 6. 更新 model_slots 的 model_id
     for (old_id, new_id) in &id_map {
         sqlx::query("UPDATE model_slots SET model_id = ? WHERE model_id = ?")
             .bind(new_id)
             .bind(old_id)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
     }
+    tracing::info!(remap_count = id_map.len(), "slots remapped");
 
     // 7. 删除旧表
     sqlx::query("DROP TABLE models_old")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
 
-    // 重新启用外键
+    tx.commit().await?;
+
+    // 重新启用外键约束（必须在事务外设置）
     sqlx::query("PRAGMA foreign_keys = ON")
         .execute(pool)
         .await?;
 
+    tracing::info!(elapsed_ms = start.elapsed().as_millis() as u64, "flat-models migration done");
     Ok(())
 }
 
@@ -449,5 +461,58 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(count, 2);
+    }
+
+    #[tokio::test]
+    async fn migrate_rolls_back_on_error() {
+        let pool = setup_old_schema().await;
+
+        // 插入一条旧数据
+        sqlx::query(
+            "INSERT INTO models (alias, base_url, api_key, model_name)
+             VALUES ('A', 'https://a.com', 'k1', 'm1')"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // 在 providers 表里预先塞一行同 base_url，并加 unique 约束
+        sqlx::query("CREATE UNIQUE INDEX uniq_pburl ON providers(base_url)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO providers (name, base_url) VALUES ('Existing', 'https://a.com')")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // 迁移会因 base_url unique 冲突失败
+        let r = migrate_flat_models(&pool).await;
+        assert!(r.is_err(), "migration should fail due to unique constraint");
+
+        // 验证：旧 models 表必须仍在（未被 RENAME）
+        let (count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='models'"
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(count, 1, "old models table should still exist after rollback");
+
+        // 验证：旧数据仍在
+        let (data_count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM models")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(data_count, 1, "old data should still exist");
+
+        // 验证：新 models 表不应该存在（事务回滚）
+        let (new_count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='models_old'"
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(new_count, 0, "models_old should not exist after rollback");
     }
 }
