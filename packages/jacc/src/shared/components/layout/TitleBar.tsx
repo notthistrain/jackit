@@ -1,33 +1,35 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Minus, Square, X } from 'lucide-react'
 import { useT } from '@/i18n'
+import { titleBar } from './title-bar.variants'
 
 export function TitleBar() {
   const appWindow = getCurrentWindow()
   const { t } = useT()
+  const { root, title, dragRegion, buttons, button } = titleBar()
 
   return (
-    <div className="h-8 flex items-center bg-sidebar border-b border-border select-none">
-      <div className="pl-3 text-xs text-muted" data-tauri-drag-region>
+    <div className={root()}>
+      <div className={title()} data-tauri-drag-region>
         {t('app.title')}
       </div>
-      <div data-tauri-drag-region className="flex-1 h-full" />
-      <div className="flex h-full">
+      <div data-tauri-drag-region className={dragRegion()} />
+      <div className={buttons()}>
         <button
           onClick={() => appWindow.minimize()}
-          className="w-11 h-full flex items-center justify-center hover:bg-border/50 text-muted-foreground"
+          className={button({ buttonType: 'minimize' })}
         >
           <Minus size={14} />
         </button>
         <button
           onClick={() => appWindow.toggleMaximize()}
-          className="w-11 h-full flex items-center justify-center hover:bg-border/50 text-muted-foreground"
+          className={button({ buttonType: 'maximize' })}
         >
           <Square size={12} />
         </button>
         <button
           onClick={() => appWindow.close()}
-          className="w-11 h-full flex items-center justify-center hover:bg-danger/80 hover:text-white text-muted-foreground"
+          className={button({ buttonType: 'close' })}
         >
           <X size={14} />
         </button>
