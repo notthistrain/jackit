@@ -123,6 +123,13 @@ pub async fn delete_model_at(
     Ok(())
 }
 
+/// 脱敏敏感信息：替换 sk- token + 截断到 200 字符
+fn redact_sensitive(body: &str) -> String {
+    let truncated: String = body.chars().take(200).collect();
+    let re = regex::Regex::new(r"sk-[A-Za-z0-9_\-]{6,}").unwrap();
+    re.replace_all(&truncated, "***").to_string()
+}
+
 /// 测试模型连接：联查 3 层获取 base_url + api_key + model_name
 pub(crate) async fn test_model_inner(pool: &SqlitePool, id: i64) -> AppResult<String> {
     let row = sqlx::query_as::<_, (String, String, String)>(
@@ -139,13 +146,19 @@ pub(crate) async fn test_model_inner(pool: &SqlitePool, id: i64) -> AppResult<St
 
     let (base_url, api_key, model_name) = row;
 
-    let client = reqwest::Client::new();
+    // 1. 超时：10s timeout
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| AppError::Custom(format!("CLIENT_BUILD_FAILED:{}", e)))?;
+
     let url = format!("{}/v1/messages", base_url.trim_end_matches('/'));
     let body = serde_json::json!({
         "model": model_name,
         "max_tokens": 1,
         "messages": [{"role": "user", "content": "hi"}]
     });
+
     let resp = client
         .post(&url)
         .header("x-api-key", &api_key)
@@ -156,12 +169,21 @@ pub(crate) async fn test_model_inner(pool: &SqlitePool, id: i64) -> AppResult<St
         .await
         .map_err(|e| AppError::Custom(format!("CONNECTION_FAILED:{}", e)))?;
 
-    if resp.status().is_success() || resp.status().as_u16() == 400 {
+    let status = resp.status();
+
+    // 2. 仅 2xx 成功：区分 auth 错误 vs 其它 HTTP 错误
+    if status.is_success() {
         Ok("CONNECTION_SUCCESS".to_string())
+    } else if status.as_u16() == 401 || status.as_u16() == 403 {
+        Err(AppError::Custom(format!("AUTH_FAILED:{}", status.as_u16())))
     } else {
-        let status = resp.status();
+        // 3. 错误脱敏：HTTP 错误体可能含 token
         let body = resp.text().await.unwrap_or_default();
-        Err(AppError::Custom(format!("HTTP_ERROR:{}:{}", status.as_u16(), body)))
+        Err(AppError::Custom(format!(
+            "HTTP_ERROR:{}:{}",
+            status.as_u16(),
+            redact_sensitive(&body)
+        )))
     }
 }
 
@@ -395,5 +417,20 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("https://api.test.com"));
+    }
+
+    #[test]
+    fn redact_sk_tokens_in_body() {
+        let s = "error: invalid token sk-ant-abcdefg12345 in request";
+        let r = redact_sensitive(s);
+        assert!(!r.contains("sk-ant-abcdefg12345"));
+        assert!(r.contains("***"));
+    }
+
+    #[test]
+    fn body_truncated_to_200_chars() {
+        let s = "x".repeat(500);
+        let r = redact_sensitive(&s);
+        assert!(r.len() <= 210);  // 200 + "...(truncated)" 之类的后缀
     }
 }

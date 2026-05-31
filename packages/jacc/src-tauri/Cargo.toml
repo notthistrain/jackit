@@ -28,5 +28,6 @@ tracing-appender = "0.2"
 tempfile = "3"
 notify = "6"
 notify-debouncer-mini = "0.4"
+regex = "1"
 
 [dev-dependencies]
