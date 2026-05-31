@@ -39,7 +39,7 @@ export function Sidebar() {
   const { t } = useT()
   const { currentPage, setPage, theme, setTheme } = useAppStore()
   const { set: setPreference } = usePreferences()
-  const { root, nav, sectionTitle, navItem, footer, themeButton } = sidebar()
+  const { root, nav, sectionTitle, sectionTitleSpaced, navItem, footer, themeButton } = sidebar()
 
   function toggleTheme() {
     const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
@@ -64,14 +64,13 @@ export function Sidebar() {
             key={item.id}
             onClick={() => setPage(item.id)}
             className={navItem({ active: currentPage === item.id })}
-            style={{ width: 'calc(100% - 16px)' }}
           >
             {item.icon}
             {t(item.labelKey)}
           </button>
         ))}
 
-        <div className={sectionTitle()} style={{ marginTop: '12px' }}>
+        <div className={sectionTitleSpaced()}>
           {t('sidebar.extensions')}
         </div>
         {extensionsNav.map(item => (
@@ -79,7 +78,6 @@ export function Sidebar() {
             key={item.id}
             onClick={() => setPage(item.id)}
             className={navItem({ active: currentPage === item.id })}
-            style={{ width: 'calc(100% - 16px)' }}
           >
             {item.icon}
             {t(item.labelKey)}
