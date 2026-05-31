@@ -233,7 +233,7 @@ describe('Button', () => {
 
 - [ ] **步骤 5：运行测试验证**
 
-运行：`cd packages/jacc && pnpm test Button.test.tsx`
+运行：`cd packages/jacc && pnpm test Button.test`
 预期：所有 7 个测试通过
 
 - [ ] **步骤 6：Commit**
@@ -399,7 +399,7 @@ describe('Input', () => {
 
 - [ ] **步骤 4：运行测试验证**
 
-运行：`cd packages/jacc && pnpm test Input.test.tsx`
+运行：`cd packages/jacc && pnpm test Input.test`
 预期：所有 6 个测试通过
 
 - [ ] **步骤 5：Commit**
@@ -702,7 +702,7 @@ describe('CollapsibleCard', () => {
 
 - [ ] **步骤 4：运行测试验证**
 
-运行：`cd packages/jacc && pnpm test CollapsibleCard.test.tsx`
+运行：`cd packages/jacc && pnpm test CollapsibleCard.test`
 预期：所有 6 个测试通过
 
 - [ ] **步骤 5：Commit**
@@ -739,8 +739,8 @@ EOF
 
 - [ ] **步骤 4：启动开发服务器验证**
 
-运行：`cd packages/jacc && pnpm dev`
-预期：应用正常启动，无报错，可以在浏览器中访问
+运行：`cd "D:\Project\jackit" && pnpm dev:jacc`
+预期：Tauri 应用正常启动，无报错，窗口正常显示
 
 - [ ] **步骤 5：验证清单**
 
