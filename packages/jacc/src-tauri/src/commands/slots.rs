@@ -82,6 +82,12 @@ pub(crate) async fn get_slot_bindings_full_at(
         .unwrap_or_else(|_| serde_json::json!({}));
     let env = settings.get("env").cloned().unwrap_or(serde_json::json!({}));
 
+    // 获取当前应用的 slot（从 settings["model"] 解析）
+    let current_slot = settings.get("model")
+        .and_then(|v| v.as_str())
+        .and_then(|s| s.split('[').next())
+        .map(String::from);
+
     let mut out = Vec::new();
     for (slot, model_id, model_name, _ctx, api_key, base_url, provider_name, provider_id) in rows {
         let env_model_key = slot_default_env_key(&slot);
@@ -89,10 +95,21 @@ pub(crate) async fn get_slot_bindings_full_at(
         let actual_base = env.get("ANTHROPIC_BASE_URL").and_then(|v| v.as_str()).map(String::from);
         let actual_token = env.get("ANTHROPIC_AUTH_TOKEN").and_then(|v| v.as_str()).map(String::from);
 
+        // 只对当前应用的 slot 检测 base_url/api_key drift
+        // 其他 slot 只检测 model_name drift
+        let is_current = current_slot.as_deref() == Some(slot.as_str());
         let matches = SlotMatchFlags {
             model_name: actual_model.as_deref() == Some(model_name.as_str()),
-            base_url: actual_base.as_deref() == Some(base_url.as_str()),
-            api_key: actual_token.as_deref() == Some(api_key.as_str()),
+            base_url: if is_current {
+                actual_base.as_deref() == Some(base_url.as_str())
+            } else {
+                true  // 非当前 slot，不检测 base_url drift
+            },
+            api_key: if is_current {
+                actual_token.as_deref() == Some(api_key.as_str())
+            } else {
+                true  // 非当前 slot，不检测 api_key drift
+            },
         };
         let actual = ActualSlotEnv {
             model_name: actual_model,
@@ -733,13 +750,17 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let settings_path = dir.path().join("settings.json");
         bind_slot_at(&pool, "opus", mid, &settings_path).await.unwrap();
+
+        // 应用配置，使 opus 成为当前 slot
+        set_current_model_at(&pool, "opus", None, &settings_path).await.unwrap();
+
         // 模拟外部修改：把 token 改了
         crate::claude_settings::write_slot_env(
             &settings_path, "opus", "https://a.com", "sk-EXTERNAL", "m"
         ).await.unwrap();
 
         let full = get_slot_bindings_full_at(&pool, &settings_path).await.unwrap();
-        assert!(!full[0].matches.api_key);
+        assert!(!full[0].matches.api_key);  // 当前 slot，应该检测到 api_key drift
         assert!(full[0].matches.model_name);
         assert!(full[0].matches.base_url);
     }
