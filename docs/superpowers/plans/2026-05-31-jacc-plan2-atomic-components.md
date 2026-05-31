@@ -264,7 +264,7 @@ import {
 import { usePreferences } from '@/hooks/usePreferences'
 import { useT } from '@/i18n'
 import { useAppStore } from '@/stores/useAppStore'
-import { ProjectSwitcher } from '../ui/ProjectSwitcher'
+import { ProjectSwitcher } from '@/components/ProjectSwitcher'
 import { sidebar } from './sidebar.variants'
 
 interface NavItem {
@@ -380,7 +380,7 @@ vi.mock('@/stores/useAppStore', () => ({
   }),
 }))
 
-vi.mock('../ui/ProjectSwitcher', () => ({
+vi.mock('@/components/ProjectSwitcher', () => ({
   ProjectSwitcher: () => <div>ProjectSwitcher</div>,
 }))
 
