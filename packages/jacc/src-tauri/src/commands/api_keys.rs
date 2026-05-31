@@ -135,6 +135,27 @@ pub(crate) async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResul
     Ok(())
 }
 
+pub(crate) async fn update_api_key_at(
+    pool: &SqlitePool,
+    id: i64,
+    input: UpdateApiKeyInput,
+    settings_path: &std::path::Path,
+) -> AppResult<()> {
+    update_api_key_inner(pool, id, input).await?;
+    let bindings: Vec<(String, String, String, String)> = sqlx::query_as(
+        "SELECT ms.slot, m.model_name, ak.api_key, p.base_url
+         FROM model_slots ms
+         JOIN models m ON ms.model_id = m.id
+         JOIN api_keys ak ON m.api_key_id = ak.id
+         JOIN providers p ON ak.provider_id = p.id
+         WHERE ak.id = ?"
+    ).bind(id).fetch_all(pool).await?;
+    for (slot, model_name, api_key, base_url) in bindings {
+        crate::claude_settings::write_slot_env(settings_path, &slot, &base_url, &api_key, &model_name).await?;
+    }
+    Ok(())
+}
+
 pub(crate) async fn delete_api_key_at(
     pool: &SqlitePool,
     id: i64,
@@ -198,7 +219,8 @@ pub async fn update_api_key(
     input: UpdateApiKeyInput,
 ) -> AppResult<()> {
     log_command!("update_api_key", {
-        update_api_key_inner(pool.inner(), id, input).await?;
+        let path = crate::claude_settings::global_settings_path();
+        update_api_key_at(pool.inner(), id, input, &path).await?;
         tracing::info!(id, "api_key updated");
         Ok(())
     })
