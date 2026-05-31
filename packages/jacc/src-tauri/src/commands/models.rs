@@ -27,7 +27,7 @@ pub struct UpdateModelInput {
     pub context_size: Option<String>,
 }
 
-pub(crate) async fn add_model_inner(
+pub async fn add_model_inner(
     pool: &SqlitePool,
     input: CreateModelInput,
 ) -> AppResult<Model> {
@@ -57,7 +57,7 @@ pub(crate) async fn list_models_inner(
     Ok(models)
 }
 
-pub(crate) async fn update_model_inner(
+pub async fn update_model_inner(
     pool: &SqlitePool,
     id: i64,
     input: UpdateModelInput,
@@ -89,7 +89,7 @@ pub(crate) async fn update_model_inner(
     Ok(())
 }
 
-pub(crate) async fn delete_model_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
+pub async fn delete_model_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
     sqlx::query("DELETE FROM models WHERE id = ?")
         .bind(id)
         .execute(pool)
@@ -97,7 +97,7 @@ pub(crate) async fn delete_model_inner(pool: &SqlitePool, id: i64) -> AppResult<
     Ok(())
 }
 
-pub(crate) async fn delete_model_at(
+pub async fn delete_model_at(
     pool: &SqlitePool,
     id: i64,
     settings_path: &std::path::Path,

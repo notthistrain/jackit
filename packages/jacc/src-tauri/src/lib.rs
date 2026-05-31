@@ -1,10 +1,10 @@
 #[macro_use]
 mod macros;
 
-mod claude_settings;
-mod commands;
+pub mod claude_settings;
+pub mod commands;
 mod db;
-mod error;
+pub mod error;
 mod logging;
 mod path_guard;
 

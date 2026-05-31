@@ -60,7 +60,7 @@ pub struct UpdateApiKeyInput {
     pub notes: Option<String>,
 }
 
-pub(crate) async fn add_api_key_inner(
+pub async fn add_api_key_inner(
     pool: &SqlitePool,
     input: CreateApiKeyInput,
 ) -> AppResult<ApiKey> {
@@ -91,7 +91,7 @@ pub(crate) async fn list_api_keys_inner(
     Ok(keys.iter().map(ApiKeyView::from_api_key).collect())
 }
 
-pub(crate) async fn update_api_key_inner(
+pub async fn update_api_key_inner(
     pool: &SqlitePool,
     id: i64,
     input: UpdateApiKeyInput,
@@ -127,7 +127,7 @@ pub(crate) async fn update_api_key_inner(
     Ok(())
 }
 
-pub(crate) async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
+pub async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResult<()> {
     sqlx::query("DELETE FROM api_keys WHERE id = ?")
         .bind(id)
         .execute(pool)
@@ -135,7 +135,7 @@ pub(crate) async fn delete_api_key_inner(pool: &SqlitePool, id: i64) -> AppResul
     Ok(())
 }
 
-pub(crate) async fn update_api_key_at(
+pub async fn update_api_key_at(
     pool: &SqlitePool,
     id: i64,
     input: UpdateApiKeyInput,
@@ -156,7 +156,7 @@ pub(crate) async fn update_api_key_at(
     Ok(())
 }
 
-pub(crate) async fn delete_api_key_at(
+pub async fn delete_api_key_at(
     pool: &SqlitePool,
     id: i64,
     settings_path: &std::path::Path,

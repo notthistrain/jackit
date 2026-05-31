@@ -99,7 +99,7 @@ pub(crate) async fn bind_slot_inner(
     })
 }
 
-pub(crate) async fn bind_slot_at(
+pub async fn bind_slot_at(
     pool: &SqlitePool,
     slot: &str,
     model_id: i64,
@@ -158,7 +158,7 @@ pub(crate) async fn unbind_slot_inner(pool: &SqlitePool, slot: &str) -> AppResul
     Ok(())
 }
 
-pub(crate) async fn unbind_slot_at(
+pub async fn unbind_slot_at(
     pool: &SqlitePool,
     slot: &str,
     settings_path: &Path,
@@ -177,7 +177,7 @@ pub(crate) async fn unbind_slot_at(
     Ok(())
 }
 
-pub(crate) async fn set_current_model_at(
+pub async fn set_current_model_at(
     pool: &SqlitePool,
     slot: &str,
     context_size: Option<&str>,
