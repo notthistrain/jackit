@@ -1,4 +1,4 @@
-import { SkillList } from '@/components/SkillList'
+import { SkillList } from '@/features/skills/components/SkillList'
 import { useSkills } from '@/features/skills/hooks/useSkills'
 
 export function Skills() {
