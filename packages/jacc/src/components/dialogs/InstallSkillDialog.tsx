@@ -1,4 +1,4 @@
-import type { SkillInfo } from '@/hooks/useSkills'
+import type { SkillInfo } from '@/features/skills/hooks/useSkills'
 import { useState } from 'react'
 import { useT } from '@/i18n'
 

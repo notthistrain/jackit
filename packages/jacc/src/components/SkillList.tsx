@@ -1,4 +1,4 @@
-import type { SkillInfo } from '@/hooks/useSkills'
+import type { SkillInfo } from '@/features/skills/hooks/useSkills'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Search } from 'lucide-react'
 import { useState } from 'react'
