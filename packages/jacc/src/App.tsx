@@ -1,8 +1,8 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useEffect } from 'react'
-import { Layout } from '@/shared/components/layout/Layout'
-import { ToastProvider } from '@/providers/ToastProvider'
 import { useT } from '@/i18n'
+import { ToastProvider } from '@/providers/ToastProvider'
+import { Layout } from '@/shared/components/layout/Layout'
 import { usePreferences } from '@/shared/hooks/usePreferences'
 import { useAppStore } from '@/stores/useAppStore'
 
