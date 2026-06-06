@@ -20,8 +20,11 @@ export function Layout() {
   const { add, open: openProject } = useProjects()
   const { root, body, main } = layout()
 
+  // 同步当前激活项目到后端 settings watcher（项目变化时切换监听目标）
   useEffect(() => {
-    invoke('set_active_project', { path: currentProject ?? null }).catch(() => {})
+    invoke('set_active_project', { path: currentProject ?? null }).catch(() => {
+      // watcher 非关键路径，失败静默
+    })
   }, [currentProject])
 
   async function handleSelectProject() {
