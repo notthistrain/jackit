@@ -13,16 +13,15 @@ import { TitleBar } from '@/shared/components/layout/TitleBar'
 import { EmptyState } from '@/shared/components/ui/EmptyState'
 import { useProjects } from '@/shared/hooks/useProjects'
 import { useAppStore } from '@/stores/useAppStore'
+import { layout } from './layout.variants'
 
 export function Layout() {
   const { currentPage, currentProject, setProject } = useAppStore()
   const { add, open: openProject } = useProjects()
+  const { root, body, main } = layout()
 
-  // 同步当前激活项目到后端 settings watcher（项目变化时切换监听目标）
   useEffect(() => {
-    invoke('set_active_project', { path: currentProject ?? null }).catch(() => {
-      // watcher 非关键路径，失败静默
-    })
+    invoke('set_active_project', { path: currentProject ?? null }).catch(() => {})
   }, [currentProject])
 
   async function handleSelectProject() {
@@ -60,11 +59,11 @@ export function Layout() {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-background text-foreground overflow-hidden">
+    <div className={root()}>
       <TitleBar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className={body()}>
         <Sidebar />
-        <main className="flex-1 overflow-y-auto relative">{renderPage()}</main>
+        <main className={main()}>{renderPage()}</main>
       </div>
     </div>
   )
