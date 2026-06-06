@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
-import { useToast } from '@/components/toast/ToastProvider'
+import { useToast } from '@/providers/ToastProvider'
 
 export interface Project {
   id: number

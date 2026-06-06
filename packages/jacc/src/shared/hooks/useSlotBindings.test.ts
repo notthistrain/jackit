@@ -16,7 +16,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 
 // Mock toast (stable references to avoid infinite re-renders)
 const mockToast = { success: vi.fn(), error: vi.fn() }
-vi.mock('@/components/toast/ToastProvider', () => ({
+vi.mock('@/providers/ToastProvider', () => ({
   useToast: () => mockToast,
 }))
 

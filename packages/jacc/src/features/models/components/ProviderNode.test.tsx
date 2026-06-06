@@ -23,7 +23,7 @@ vi.mock('@/features/models/hooks/useModels', () => ({
   useModels: () => hooks.modelsResult,
 }))
 
-vi.mock('@/components/toast/ToastProvider', () => ({ useToast: () => hooks.toast }))
+vi.mock('@/providers/ToastProvider', () => ({ useToast: () => hooks.toast }))
 
 const provider: Provider = {
   id: 5,

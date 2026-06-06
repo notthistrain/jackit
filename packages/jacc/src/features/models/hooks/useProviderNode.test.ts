@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-vi.mock('@/components/toast/ToastProvider', () => ({ useToast: () => mocks.toast }))
+vi.mock('@/providers/ToastProvider', () => ({ useToast: () => mocks.toast }))
 
 vi.mock('../api/models-api', () => ({
   apiKeysApi: {

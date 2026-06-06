@@ -1,6 +1,6 @@
 import type { CreateProviderInput, Provider, UpdateProviderInput } from '../api/models-api'
 import { useCallback, useEffect, useState } from 'react'
-import { useToast } from '@/components/toast/ToastProvider'
+import { useToast } from '@/providers/ToastProvider'
 import { providersApi } from '../api/models-api'
 
 export type { CreateProviderInput, Provider, UpdateProviderInput }

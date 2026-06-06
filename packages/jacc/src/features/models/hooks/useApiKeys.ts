@@ -1,6 +1,6 @@
 import type { ApiKeyView, CreateApiKeyInput, UpdateApiKeyInput } from '../api/models-api'
 import { useCallback, useEffect, useState } from 'react'
-import { useToast } from '@/components/toast/ToastProvider'
+import { useToast } from '@/providers/ToastProvider'
 import { apiKeysApi } from '../api/models-api'
 
 export type { ApiKeyView, CreateApiKeyInput, UpdateApiKeyInput }

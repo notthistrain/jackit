@@ -1,6 +1,6 @@
 import type { FlatModel } from '../api/models-api'
 import { useCallback, useEffect, useState } from 'react'
-import { useToast } from '@/components/toast/ToastProvider'
+import { useToast } from '@/providers/ToastProvider'
 import { apiKeysApi, modelsApi, providersApi } from '../api/models-api'
 
 export type { FlatModel }

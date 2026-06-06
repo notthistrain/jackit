@@ -1,6 +1,6 @@
 import type { GithubInstallResult, SkillInfo } from '../api/skills-api'
 import { useCallback, useEffect, useState } from 'react'
-import { useToast } from '@/components/toast/ToastProvider'
+import { useToast } from '@/providers/ToastProvider'
 import { useAppStore } from '@/stores/useAppStore'
 import { skillsApi } from '../api/skills-api'
 
