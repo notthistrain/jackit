@@ -129,7 +129,7 @@ export function ModelSelect({ value, onChange }: ModelSelectProps) {
                 </span>
               </div>
             ))}
-            {filtered.length === 0 && <div className={styles.empty()}>无匹配结果</div>}
+            {filtered.length === 0 && <div className={styles.empty()}>{t('general.slot.noMatch')}</div>}
           </div>
         </div>
       )}

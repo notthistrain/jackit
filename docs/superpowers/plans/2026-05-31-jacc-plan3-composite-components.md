@@ -29,7 +29,9 @@ packages/jacc/src/features/
 │   │   ├── useProviders.ts          # 迁移自 src/hooks/
 │   │   ├── useApiKeys.ts
 │   │   ├── useModels.ts
-│   │   └── useAllModels.ts
+│   │   ├── useModels.test.ts        # 随 hook 一起迁移
+│   │   ├── useAllModels.ts
+│   │   └── useAllModels.test.ts     # 随 hook 一起迁移
 │   └── components/
 │       ├── AddProviderDialog.tsx
 │       ├── add-provider-dialog.variants.ts
@@ -1176,7 +1178,7 @@ export const modelSelect = tv({
 - useAllModels 改从 `../hooks/useAllModels` 导入
 - 搜索过滤、键盘导航（handleKeyDown）、外部点击关闭、打开时聚焦搜索框
 - option 的 highlighted 和 selected 状态用 variants 表达
-- 空结果文案改用 i18n（原代码硬编码"无匹配结果"，改为 `t('general.slot.noMatch')`，若 key 不存在则保留硬编码并标注 DONE_WITH_CONCERNS）
+- 空结果文案改用 i18n：原代码硬编码"无匹配结果"。i18n 为扁平键结构，`general.slot.noMatch` 当前不存在，需在 `zh.json` / `en.json` 的 `general.slot.*` 区域新增（zh: "无匹配结果"，en: "No matches"），然后改用 `t('general.slot.noMatch')`
 
 - [ ] **步骤 3：创建 ModelSelect.test.tsx**
 
@@ -1297,6 +1299,8 @@ export const installSkillDialog = tv({
 - 保留 repoUrl、fetching、available、selected、installing、token、error 状态
 - toggleSkill 逻辑传给 SkillSelectList 的 onToggle
 - fetch 按钮可复用 Button（variant primary，size sm），但因布局耦合（与输入框同行）可保留原生 button 或用 Button + className，自行判断
+
+> **偏差说明（实现确认）：** fetch 按钮（与输入框同行，布局耦合）和 footer 的取消/安装按钮均保留原生 `<button>`。安装按钮使用 `bg-success` 成功配色，而 Button 原子组件仅有 primary/ghost/danger variant，无 success，故保留原生 button 维持配色一致性。这是"对话框完全复用原子组件"决策在此处的合理折扣。
 
 从 `../api/skills-api` 导入 `GithubInstallResult`、`SkillInfo` 类型（不再在组件内重复定义 GithubInstallResult）。
 

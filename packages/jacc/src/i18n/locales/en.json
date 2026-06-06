@@ -22,6 +22,7 @@
   "general.ctxDefault": "Default",
   "general.slot.searchPlaceholder": "Search model / provider...",
   "general.slot.selectModel": "Select model...",
+  "general.slot.noMatch": "No matches",
   "general.slot.current": "Current",
   "general.slot.drift": "Drifted",
   "general.slot.driftTip": "Config differs from actual settings.json",
