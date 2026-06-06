@@ -11,7 +11,7 @@ const mockModels = [
 ]
 const mockRefresh = vi.fn()
 
-vi.mock('@/hooks/useAllModels', () => ({
+vi.mock('@/features/models/hooks/useAllModels', () => ({
   useAllModels: () => ({ models: mockModels, loading: false, refresh: mockRefresh }),
 }))
 

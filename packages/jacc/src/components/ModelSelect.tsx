@@ -1,7 +1,7 @@
-import type { FlatModel } from '@/hooks/useAllModels'
+import type { FlatModel } from '@/features/models/hooks/useAllModels'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useAllModels } from '@/hooks/useAllModels'
+import { useAllModels } from '@/features/models/hooks/useAllModels'
 import { useT } from '@/i18n'
 
 interface ModelSelectProps {

@@ -1,4 +1,4 @@
-import type { CreateModelInput } from '@/hooks/useModels'
+import type { CreateModelInput } from '@/features/models/hooks/useModels'
 import { useEffect, useState } from 'react'
 import { useT } from '@/i18n'
 

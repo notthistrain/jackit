@@ -1,4 +1,4 @@
-import type { CreateApiKeyInput } from '@/hooks/useApiKeys'
+import type { CreateApiKeyInput } from '@/features/models/hooks/useApiKeys'
 import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useT } from '@/i18n'

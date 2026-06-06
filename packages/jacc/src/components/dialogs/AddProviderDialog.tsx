@@ -1,4 +1,4 @@
-import type { CreateProviderInput } from '@/hooks/useProviders'
+import type { CreateProviderInput } from '@/features/models/hooks/useProviders'
 import { useEffect, useState } from 'react'
 import { useT } from '@/i18n'
 
