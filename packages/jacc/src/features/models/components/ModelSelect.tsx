@@ -1,8 +1,9 @@
-import type { FlatModel } from '@/features/models/hooks/useAllModels'
+import type { FlatModel } from '../hooks/useAllModels'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useAllModels } from '@/features/models/hooks/useAllModels'
 import { useT } from '@/i18n'
+import { useAllModels } from '../hooks/useAllModels'
+import { modelSelect } from './model-select.variants'
 
 interface ModelSelectProps {
   value: number | null
@@ -77,19 +78,23 @@ export function ModelSelect({ value, onChange }: ModelSelectProps) {
     }
   }
 
+  const styles = modelSelect()
+
   return (
-    <div className="relative" ref={ref} onKeyDown={handleKeyDown}>
+    <div className={styles.root()} ref={ref} onKeyDown={handleKeyDown}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 px-2 py-1 border border-border rounded-[2px] text-xs bg-sidebar text-foreground hover:bg-sidebar/80"
+        className={styles.trigger()}
       >
-        <span className={selected ? '' : 'text-muted'}>{selected?.modelName || t('general.slot.selectModel')}</span>
-        <ChevronDown size={12} className="text-muted shrink-0" />
+        <span className={selected ? styles.triggerText() : styles.triggerPlaceholder()}>
+          {selected?.modelName || t('general.slot.selectModel')}
+        </span>
+        <ChevronDown size={12} className={styles.triggerIcon()} />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 bg-card border border-border rounded-[4px] shadow-lg z-20 min-w-[280px]">
-          <div className="p-1.5 border-b border-border">
+        <div className={styles.dropdown()}>
+          <div className={styles.searchWrapper()}>
             <input
               ref={searchRef}
               type="text"
@@ -99,23 +104,24 @@ export function ModelSelect({ value, onChange }: ModelSelectProps) {
                 setHighlightedIndex(-1)
               }}
               placeholder={t('general.slot.searchPlaceholder')}
-              className="w-full px-2 py-1 text-xs bg-sidebar border border-border rounded-[2px] text-foreground placeholder:text-muted outline-none"
+              className={styles.search()}
             />
           </div>
-          <div className="max-h-[200px] overflow-y-auto">
+          <div className={styles.list()}>
             {filtered.map((m, i) => (
               <div
                 key={m.modelId}
                 role="option"
                 aria-label={m.modelName}
-                className={`flex items-center justify-between px-2.5 py-1.5 text-xs cursor-pointer ${
-                  highlightedIndex === i ? 'bg-sidebar' : ''
-                } ${m.modelId === value ? 'text-primary font-medium' : 'text-foreground'}`}
+                className={styles.option({
+                  highlighted: highlightedIndex === i,
+                  selected: m.modelId === value,
+                })}
                 onClick={() => handleSelect(m)}
                 onMouseEnter={() => setHighlightedIndex(i)}
               >
                 <span>{m.modelName}</span>
-                <span className="text-[10px] text-muted shrink-0 ml-2">
+                <span className={styles.optionMeta()}>
                   {m.providerName}
                   {' '}
                   ·
@@ -123,7 +129,7 @@ export function ModelSelect({ value, onChange }: ModelSelectProps) {
                 </span>
               </div>
             ))}
-            {filtered.length === 0 && <div className="px-2.5 py-2 text-xs text-muted text-center">无匹配结果</div>}
+            {filtered.length === 0 && <div className={styles.empty()}>无匹配结果</div>}
           </div>
         </div>
       )}

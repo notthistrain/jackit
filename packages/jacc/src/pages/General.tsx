@@ -1,7 +1,7 @@
 import type { Locale } from '@/i18n'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { ModelSelect } from '@/components/ModelSelect'
+import { ModelSelect } from '@/features/models/components/ModelSelect'
 import { useConfig } from '@/hooks/useConfig'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useSlotBindings } from '@/hooks/useSlotBindings'
