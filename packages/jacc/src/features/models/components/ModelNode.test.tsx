@@ -70,6 +70,28 @@ describe('modelNode', () => {
     expect(screen.getByText('confirm.deleteModel.title')).toBeTruthy()
   })
 
+  it('calls onRemove with model id after confirming delete', async () => {
+    const onRemove = vi.fn()
+    render(
+      <ModelNode
+        model={model}
+        onTest={vi.fn()}
+        onEdit={vi.fn()}
+        onRemove={onRemove}
+        testing={null}
+        testResult={null}
+        t={t}
+      />,
+    )
+    await userEvent.click(screen.getByText('models.delete'))
+    expect(screen.getByText('confirm.deleteModel.title')).toBeTruthy()
+    // confirmLabel reuses 'models.delete', so two nodes share the text:
+    // the trigger button and the dialog confirm button. Click the latter.
+    const deleteButtons = screen.getAllByText('models.delete')
+    await userEvent.click(deleteButtons[deleteButtons.length - 1])
+    expect(onRemove).toHaveBeenCalledWith(1)
+  })
+
   it('renders testResult msg when id matches', () => {
     render(
       <ModelNode
