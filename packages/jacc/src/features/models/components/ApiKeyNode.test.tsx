@@ -154,4 +154,32 @@ describe('apiKeyNode', () => {
     await userEvent.click(deleteButtons[deleteButtons.length - 1])
     expect(onRemoveKey).toHaveBeenCalledWith(7)
   })
+
+  it('calls onUpdateKey with api_key=undefined when edit dialog is submitted with empty api_key', async () => {
+    const onUpdateKey = vi.fn().mockResolvedValue(undefined)
+    const { ApiKeyNode } = await import('./ApiKeyNode')
+    render(
+      <ApiKeyNode
+        apiKey={apiKey}
+        onRemoveKey={vi.fn()}
+        onUpdateKey={onUpdateKey}
+        t={t}
+      />,
+    )
+    // Click edit button on header (avoid addBtn / delete)
+    await userEvent.click(screen.getByText('models.edit'))
+    // AddApiKeyDialog opens in edit mode (initialValues provided => editTitle)
+    expect(screen.getByText('apiKeys.dialog.editTitle')).toBeTruthy()
+    // Submit without touching the api_key field (initialValues.api_key is '')
+    // In edit mode the save button is enabled even with empty api_key (only name is required).
+    await userEvent.click(screen.getByText('models.dialog.save'))
+    // Verify '空字符串折叠为 undefined' branch in ApiKeyNode: input.api_key || undefined
+    expect(onUpdateKey).toHaveBeenCalledWith(7, {
+      name: 'My Key',
+      api_key: undefined,
+      notes: 'note',
+    })
+    // Dialog should close after successful submit
+    expect(screen.queryByText('apiKeys.dialog.editTitle')).toBeNull()
+  })
 })
