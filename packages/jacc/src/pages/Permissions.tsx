@@ -24,39 +24,24 @@ export function Permissions() {
     setShowAdd(false)
   }
 
-  const headers = {
-    type: t('permissions.header.type'),
-    tool: t('permissions.header.tool'),
-    pattern: t('permissions.header.pattern'),
-    source: t('permissions.header.source'),
-  }
-
   return (
     <div className="p-6">
       <h2 className="text-base font-medium text-foreground mb-4">{t('permissions.title')}</h2>
 
       <PermissionTable
         kind="allow"
-        title={t('permissions.allow')}
         rules={allowRules}
         scope={scope}
-        emptyText={t('permissions.noAllow')}
-        badgeText="Allow"
-        iconText="✓"
-        headers={headers}
         onDelete={i => remove('allow', i)}
+        t={t}
       />
 
       <PermissionTable
         kind="deny"
-        title={t('permissions.deny')}
         rules={denyRules}
         scope={scope}
-        emptyText={t('permissions.noDeny')}
-        badgeText="Deny"
-        iconText="✗"
-        headers={headers}
         onDelete={i => remove('deny', i)}
+        t={t}
       />
 
       <AddPermissionForm

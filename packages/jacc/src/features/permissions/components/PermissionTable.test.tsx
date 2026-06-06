@@ -8,31 +8,22 @@ vi.mock('@/shared/components/ui/SourceBadge', () => ({
 }))
 
 describe('permissionTable', () => {
-  const headers = {
-    type: 'Type',
-    tool: 'Tool',
-    pattern: 'Pattern',
-    source: 'Source',
-  }
+  const mockT = (key: string) => key
 
   it('renders headers', () => {
     render(
       <PermissionTable
         kind="allow"
-        title="Allow List"
         rules={[]}
         scope="global"
-        emptyText="No rules"
-        badgeText="Allow"
-        iconText="✓"
-        headers={headers}
         onDelete={vi.fn()}
+        t={mockT}
       />,
     )
-    expect(screen.getByText('Type')).toBeTruthy()
-    expect(screen.getByText('Tool')).toBeTruthy()
-    expect(screen.getByText('Pattern')).toBeTruthy()
-    expect(screen.getByText('Source')).toBeTruthy()
+    expect(screen.getByText('permissions.header.type')).toBeTruthy()
+    expect(screen.getByText('permissions.header.tool')).toBeTruthy()
+    expect(screen.getByText('permissions.header.pattern')).toBeTruthy()
+    expect(screen.getByText('permissions.header.source')).toBeTruthy()
   })
 
   it('renders rules with tool, pattern, and badge', () => {
@@ -43,14 +34,10 @@ describe('permissionTable', () => {
     render(
       <PermissionTable
         kind="allow"
-        title="Allow List"
         rules={rules}
         scope="project"
-        emptyText="No rules"
-        badgeText="Allow"
-        iconText="✓"
-        headers={headers}
         onDelete={vi.fn()}
+        t={mockT}
       />,
     )
     expect(screen.getByText('Bash')).toBeTruthy()
@@ -64,17 +51,13 @@ describe('permissionTable', () => {
     render(
       <PermissionTable
         kind="deny"
-        title="Deny List"
         rules={[]}
         scope="global"
-        emptyText="No deny rules"
-        badgeText="Deny"
-        iconText="✗"
-        headers={headers}
         onDelete={vi.fn()}
+        t={mockT}
       />,
     )
-    expect(screen.getByText('No deny rules')).toBeTruthy()
+    expect(screen.getByText('permissions.noDeny')).toBeTruthy()
   })
 
   it('calls onDelete with correct index when delete button clicked', async () => {
@@ -87,14 +70,10 @@ describe('permissionTable', () => {
     render(
       <PermissionTable
         kind="deny"
-        title="Deny List"
         rules={rules}
         scope="global"
-        emptyText="No rules"
-        badgeText="Deny"
-        iconText="✗"
-        headers={headers}
         onDelete={onDelete}
+        t={mockT}
       />,
     )
     const deleteButtons = screen.getAllByRole('button', { name: '×' })
@@ -106,14 +85,10 @@ describe('permissionTable', () => {
     const { container } = render(
       <PermissionTable
         kind="allow"
-        title="Allow List"
         rules={[{ tool: 'Bash', pattern: 'ls' }]}
         scope="global"
-        emptyText="No rules"
-        badgeText="Allow"
-        iconText="✓"
-        headers={headers}
         onDelete={vi.fn()}
+        t={mockT}
       />,
     )
     const titleElement = container.querySelector('.text-success')
@@ -126,14 +101,10 @@ describe('permissionTable', () => {
     const { container } = render(
       <PermissionTable
         kind="deny"
-        title="Deny List"
         rules={[{ tool: 'Bash', pattern: 'rm' }]}
         scope="global"
-        emptyText="No rules"
-        badgeText="Deny"
-        iconText="✗"
-        headers={headers}
         onDelete={vi.fn()}
+        t={mockT}
       />,
     )
     const titleElement = container.querySelector('.text-danger')
@@ -146,14 +117,10 @@ describe('permissionTable', () => {
     render(
       <PermissionTable
         kind="allow"
-        title="Allow List"
         rules={[{ tool: 'Bash', pattern: 'ls' }]}
         scope="project"
-        emptyText="No rules"
-        badgeText="Allow"
-        iconText="✓"
-        headers={headers}
         onDelete={vi.fn()}
+        t={mockT}
       />,
     )
     expect(screen.getByTestId('source-badge').textContent).toBe('project')

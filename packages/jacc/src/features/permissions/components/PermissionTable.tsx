@@ -4,28 +4,31 @@ import { permissionTableVariants } from './permission-table.variants'
 
 export interface PermissionTableProps {
   kind: 'allow' | 'deny'
-  title: string
   rules: PermissionRule[]
   scope: 'global' | 'project'
-  emptyText: string
-  badgeText: string
-  iconText: string
-  headers: { type: string, tool: string, pattern: string, source: string }
   onDelete: (index: number) => void
+  t: (key: string, params?: Record<string, string>) => string
 }
 
 export function PermissionTable({
   kind,
-  title,
   rules,
   scope,
-  emptyText,
-  badgeText,
-  iconText,
-  headers,
   onDelete,
+  t,
 }: PermissionTableProps) {
   const styles = permissionTableVariants({ kind })
+
+  const title = kind === 'allow' ? t('permissions.allow') : t('permissions.deny')
+  const emptyText = kind === 'allow' ? t('permissions.noAllow') : t('permissions.noDeny')
+  const badgeText = kind === 'allow' ? 'Allow' : 'Deny'
+  const iconText = kind === 'allow' ? '✓' : '✗'
+  const headers = {
+    type: t('permissions.header.type'),
+    tool: t('permissions.header.tool'),
+    pattern: t('permissions.header.pattern'),
+    source: t('permissions.header.source'),
+  }
 
   return (
     <div className={styles.root()}>
