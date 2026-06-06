@@ -38,4 +38,22 @@ describe('input', () => {
     const input = screen.getByRole('textbox')
     expect(input.className).toContain('border-danger')
   })
+
+  it('renders password toggle when togglePassword is true', () => {
+    const { container } = render(
+      <Input value="secret" onChange={vi.fn()} type="password" togglePassword />,
+    )
+    const button = container.querySelector('button')
+    expect(button).toBeTruthy()
+  })
+
+  it('toggles password visibility when toggle clicked', async () => {
+    const { container } = render(
+      <Input value="secret" onChange={vi.fn()} type="password" togglePassword />,
+    )
+    const inputEl = container.querySelector('input')!
+    expect(inputEl.getAttribute('type')).toBe('password')
+    await userEvent.click(container.querySelector('button')!)
+    expect(inputEl.getAttribute('type')).toBe('text')
+  })
 })
