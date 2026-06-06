@@ -6,7 +6,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: vi.fn(),
 }))
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/shared/hooks/useProjects', () => ({
   useProjects: () => ({
     projects: [],
     add: vi.fn(),

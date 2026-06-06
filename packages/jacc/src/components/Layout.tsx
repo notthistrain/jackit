@@ -1,7 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useEffect } from 'react'
-import { useProjects } from '@/hooks/useProjects'
 import { Agents } from '@/pages/Agents'
 import { EnvVars } from '@/pages/EnvVars'
 import { General } from '@/pages/General'
@@ -12,6 +11,7 @@ import { Skills } from '@/pages/Skills'
 import { Sidebar } from '@/shared/components/layout/Sidebar'
 import { TitleBar } from '@/shared/components/layout/TitleBar'
 import { EmptyState } from '@/shared/components/ui/EmptyState'
+import { useProjects } from '@/shared/hooks/useProjects'
 import { useAppStore } from '@/stores/useAppStore'
 
 export function Layout() {

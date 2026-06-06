@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useConfig } from '@/hooks/useConfig'
 import { useT } from '@/i18n'
 import { Fab } from '@/shared/components/ui/Fab'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
+import { useConfig } from '@/shared/hooks/useConfig'
 
 interface PermissionRule {
   tool: string

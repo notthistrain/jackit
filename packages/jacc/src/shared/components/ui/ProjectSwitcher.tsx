@@ -1,9 +1,9 @@
-import type { Project } from '@/hooks/useProjects'
+import type { Project } from '@/shared/hooks/useProjects'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ChevronDown, FolderOpen, Pin } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useProjects } from '@/hooks/useProjects'
 import { useT } from '@/i18n'
+import { useProjects } from '@/shared/hooks/useProjects'
 import { useAppStore } from '@/stores/useAppStore'
 import { projectSwitcher } from './project-switcher.variants'
 

@@ -10,9 +10,9 @@ import {
   Shield,
   Sun,
 } from 'lucide-react'
-import { usePreferences } from '@/hooks/usePreferences'
 import { useT } from '@/i18n'
 import { ProjectSwitcher } from '@/shared/components/ui/ProjectSwitcher'
+import { usePreferences } from '@/shared/hooks/usePreferences'
 import { useAppStore } from '@/stores/useAppStore'
 import { sidebar } from './sidebar.variants'
 
