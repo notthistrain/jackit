@@ -6,7 +6,7 @@ import { Layout } from '@/shared/components/layout/Layout'
 import { usePreferences } from '@/shared/hooks/usePreferences'
 import { useAppStore } from '@/stores/useAppStore'
 
-export default function App() {
+export function App() {
   const { theme, setTheme } = useAppStore()
   const { get } = usePreferences()
   const { setLocale } = useT()
