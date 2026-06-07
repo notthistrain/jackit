@@ -5,7 +5,7 @@ import { useT } from '@/i18n'
 import { useAllModels } from '../hooks/useAllModels'
 import { modelSelect } from './model-select.variants'
 
-interface ModelSelectProps {
+export interface ModelSelectProps {
   value: number | null
   onChange: (modelId: number) => void
 }

@@ -10,7 +10,7 @@ import { SkillListItem } from './SkillListItem'
 
 type Tab = 'enabled' | 'disabled'
 
-interface SkillListProps {
+export interface SkillListProps {
   skills: SkillInfo[]
   loading: boolean
   onToggle: (name: string, enabled: boolean) => Promise<void>
