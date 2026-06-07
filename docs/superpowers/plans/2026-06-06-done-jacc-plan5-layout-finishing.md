@@ -597,3 +597,66 @@ git mv docs/superpowers/plans/2026-06-06-jacc-plan5-layout-finishing.md \
        docs/superpowers/plans/2026-06-06-done-jacc-plan5-layout-finishing.md
 git commit -m "docs(jacc): 标记 Plan5 完成（布局组件层 + 收尾）"
 ```
+
+---
+
+## Plan 整体收尾验证（审计补全后）
+
+> 由 `2026-06-07-done-jacc-plan5-audit-remediation.md` 任务 A1-A7 完成。
+
+对照 `2026-05-31-jacc-frontend-refactor-design.md` 全局验证标准（每批次都要满足）：
+
+- [x] 所有组件都有对应的 `.variants.ts` 文件
+- [x] 所有组件使用命名导出（A2 修正 App 由 default → named）
+- [x] 所有 Props 接口已导出（A3 修正 ModelSelect / SkillList）
+- [x] 组件文件 < 300 行，JSX < 50 行（A5 拆分 General 为 SlotRow / ToggleRow / SelectRow，General.tsx 由 260 行降至 117 行）
+- [x] 测试覆盖率 > 80%（A1 接入 @vitest/coverage-v8）
+- [x] 无 TypeScript 错误
+- [x] 无 ESLint 警告
+- [x] 应用正常运行，无功能回退
+
+批次 5 测试章节：
+
+- [x] 端到端测试（完整用户流程）— `App.e2e.test.tsx` 集成级 mockIPC 流程（A6）
+- [x] Toast 通知显示 — `ToastProvider.test.tsx`（任务 5.1）
+- [x] 主题切换 — `App.test.tsx` + `useAppStore.test.ts`（A2）
+
+features/ 模块化：
+
+- [x] 6 个模块各有 `index.ts` 公共出口（A4，外加 general 模块共 7 个 barrel）
+- [x] agents 模块结构占位（components/hooks/api 三子目录 + barrel），实现待后续批次
+
+最终统计：
+
+| 指标 | 值 |
+|---|---|
+| 测试文件数 | 49 |
+| 测试用例数 | 267 |
+| 总行覆盖率 | 81.56% |
+| 总语句覆盖率 | 81.56% |
+| 总分支覆盖率 | 87.32% |
+| 总函数覆盖率 | 75.5% |
+
+components 各目录行覆盖率：
+
+| 目录 | 覆盖率 |
+|---|---|
+| features/general/components | 100% |
+| features/models/components | 95.2% |
+| features/skills/components | 87.13% |
+| features/mcp-servers/components | 100% |
+| features/permissions/components | 100% |
+| features/env-vars/components | 100% |
+| shared/components/ui | 82.22% |
+| shared/components/layout | 90.36% |
+| providers | 100% |
+
+5 项核心目标最终达成度：
+
+| 目标 | 状态 |
+|---|---|
+| 1. 完全对齐 jackcom 的 tailwind-variants 架构 | ✅ |
+| 2. features/ 模块化 | ✅ |
+| 3. API 层 + Hook 层分离 | ✅ |
+| 4. React 19 最佳实践 | ✅ |
+| 5. 测试覆盖率 > 80%（组件） | ✅ |
