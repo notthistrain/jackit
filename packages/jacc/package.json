@@ -10,6 +10,7 @@
     "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -33,6 +34,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "@vitest/coverage-v8": "^3.2.4",
     "jsdom": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
