@@ -1,0 +1,185 @@
+import { invoke } from '@tauri-apps/api/core'
+import { act, renderHook, waitFor } from '@testing-library/react'
+
+import { vi } from 'vitest'
+import { useApiKeys } from './useApiKeys'
+import { useModels } from './useModels'
+import { useProviders } from './useProviders'
+
+// Mock Tauri invoke
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}))
+
+// Mock toast (stable references to avoid infinite re-renders)
+const mockToast = { success: vi.fn(), error: vi.fn() }
+vi.mock('@/providers/ToastProvider', () => ({
+  useToast: () => mockToast,
+}))
+
+// -- useProviders tests --
+
+describe('useProviders', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('mounts and calls list_providers', async () => {
+    const mockProviders = [
+      { id: 1, name: 'Anthropic', base_url: 'https://api.anthropic.com', notes: null, created_at: '', updated_at: '' },
+    ]
+    vi.mocked(invoke).mockResolvedValueOnce(mockProviders)
+
+    const { result } = renderHook(() => useProviders())
+
+    await waitFor(() => {
+      expect(result.current.providers).toEqual(mockProviders)
+    })
+    expect(invoke).toHaveBeenCalledWith('list_providers')
+  })
+
+  it('.add() calls add_provider then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial list
+      .mockResolvedValueOnce({
+        id: 1,
+        name: 'New',
+        base_url: 'https://new.com',
+        notes: null,
+        created_at: '',
+        updated_at: '',
+      }) // add
+      .mockResolvedValueOnce([
+        { id: 1, name: 'New', base_url: 'https://new.com', notes: null, created_at: '', updated_at: '' },
+      ]) // refresh
+
+    const { result } = renderHook(() => useProviders())
+    await waitFor(() => expect(result.current.providers).toEqual([]))
+
+    await act(async () => {
+      await result.current.add({ name: 'New', base_url: 'https://new.com', notes: null })
+    })
+
+    expect(invoke).toHaveBeenCalledWith('add_provider', {
+      input: { name: 'New', base_url: 'https://new.com', notes: null },
+    })
+  })
+
+  it('.remove() calls delete_provider then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial list
+      .mockResolvedValueOnce(undefined) // delete
+      .mockResolvedValueOnce([]) // refresh
+
+    const { result } = renderHook(() => useProviders())
+    await waitFor(() => expect(result.current.providers).toEqual([]))
+
+    await act(async () => {
+      await result.current.remove(1)
+    })
+
+    expect(invoke).toHaveBeenCalledWith('delete_provider', { id: 1 })
+  })
+})
+
+// -- useApiKeys tests --
+
+describe('useApiKeys', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('calls list_api_keys with provider_id on mount', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce([
+      {
+        id: 1,
+        provider_id: 10,
+        name: 'Main',
+        api_key_masked: 'sk-ant-1***',
+        notes: null,
+        created_at: '',
+        updated_at: '',
+      },
+    ])
+
+    const { result } = renderHook(() => useApiKeys(10))
+
+    await waitFor(() => {
+      expect(result.current.apiKeys).toHaveLength(1)
+    })
+    expect(invoke).toHaveBeenCalledWith('list_api_keys', { providerId: 10 })
+  })
+
+  it('.add() calls add_api_key then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial
+      .mockResolvedValueOnce(undefined) // add
+      .mockResolvedValueOnce([]) // refresh
+
+    const { result } = renderHook(() => useApiKeys(10))
+    await waitFor(() => expect(result.current.apiKeys).toEqual([]))
+
+    await act(async () => {
+      await result.current.add({ provider_id: 10, name: 'Key', api_key: 'sk-test', notes: null })
+    })
+
+    expect(invoke).toHaveBeenCalledWith('add_api_key', {
+      input: { provider_id: 10, name: 'Key', api_key: 'sk-test', notes: null },
+    })
+  })
+})
+
+// -- useModels tests --
+
+describe('useModels', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('calls list_models with api_key_id on mount', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce([
+      { id: 1, api_key_id: 5, model_name: 'claude-opus-4-6', context_size: '200k', created_at: '', updated_at: '' },
+    ])
+
+    const { result } = renderHook(() => useModels(5))
+
+    await waitFor(() => {
+      expect(result.current.models).toHaveLength(1)
+    })
+    expect(invoke).toHaveBeenCalledWith('list_models', { apiKeyId: 5 })
+  })
+
+  it('.add() calls add_model then refreshes', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial
+      .mockResolvedValueOnce(undefined) // add
+      .mockResolvedValueOnce([]) // refresh
+
+    const { result } = renderHook(() => useModels(5))
+    await waitFor(() => expect(result.current.models).toEqual([]))
+
+    await act(async () => {
+      await result.current.add({ api_key_id: 5, model_name: 'test', context_size: null })
+    })
+
+    expect(invoke).toHaveBeenCalledWith('add_model', {
+      input: { api_key_id: 5, model_name: 'test', context_size: null },
+    })
+  })
+
+  it('.test() calls test_model and returns result', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([]) // initial list
+      .mockResolvedValueOnce('CONNECTION_SUCCESS')
+
+    const { result } = renderHook(() => useModels(5))
+    await waitFor(() => expect(result.current.models).toEqual([]))
+
+    let res: string = ''
+    await act(async () => {
+      res = await result.current.test(1)
+    })
+    expect(res).toBe('CONNECTION_SUCCESS')
+    expect(invoke).toHaveBeenCalledWith('test_model', { id: 1 })
+  })
+})

@@ -16,6 +16,19 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['**/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['**/*.{ts,tsx}'],
+      exclude: [
+        '**/*.test.{ts,tsx}',
+        '**/*.e2e.test.{ts,tsx}',
+        'main.tsx',
+        'i18n/**',
+        'styles/**',
+        '**/*.variants.ts',
+      ],
+    },
   },
 
   build: {

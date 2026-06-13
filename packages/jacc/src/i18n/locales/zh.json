@@ -22,6 +22,7 @@
   "general.ctxDefault": "默认",
   "general.slot.searchPlaceholder": "搜索模型名 / 服务商...",
   "general.slot.selectModel": "选择模型...",
+  "general.slot.noMatch": "无匹配结果",
   "general.slot.current": "当前",
   "general.slot.drift": "已偏离",
   "general.slot.driftTip": "配置与 settings.json 实际值不一致",

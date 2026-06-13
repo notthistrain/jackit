@@ -1,5 +1,5 @@
-import { SkillList } from '@/components/SkillList'
-import { useSkills } from '@/hooks/useSkills'
+import { SkillList } from '@/features/skills/components/SkillList'
+import { useSkills } from '@/features/skills/hooks/useSkills'
 
 export function Skills() {
   const { skills, loading, toggle, importSkill, installFromGithub, confirmInstall } = useSkills()
