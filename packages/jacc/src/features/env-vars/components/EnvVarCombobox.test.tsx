@@ -1,7 +1,8 @@
+import type { EnvVarMeta } from '../api/env-catalog'
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
 
+import { describe, expect, it, vi } from 'vitest'
 import { EnvVarCombobox } from './EnvVarCombobox'
 
 vi.mock('@/i18n', () => ({
@@ -68,6 +69,20 @@ describe('envVarCombobox', () => {
     await user.type(screen.getByRole('textbox'), 'API_KEY')
     await user.click(screen.getByText('ANTHROPIC_API_KEY'))
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ name: 'ANTHROPIC_API_KEY', sensitive: true }))
+  })
+
+  it('reflects the selected value back into the input (parent re-passes value)', async () => {
+    const user = userEvent.setup()
+    let value = ''
+    const onSelect = (m: EnvVarMeta) => {
+      value = m.name
+    }
+    const { rerender } = render(<EnvVarCombobox value={value} onSelect={onSelect} />)
+    await user.click(screen.getByRole('textbox'))
+    await user.click(screen.getByText('ANTHROPIC_API_KEY'))
+    // 父组件把选中的 name 作为 value 回填
+    rerender(<EnvVarCombobox value={value} onSelect={onSelect} />)
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('ANTHROPIC_API_KEY')
   })
 
   it('allows custom value not in catalog', async () => {

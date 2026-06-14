@@ -1,5 +1,5 @@
 import type { EnvGroup, EnvVarMeta } from '../api/env-catalog'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useT } from '@/i18n'
 import { searchCatalog } from '../api/env-catalog'
 import { envVarCombobox } from './env-var-combobox.variants'
@@ -18,6 +18,11 @@ export function EnvVarCombobox({ value, onSelect, existingKeys }: EnvVarCombobox
   const { t } = useT()
   const [query, setQuery] = useState(value)
   const [open, setOpen] = useState(false)
+  // 选中后父组件会把选中名作为 value 回填，需把 query 同步过去，
+  // 否则输入框停留在旧的搜索文本/空值，看起来像没选中。
+  useEffect(() => {
+    setQuery(value)
+  }, [value])
   const { root, input, dropdown, groupTitle, optionName, optionHint, custom } = envVarCombobox()
 
   // 去重：已设置的变量不出现在下拉项
