@@ -107,7 +107,9 @@ export function General() {
           </div>
           {configScope === 'project' && (
             <div className="mt-2.5 text-[11px] text-muted-foreground">
-              🧠 {t('general.slotProjectHint')}
+              🧠
+              {' '}
+              {t('general.slotProjectHint')}
             </div>
           )}
         </div>

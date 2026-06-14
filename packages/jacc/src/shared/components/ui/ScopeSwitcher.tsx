@@ -1,5 +1,5 @@
-import { useT } from '@/i18n'
 import type { ConfigScope } from '@/stores/useAppStore'
+import { useT } from '@/i18n'
 import { scopeSwitcher } from './scope-switcher.variants'
 
 export interface ScopeSwitcherProps {

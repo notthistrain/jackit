@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { ScopeSwitcher } from './ScopeSwitcher'
+
 vi.mock('@/i18n', () => ({
   useT: () => ({ t: (key: string) => key }),
 }))
-
-import { ScopeSwitcher } from './ScopeSwitcher'
 
 describe('scopeSwitcher', () => {
   it('renders both options with a scope label', () => {

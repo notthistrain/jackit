@@ -25,7 +25,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 interface ConfigItem {
   key: string
   value: unknown
-  scope: 'global' | 'project'
+  origin: 'global' | 'shared' | 'local'
 }
 
 let mockConfig: { items: ConfigItem[] } = { items: [] }
@@ -40,7 +40,10 @@ function setupMockIPC() {
         return null
       case 'read_merged_config':
         return mockConfig
+      case 'read_config_layer':
+        return mockConfig
       case 'write_config': {
+        const origin = payload.scope === 'project' ? 'shared' : 'global'
         writeConfigCalls.push({
           key: payload.key,
           value: payload.value,
@@ -51,17 +54,17 @@ function setupMockIPC() {
           mockConfig.items[idx] = {
             ...mockConfig.items[idx],
             value: payload.value,
-            scope: payload.scope,
+            origin,
           }
         }
         else {
           mockConfig.items.push({
             key: payload.key,
             value: payload.value,
-            scope: payload.scope,
+            origin,
           })
         }
-        return null
+        return { wrote_local: false, gitignore_updated: false }
       }
       case 'delete_config':
         return null
@@ -90,6 +93,7 @@ beforeEach(() => {
   useAppStore.setState({
     currentPage: 'general',
     currentProject: null,
+    configScope: 'global',
     theme: 'system',
   })
   mockConfig = { items: [] }

@@ -50,22 +50,35 @@ export function useConfig() {
   const writeConfig = useCallback(
     async (key: string, value: unknown, sensitive: boolean) => {
       const res = await invoke<WriteConfigResult>('write_config', {
-        scope: configScope, projectPath: currentProject, key, value, sensitive,
+        scope: configScope,
+        projectPath: currentProject,
+        key,
+        value,
+        sensitive,
       })
       if (res.wrote_local)
         success(t('config.wroteLocal'))
       await refresh()
-    }, [configScope, currentProject, refresh, success, t])
+    },
+    [configScope, currentProject, refresh, success, t],
+  )
 
   const deleteConfig = useCallback(
     async (key: string, origin: ConfigOrigin) => {
       await invoke('delete_config', {
-        scope: configScope, projectPath: currentProject, key, origin,
+        scope: configScope,
+        projectPath: currentProject,
+        key,
+        origin,
       })
       await refresh()
-    }, [configScope, currentProject, refresh])
+    },
+    [configScope, currentProject, refresh],
+  )
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return { config, loading, needsProject, refresh, writeConfig, deleteConfig }
 }

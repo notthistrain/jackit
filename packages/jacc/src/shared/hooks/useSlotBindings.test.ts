@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor, act } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
@@ -41,9 +41,14 @@ describe('useSlotBindings scope', () => {
     mocks.store.currentProject = '/proj'
     const { useSlotBindings } = await import('./useSlotBindings')
     const { result } = renderHook(() => useSlotBindings())
-    await act(async () => { await result.current.bind('opus', 7) })
+    await act(async () => {
+      await result.current.bind('opus', 7)
+    })
     expect(mocks.invoke).toHaveBeenCalledWith('bind_slot', {
-      slot: 'opus', modelId: 7, scope: 'project', projectPath: '/proj',
+      slot: 'opus',
+      modelId: 7,
+      scope: 'project',
+      projectPath: '/proj',
     })
   })
 })

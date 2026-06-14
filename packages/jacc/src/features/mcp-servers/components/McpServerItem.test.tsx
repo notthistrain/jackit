@@ -23,7 +23,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={false}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={vi.fn()}
         onDelete={vi.fn()}
@@ -43,7 +44,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={false}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={onToggle}
         onSave={vi.fn()}
         onDelete={vi.fn()}
@@ -60,7 +62,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={true}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={vi.fn()}
         onDelete={vi.fn()}
@@ -81,7 +84,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={true}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={onSave}
         onDelete={vi.fn()}
@@ -102,7 +106,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={true}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={onSave}
         onDelete={vi.fn()}
@@ -123,7 +128,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={true}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={onSave}
         onDelete={vi.fn()}
@@ -143,7 +149,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={true}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={onSave}
         onDelete={vi.fn()}
@@ -167,7 +174,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={true}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={vi.fn()}
         onDelete={onDelete}
@@ -184,7 +192,8 @@ describe('mcpServerItem', () => {
         name="test-server"
         server={server}
         expanded={true}
-        scope="global"
+        origin="global"
+        showSource
         onToggle={vi.fn()}
         onSave={vi.fn()}
         onDelete={vi.fn()}

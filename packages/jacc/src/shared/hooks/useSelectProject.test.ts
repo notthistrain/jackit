@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   open: vi.fn(),
@@ -26,7 +26,9 @@ describe('useSelectProject', () => {
     mocks.open.mockResolvedValue('/picked/proj')
     const { useSelectProject } = await import('./useSelectProject')
     const { result } = renderHook(() => useSelectProject())
-    await act(async () => { await result.current() })
+    await act(async () => {
+      await result.current()
+    })
     expect(mocks.add).toHaveBeenCalledWith('/picked/proj')
     expect(mocks.openProject).toHaveBeenCalledWith('/picked/proj')
     expect(mocks.setProject).toHaveBeenCalledWith('/picked/proj')
@@ -36,7 +38,9 @@ describe('useSelectProject', () => {
     mocks.open.mockResolvedValue(null)
     const { useSelectProject } = await import('./useSelectProject')
     const { result } = renderHook(() => useSelectProject())
-    await act(async () => { await result.current() })
+    await act(async () => {
+      await result.current()
+    })
     expect(mocks.setProject).not.toHaveBeenCalled()
   })
 })

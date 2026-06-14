@@ -49,7 +49,8 @@ export function useSlotBindings() {
     setLoading(true)
     try {
       const list = await invoke<SlotBindingFull[]>('get_slot_bindings', {
-        scope: configScope, projectPath: currentProject,
+        scope: configScope,
+        projectPath: currentProject,
       })
       setBindings(list)
     }
@@ -93,7 +94,10 @@ export function useSlotBindings() {
     async (slot: string, contextSize: string | null) => {
       try {
         await invoke('set_current_model', {
-          slot, contextSize, scope: configScope, projectPath: currentProject,
+          slot,
+          contextSize,
+          scope: configScope,
+          projectPath: currentProject,
         })
       }
       catch (e) {

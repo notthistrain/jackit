@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor, act } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
@@ -49,9 +49,15 @@ describe('useConfig', () => {
     )
     const { useConfig } = await import('./useConfig')
     const { result } = renderHook(() => useConfig())
-    await act(async () => { await result.current.writeConfig('ANTHROPIC_AUTH_TOKEN', 'sk-x', true) })
+    await act(async () => {
+      await result.current.writeConfig('ANTHROPIC_AUTH_TOKEN', 'sk-x', true)
+    })
     expect(mocks.invoke).toHaveBeenCalledWith('write_config', {
-      scope: 'project', projectPath: '/proj', key: 'ANTHROPIC_AUTH_TOKEN', value: 'sk-x', sensitive: true,
+      scope: 'project',
+      projectPath: '/proj',
+      key: 'ANTHROPIC_AUTH_TOKEN',
+      value: 'sk-x',
+      sensitive: true,
     })
     expect(mocks.success).toHaveBeenCalled()
   })
