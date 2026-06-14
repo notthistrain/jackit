@@ -5,6 +5,15 @@ import { extractMcpServers, removeServer, upsertServer } from '../api/mcp-server
 
 export type { McpServer }
 
+// 支持 "带空格" / '带空格' 引号参数与多余空白；优于朴素 split(' ')
+function parseArgs(input: string): string[] {
+  const re = /"[^"]*"|'[^']*'|\S+/g
+  const out: string[] = []
+  for (let m = re.exec(input); m !== null; m = re.exec(input))
+    out.push(m[0].replace(/^["']|["']$/g, ''))
+  return out
+}
+
 export function useMcpServers() {
   const { config, writeConfig } = useConfig()
   const { servers, origin } = extractMcpServers(config)
@@ -20,7 +29,7 @@ export function useMcpServers() {
   const add = useCallback(async (name: string, command: string, argsString: string) => {
     const server: McpServer = {
       command,
-      args: argsString ? argsString.split(' ') : undefined,
+      args: argsString ? parseArgs(argsString) : undefined,
     }
     await writeConfig('mcpServers', upsertServer(servers, name, server), false)
   }, [servers, writeConfig])

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT } from '@/i18n'
 import { useToast } from '@/providers/ToastProvider'
 import { useAppStore } from '@/stores/useAppStore'
@@ -27,6 +27,8 @@ export function useConfig() {
   const [loading, setLoading] = useState(false)
   const { success, error } = useToast()
   const { t } = useT()
+  // stale guard：快速切换 scope/project 时只采纳最后一次读取，避免乱序覆盖
+  const reqId = useRef(0)
 
   const needsProject = configScope === 'project' && !currentProject
 
@@ -35,16 +37,25 @@ export function useConfig() {
       setConfig({ items: [] })
       return
     }
+    const id = ++reqId.current
     setLoading(true)
     try {
       const result = await invoke<LayerConfig>('read_config_layer', {
         scope: configScope,
         projectPath: currentProject,
       })
+      if (id !== reqId.current)
+        return
       setConfig(result)
     }
-    catch (e) { error(String(e)) }
-    finally { setLoading(false) }
+    catch (e) {
+      if (id === reqId.current)
+        error(String(e))
+    }
+    finally {
+      if (id === reqId.current)
+        setLoading(false)
+    }
   }, [configScope, currentProject, needsProject, error])
 
   const writeConfig = useCallback(

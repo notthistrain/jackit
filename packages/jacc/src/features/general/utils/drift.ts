@@ -22,5 +22,5 @@ export function buildDriftItems(binding: SlotBindingFull, t: TFn): string[] {
 
 function formatItem(label: string, actual: string | null, t: TFn): string {
   const value = actual ?? t('general.slot.driftEmpty')
-  return `${label}（${t('general.slot.driftActual', { value })}）`
+  return `${label} (${t('general.slot.driftActual', { value })})`
 }

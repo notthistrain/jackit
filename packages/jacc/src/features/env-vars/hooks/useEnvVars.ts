@@ -1,6 +1,6 @@
 import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import { invoke } from '@tauri-apps/api/core'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT } from '@/i18n'
 import { useToast } from '@/providers/ToastProvider'
 import { useAppStore } from '@/stores/useAppStore'
@@ -18,6 +18,8 @@ export function useEnvVars() {
   const [entries, setEntries] = useState<EnvEntry[]>([])
   const { success, error } = useToast()
   const { t } = useT()
+  // stale guard：快速切换 scope/project 时只采纳最后一次读取
+  const reqId = useRef(0)
   const needsProject = configScope === 'project' && !currentProject
 
   const refresh = useCallback(async () => {
@@ -25,11 +27,16 @@ export function useEnvVars() {
       setEntries([])
       return
     }
+    const id = ++reqId.current
     try {
       const layer = await invoke<EnvLayer>('read_env_layer', { scope: configScope, projectPath: currentProject })
-      setEntries(layer.vars.map(v => ({ ...v, value: String(v.value) })))
+      if (id === reqId.current)
+        setEntries(layer.vars.map(v => ({ ...v, value: String(v.value) })))
     }
-    catch (e) { error(String(e)) }
+    catch (e) {
+      if (id === reqId.current)
+        error(String(e))
+    }
   }, [configScope, currentProject, needsProject, error])
 
   const setVar = useCallback(async (key: string, value: string) => {

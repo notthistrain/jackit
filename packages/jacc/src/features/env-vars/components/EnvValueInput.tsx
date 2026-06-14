@@ -7,11 +7,13 @@ export interface EnvValueInputProps {
   default?: string
   unit?: string
   onChange: (value: string) => void
+  t: (key: string, params?: Record<string, string>) => string
   className?: string
 }
 
-export function EnvValueInput({ type, value, enumValues, default: def, unit, onChange }: EnvValueInputProps) {
-  const on = value === '1'
+export function EnvValueInput({ type, value, enumValues, default: def, unit, onChange, t }: EnvValueInputProps) {
+  // 兼容历史值：字面 '1'/'true' 或 JSON boolean true 均视为开；写入统一归一为 '0'/'1'
+  const on = value === '1' || value === 'true'
   const { text, select, toggle, toggleLabel, knob } = envValueInput({ on })
 
   if (type === 'boolean') {
@@ -21,8 +23,8 @@ export function EnvValueInput({ type, value, enumValues, default: def, unit, onC
           <span className={knob()} />
         </button>
         <span className={toggleLabel()}>
-          {on ? '已开启(1)' : '已关闭(0)'}
-          {def ? ` · 默认 ${def}` : ''}
+          {t(on ? 'envvars.value.on' : 'envvars.value.off')}
+          {def ? ` · ${t('envvars.value.default')} ${def}` : ''}
         </span>
       </div>
     )
@@ -36,12 +38,13 @@ export function EnvValueInput({ type, value, enumValues, default: def, unit, onC
     )
   }
 
+  const defLabel = def ? `${t('envvars.value.default')} ${def}` : null
   return (
     <input
       type={type === 'number' ? 'number' : 'text'}
       value={value}
       onChange={e => onChange(e.target.value)}
-      placeholder={[def && `默认 ${def}`, unit].filter(Boolean).join(' · ')}
+      placeholder={[defLabel, unit].filter(Boolean).join(' · ')}
       className={text()}
     />
   )

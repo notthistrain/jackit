@@ -45,12 +45,13 @@ export function AddEnvVarForm({
             default={values.meta?.default}
             unit={values.meta?.unit}
             onChange={value => onChange({ ...values, value })}
+            t={t}
           />
         </div>
-        <button onClick={onSubmit} className={submitBtn()}>
+        <button type="button" onClick={onSubmit} className={submitBtn()}>
           {t('envvars.add.submit')}
         </button>
-        <button onClick={onCancel} className={cancelBtn()}>
+        <button type="button" onClick={onCancel} className={cancelBtn()}>
           {t('envvars.add.cancel')}
         </button>
       </div>

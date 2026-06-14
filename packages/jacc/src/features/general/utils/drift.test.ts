@@ -78,9 +78,9 @@ describe('buildDriftItems', () => {
       actual: { model_name: 'm2', base_url: 'https://b.com', api_key_masked: 'sk-***2222' },
     })
     expect(buildDriftItems(b, t)).toEqual([
-      '模型（实际 m2）',
-      'URL（实际 https://b.com）',
-      '密钥（实际 sk-***2222）',
+      '模型 (实际 m2)',
+      'URL (实际 https://b.com)',
+      '密钥 (实际 sk-***2222)',
     ])
   })
 })

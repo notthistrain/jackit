@@ -58,7 +58,7 @@ export function EnvVarCombobox({ value, onSelect }: EnvVarComboboxProps) {
                 <div
                   key={meta.name}
                   data-disabled={!!meta.slotManaged}
-                  title={meta.description + (meta.sensitive ? ' · 含密钥将写入 settings.local.json' : '')}
+                  title={meta.description + (meta.sensitive ? t('envvars.add.sensitiveHint') : '')}
                   onClick={() => pick(meta)}
                   className={envVarCombobox({ disabled: !!meta.slotManaged }).option()}
                 >

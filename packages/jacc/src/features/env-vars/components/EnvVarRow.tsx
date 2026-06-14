@@ -55,6 +55,7 @@ export function EnvVarRow({
                 default={meta?.default}
                 unit={meta?.unit}
                 onChange={v => onCommit?.(envKey, v)}
+                t={t}
               />
             )}
       </div>

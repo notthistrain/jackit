@@ -78,7 +78,7 @@ export function General() {
       isCurrent,
       isBound: !!binding,
       isDrifted: driftItems.length > 0,
-      driftTip: `${t('general.slot.driftTip')}：${driftItems.join('、')}`,
+      driftTip: `${t('general.slot.driftTip')}: ${driftItems.join(', ')}`,
       modelValue: binding?.intent.model_id ?? null,
       contextValue: ctx,
       contextOptions: CONTEXT_OPTIONS,

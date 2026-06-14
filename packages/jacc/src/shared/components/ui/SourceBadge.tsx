@@ -6,14 +6,13 @@ export interface SourceBadgeProps {
   className?: string
 }
 
-const scopeLabelKeys: Record<string, string> = {
+const scopeLabelKeys: Record<Exclude<SourceBadgeProps['scope'], 'models'>, string> = {
   global: 'source.global',
   project: 'source.project',
   user: 'source.user',
   plugin: 'source.plugin',
   shared: 'source.shared',
   local: 'source.local',
-  models: '🧠',
 }
 
 export function SourceBadge({ scope, className }: SourceBadgeProps) {
