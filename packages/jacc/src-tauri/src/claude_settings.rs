@@ -179,6 +179,30 @@ pub async fn delete_kv(path: &Path, key: &str) -> AppResult<()> {
     }).await
 }
 
+/// 写入 env 子对象内单个键，不影响 env 内其它键与顶层其它 key。
+pub async fn write_env_kv(path: &Path, key: &str, value: serde_json::Value) -> AppResult<()> {
+    update(path, |obj| {
+        let env = obj.entry("env").or_insert_with(|| serde_json::json!({}));
+        let env_obj = env
+            .as_object_mut()
+            .ok_or_else(|| AppError::Custom("settings.env 不是对象".to_string()))?;
+        env_obj.insert(key.to_string(), value);
+        Ok(())
+    })
+    .await
+}
+
+/// 删除 env 子对象内单个键。
+pub async fn delete_env_kv(path: &Path, key: &str) -> AppResult<()> {
+    update(path, |obj| {
+        if let Some(env) = obj.get_mut("env").and_then(|v| v.as_object_mut()) {
+            env.remove(key);
+        }
+        Ok(())
+    })
+    .await
+}
+
 pub async fn purge_token(path: &Path, base_url: &str, api_key: &str) -> AppResult<()> {
     update(path, |obj| {
         let env_match = obj.get("env").and_then(|v| v.as_object()).map(|env| {
@@ -396,5 +420,28 @@ mod tests {
         let content = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
         assert!(content.contains("dist"));
         assert!(content.trim_end().ends_with(".claude/settings.local.json"));
+    }
+
+    #[tokio::test]
+    async fn write_env_kv_merges_without_clobbering_siblings() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        write_env_kv(&path, "FOO", serde_json::json!("1")).await.unwrap();
+        write_env_kv(&path, "BAR", serde_json::json!("2")).await.unwrap();
+        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["env"]["FOO"], "1");
+        assert_eq!(v["env"]["BAR"], "2");
+    }
+
+    #[tokio::test]
+    async fn delete_env_kv_removes_only_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        write_env_kv(&path, "FOO", serde_json::json!("1")).await.unwrap();
+        write_env_kv(&path, "BAR", serde_json::json!("2")).await.unwrap();
+        delete_env_kv(&path, "FOO").await.unwrap();
+        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert!(v["env"].get("FOO").is_none());
+        assert_eq!(v["env"]["BAR"], "2");
     }
 }

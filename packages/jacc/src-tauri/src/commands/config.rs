@@ -265,6 +265,131 @@ pub async fn reset_corrupted_settings(
     Ok(())
 }
 
+#[derive(Debug, Serialize)]
+pub struct EnvVarItem {
+    pub key: String,
+    pub value: serde_json::Value,
+    pub origin: ConfigOrigin,
+}
+
+#[derive(Debug, Serialize)]
+pub struct EnvLayer {
+    pub vars: Vec<EnvVarItem>,
+}
+
+fn env_of(value: &serde_json::Value) -> Vec<(String, serde_json::Value)> {
+    value
+        .get("env")
+        .and_then(|e| e.as_object())
+        .map(|o| o.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+        .unwrap_or_default()
+}
+
+async fn read_env_layer_at(shared: &Path, local: Option<&Path>) -> AppResult<EnvLayer> {
+    let shared_val = crate::claude_settings::read(shared).await?;
+    let mut vars: Vec<EnvVarItem> = env_of(&shared_val)
+        .into_iter()
+        .map(|(key, value)| EnvVarItem { key, value, origin: ConfigOrigin::Shared })
+        .collect();
+    if let Some(local_path) = local {
+        let local_val = crate::claude_settings::read(local_path).await?;
+        for (key, value) in env_of(&local_val) {
+            if let Some(item) = vars.iter_mut().find(|i| i.key == key) {
+                item.value = value;
+                item.origin = ConfigOrigin::Local;
+            } else {
+                vars.push(EnvVarItem { key, value, origin: ConfigOrigin::Local });
+            }
+        }
+    }
+    Ok(EnvLayer { vars })
+}
+
+#[tauri::command]
+pub async fn read_env_layer(scope: ConfigScope, project_path: Option<String>) -> AppResult<EnvLayer> {
+    log_read_command!("read_env_layer", {
+        match scope {
+            ConfigScope::Global => {
+                let path = crate::claude_settings::global_settings_path();
+                let mut layer = read_env_layer_at(&path, None).await?;
+                for v in layer.vars.iter_mut() {
+                    v.origin = ConfigOrigin::Global;
+                }
+                Ok(layer)
+            }
+            ConfigScope::Project => {
+                let pp = project_path.ok_or_else(|| {
+                    crate::error::AppError::Custom("项目路径不能为空".to_string())
+                })?;
+                let validated = crate::path_guard::validate_project_path(&pp)?;
+                let shared = crate::claude_settings::project_settings_path(&validated);
+                let local = crate::claude_settings::project_local_settings_path(&validated);
+                read_env_layer_at(&shared, Some(local.as_path())).await
+            }
+        }
+    })
+}
+
+#[tauri::command]
+pub async fn set_env_var(
+    scope: ConfigScope,
+    project_path: Option<String>,
+    key: String,
+    value: serde_json::Value,
+    sensitive: bool,
+) -> AppResult<WriteConfigResult> {
+    log_command!("set_env_var", {
+        match scope {
+            ConfigScope::Global => {
+                let path = crate::claude_settings::global_settings_path();
+                crate::claude_settings::write_env_kv(&path, &key, value).await?;
+                Ok(WriteConfigResult { wrote_local: false, gitignore_updated: false })
+            }
+            ConfigScope::Project => {
+                let pp = project_path.ok_or_else(|| {
+                    crate::error::AppError::Custom("项目路径不能为空".to_string())
+                })?;
+                let validated = crate::path_guard::validate_project_path(&pp)?;
+                if sensitive {
+                    let local = crate::claude_settings::project_local_settings_path(&validated);
+                    crate::claude_settings::write_env_kv(&local, &key, value).await?;
+                    let gitignore_updated = crate::claude_settings::ensure_local_settings_gitignored(&validated)?;
+                    Ok(WriteConfigResult { wrote_local: true, gitignore_updated })
+                } else {
+                    let shared = crate::claude_settings::project_settings_path(&validated);
+                    crate::claude_settings::write_env_kv(&shared, &key, value).await?;
+                    Ok(WriteConfigResult { wrote_local: false, gitignore_updated: false })
+                }
+            }
+        }
+    })
+}
+
+#[tauri::command]
+pub async fn delete_env_var(
+    scope: ConfigScope,
+    project_path: Option<String>,
+    key: String,
+    origin: ConfigOrigin,
+) -> AppResult<()> {
+    log_command!("delete_env_var", {
+        let path = match scope {
+            ConfigScope::Global => crate::claude_settings::global_settings_path(),
+            ConfigScope::Project => {
+                let pp = project_path.ok_or_else(|| {
+                    crate::error::AppError::Custom("项目路径不能为空".to_string())
+                })?;
+                let validated = crate::path_guard::validate_project_path(&pp)?;
+                match origin {
+                    ConfigOrigin::Local => crate::claude_settings::project_local_settings_path(&validated),
+                    _ => crate::claude_settings::project_settings_path(&validated),
+                }
+            }
+        };
+        crate::claude_settings::delete_env_kv(&path, &key).await
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -337,5 +462,20 @@ mod tests {
         delete_kv_routed(proj, "ANTHROPIC_AUTH_TOKEN", ConfigOrigin::Local).await.unwrap();
         let local = std::fs::read_to_string(proj.join(".claude/settings.local.json")).unwrap();
         assert!(!local.contains("sk-x"));
+    }
+
+    #[tokio::test]
+    async fn env_layer_marks_origin_per_var() {
+        let dir = tempfile::tempdir().unwrap();
+        let shared = dir.path().join("settings.json");
+        std::fs::write(&shared, r#"{"env":{"A":"1","B":"2"}}"#).unwrap();
+        let local = dir.path().join("settings.local.json");
+        std::fs::write(&local, r#"{"env":{"B":"9","C":"3"}}"#).unwrap();
+        let layer = read_env_layer_at(&shared, Some(local.as_path())).await.unwrap();
+        let get = |k: &str| layer.vars.iter().find(|v| v.key == k).unwrap();
+        assert!(matches!(get("A").origin, ConfigOrigin::Shared));
+        assert_eq!(get("B").value, serde_json::json!("9"));
+        assert!(matches!(get("B").origin, ConfigOrigin::Local));
+        assert!(matches!(get("C").origin, ConfigOrigin::Local));
     }
 }
