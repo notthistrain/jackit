@@ -22,6 +22,88 @@ pub struct MergedConfig {
     pub items: Vec<MergedConfigItem>,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ConfigOrigin {
+    Global,
+    Shared,
+    Local,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LayerConfigItem {
+    pub key: String,
+    pub value: serde_json::Value,
+    pub origin: ConfigOrigin,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LayerConfig {
+    pub items: Vec<LayerConfigItem>,
+}
+
+/// 读 shared(+可选 local) 并按 origin 标记；local 同名覆盖 shared。
+/// local 为 None（全局 scope）时全部标 Shared，调用方负责改写为 Global。
+async fn read_layer_at(shared: &Path, local: Option<&Path>) -> AppResult<LayerConfig> {
+    let shared_val = crate::claude_settings::read(shared).await?;
+    let mut items: Vec<LayerConfigItem> = Vec::new();
+    if let Some(obj) = shared_val.as_object() {
+        for (k, v) in obj {
+            items.push(LayerConfigItem {
+                key: k.clone(),
+                value: v.clone(),
+                origin: ConfigOrigin::Shared,
+            });
+        }
+    }
+    if let Some(local_path) = local {
+        let local_val = crate::claude_settings::read(local_path).await?;
+        if let Some(obj) = local_val.as_object() {
+            for (k, v) in obj {
+                if let Some(slot) = items.iter_mut().find(|i| &i.key == k) {
+                    slot.value = v.clone();
+                    slot.origin = ConfigOrigin::Local;
+                } else {
+                    items.push(LayerConfigItem {
+                        key: k.clone(),
+                        value: v.clone(),
+                        origin: ConfigOrigin::Local,
+                    });
+                }
+            }
+        }
+    }
+    Ok(LayerConfig { items })
+}
+
+#[tauri::command]
+pub async fn read_config_layer(
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<LayerConfig> {
+    log_read_command!("read_config_layer", {
+        match scope {
+            ConfigScope::Global => {
+                let path = crate::claude_settings::global_settings_path();
+                let mut layer = read_layer_at(&path, None).await?;
+                for it in layer.items.iter_mut() {
+                    it.origin = ConfigOrigin::Global;
+                }
+                Ok(layer)
+            }
+            ConfigScope::Project => {
+                let pp = project_path.ok_or_else(|| {
+                    crate::error::AppError::Custom("项目路径不能为空".to_string())
+                })?;
+                let validated = crate::path_guard::validate_project_path(&pp)?;
+                let shared = crate::claude_settings::project_settings_path(&validated);
+                let local = crate::claude_settings::project_local_settings_path(&validated);
+                read_layer_at(&shared, Some(local.as_path())).await
+            }
+        }
+    })
+}
+
 #[tauri::command]
 pub async fn read_merged_config(project_path: String) -> AppResult<MergedConfig> {
     log_read_command!("read_merged_config", {
@@ -145,4 +227,37 @@ pub async fn reset_corrupted_settings(
     tmp.persist(&path).map_err(|e| std::io::Error::other(e.to_string()))?;
     tracing::warn!(path = %path.display(), "settings.json reset to empty object by user");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn layer_global_reads_only_global_origin() {
+        let dir = tempfile::tempdir().unwrap();
+        let shared = dir.path().join("settings.json");
+        std::fs::write(&shared, r#"{"a":1,"b":2}"#).unwrap();
+        let local = dir.path().join("settings.local.json");
+        // local 不存在时 helper 全部标 Shared（Global origin 由 read_config_layer command 层改写）
+        let items = read_layer_at(&shared, Some(local.as_path())).await.unwrap().items;
+        assert!(items.iter().all(|i| matches!(i.origin, ConfigOrigin::Shared)));
+        assert_eq!(items.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn layer_local_overrides_shared_and_marks_origin() {
+        let dir = tempfile::tempdir().unwrap();
+        let shared = dir.path().join("settings.json");
+        std::fs::write(&shared, r#"{"a":1,"b":2}"#).unwrap();
+        let local = dir.path().join("settings.local.json");
+        std::fs::write(&local, r#"{"b":99,"c":3}"#).unwrap();
+        let items = read_layer_at(&shared, Some(local.as_path())).await.unwrap().items;
+        let get = |k: &str| items.iter().find(|i| i.key == k).unwrap();
+        assert_eq!(get("a").value, serde_json::json!(1));
+        assert!(matches!(get("a").origin, ConfigOrigin::Shared));
+        assert_eq!(get("b").value, serde_json::json!(99));
+        assert!(matches!(get("b").origin, ConfigOrigin::Local));
+        assert!(matches!(get("c").origin, ConfigOrigin::Local));
+    }
 }
