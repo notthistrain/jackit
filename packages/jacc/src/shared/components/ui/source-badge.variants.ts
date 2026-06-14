@@ -21,6 +21,12 @@ export const sourceBadge = tv({
       models: {
         root: 'bg-success-light text-success',
       },
+      shared: {
+        root: 'bg-border text-muted',
+      },
+      local: {
+        root: 'bg-success-light text-success',
+      },
     },
   },
 })

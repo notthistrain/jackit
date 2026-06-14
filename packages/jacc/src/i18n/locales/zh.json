@@ -124,6 +124,8 @@
   "project.recent": "最近项目",
   "project.openOther": "📂 打开其他项目...",
   "scope.label": "作用域",
+  "source.shared": "共享",
+  "source.local": "本地",
   "source.global": "全局",
   "source.project": "项目",
   "source.user": "用户",

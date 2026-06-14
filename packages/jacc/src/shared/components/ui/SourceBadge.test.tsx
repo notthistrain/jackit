@@ -24,6 +24,16 @@ describe('sourceBadge', () => {
     expect(screen.getByText('🧠')).toBeTruthy()
   })
 
+  it('renders shared badge', () => {
+    render(<SourceBadge scope="shared" />)
+    expect(screen.getByText('source.shared')).toBeTruthy()
+  })
+
+  it('renders local badge', () => {
+    render(<SourceBadge scope="local" />)
+    expect(screen.getByText('source.local')).toBeTruthy()
+  })
+
   it('applies custom className', () => {
     const { container } = render(<SourceBadge scope="global" className="custom-class" />)
     const badge = container.querySelector('span')!

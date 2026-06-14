@@ -124,6 +124,8 @@
   "project.recent": "Recent Projects",
   "project.openOther": "📂 Open other project...",
   "scope.label": "Scope",
+  "source.shared": "Shared",
+  "source.local": "Local",
   "source.global": "Global",
   "source.project": "Project",
   "source.user": "User",

@@ -2,7 +2,7 @@ import { useT } from '@/i18n'
 import { sourceBadge } from './source-badge.variants'
 
 export interface SourceBadgeProps {
-  scope: 'global' | 'project' | 'user' | 'plugin' | 'models'
+  scope: 'global' | 'project' | 'user' | 'plugin' | 'models' | 'shared' | 'local'
   className?: string
 }
 
@@ -11,6 +11,8 @@ const scopeLabelKeys: Record<string, string> = {
   project: 'source.project',
   user: 'source.user',
   plugin: 'source.plugin',
+  shared: 'source.shared',
+  local: 'source.local',
   models: '🧠',
 }
 
