@@ -5,7 +5,7 @@ import { useAppStore } from './useAppStore'
 describe('useAppStore', () => {
   beforeEach(() => {
     act(() => {
-      useAppStore.setState({ currentPage: 'general', currentProject: null, theme: 'system' })
+      useAppStore.setState({ currentPage: 'general', currentProject: null, theme: 'system', configScope: 'global' })
     })
   })
 
@@ -25,5 +25,26 @@ describe('useAppStore', () => {
     const { result } = renderHook(() => useAppStore())
     act(() => result.current.setProject('/p'))
     expect(result.current.currentProject).toBe('/p')
+  })
+})
+
+describe('useAppStore configScope', () => {
+  beforeEach(() => {
+    useAppStore.setState({ configScope: 'global', currentProject: null })
+  })
+
+  it('defaults to global', () => {
+    expect(useAppStore.getState().configScope).toBe('global')
+  })
+
+  it('setConfigScope updates value', () => {
+    useAppStore.getState().setConfigScope('project')
+    expect(useAppStore.getState().configScope).toBe('project')
+  })
+
+  it('switching project does not reset configScope', () => {
+    useAppStore.getState().setConfigScope('project')
+    useAppStore.getState().setProject('/some/proj')
+    expect(useAppStore.getState().configScope).toBe('project')
   })
 })
