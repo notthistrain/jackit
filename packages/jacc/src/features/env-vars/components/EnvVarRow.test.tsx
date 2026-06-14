@@ -15,7 +15,7 @@ describe('envVarRow', () => {
       <EnvVarRow
         envKey="MY_VAR"
         value="test-value"
-        scope="global"
+        origin="global"
         t={mockT}
       />,
     )
@@ -32,7 +32,7 @@ describe('envVarRow', () => {
       <EnvVarRow
         envKey="MY_VAR"
         value="test"
-        scope="global"
+        origin="global"
         onLocalChange={onLocalChange}
         t={mockT}
       />,
@@ -53,7 +53,7 @@ describe('envVarRow', () => {
       <EnvVarRow
         envKey="MY_VAR"
         value="test"
-        scope="global"
+        origin="global"
         onBlur={onBlur}
         t={mockT}
       />,
@@ -74,7 +74,7 @@ describe('envVarRow', () => {
       <EnvVarRow
         envKey="MY_VAR"
         value="test"
-        scope="global"
+        origin="global"
         onDelete={onDelete}
         t={mockT}
       />,
@@ -90,7 +90,7 @@ describe('envVarRow', () => {
       <EnvVarRow
         envKey="ANTHROPIC_MODEL"
         value="opus"
-        scope="models"
+        origin="models"
         readOnly
         t={mockT}
       />,
@@ -106,7 +106,7 @@ describe('envVarRow', () => {
       <EnvVarRow
         envKey="ANTHROPIC_MODEL"
         value="opus"
-        scope="models"
+        origin="models"
         readOnly
         t={mockT}
       />,
@@ -120,7 +120,7 @@ describe('envVarRow', () => {
       <EnvVarRow
         envKey="ANTHROPIC_MODEL"
         value="opus"
-        scope="models"
+        origin="models"
         readOnly
         t={mockT}
       />,

@@ -15,7 +15,8 @@ describe('permissionTable', () => {
       <PermissionTable
         kind="allow"
         rules={[]}
-        scope="global"
+        origin="global"
+        showSource
         onDelete={vi.fn()}
         t={mockT}
       />,
@@ -35,7 +36,7 @@ describe('permissionTable', () => {
       <PermissionTable
         kind="allow"
         rules={rules}
-        scope="project"
+        origin="shared"
         onDelete={vi.fn()}
         t={mockT}
       />,
@@ -52,7 +53,7 @@ describe('permissionTable', () => {
       <PermissionTable
         kind="deny"
         rules={[]}
-        scope="global"
+        origin="global"
         onDelete={vi.fn()}
         t={mockT}
       />,
@@ -71,7 +72,7 @@ describe('permissionTable', () => {
       <PermissionTable
         kind="deny"
         rules={rules}
-        scope="global"
+        origin="global"
         onDelete={onDelete}
         t={mockT}
       />,
@@ -86,7 +87,7 @@ describe('permissionTable', () => {
       <PermissionTable
         kind="allow"
         rules={[{ tool: 'Bash', pattern: 'ls' }]}
-        scope="global"
+        origin="global"
         onDelete={vi.fn()}
         t={mockT}
       />,
@@ -102,7 +103,7 @@ describe('permissionTable', () => {
       <PermissionTable
         kind="deny"
         rules={[{ tool: 'Bash', pattern: 'rm' }]}
-        scope="global"
+        origin="global"
         onDelete={vi.fn()}
         t={mockT}
       />,
@@ -113,16 +114,17 @@ describe('permissionTable', () => {
     expect(badgeElement).toBeTruthy()
   })
 
-  it('renders SourceBadge with correct scope', () => {
+  it('renders SourceBadge with correct origin', () => {
     render(
       <PermissionTable
         kind="allow"
         rules={[{ tool: 'Bash', pattern: 'ls' }]}
-        scope="project"
+        origin="shared"
+        showSource
         onDelete={vi.fn()}
         t={mockT}
       />,
     )
-    expect(screen.getByTestId('source-badge').textContent).toBe('project')
+    expect(screen.getByTestId('source-badge').textContent).toBe('shared')
   })
 })

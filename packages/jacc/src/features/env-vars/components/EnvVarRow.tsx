@@ -1,10 +1,12 @@
+import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 import { envVarRowVariants } from './env-var-row.variants'
 
 export interface EnvVarRowProps {
   envKey: string
   value: string
-  scope: 'global' | 'project' | 'models'
+  origin: ConfigOrigin | 'models'
+  showSource?: boolean
   readOnly?: boolean
   onLocalChange?: (key: string, value: string) => void
   onBlur?: (key: string) => void
@@ -15,7 +17,8 @@ export interface EnvVarRowProps {
 export function EnvVarRow({
   envKey,
   value,
-  scope,
+  origin,
+  showSource,
   readOnly = false,
   onLocalChange,
   onBlur,
@@ -46,9 +49,11 @@ export function EnvVarRow({
             )}
       </div>
 
-      <div className={sourceCell()}>
-        <SourceBadge scope={scope} />
-      </div>
+      {showSource && (
+        <div className={sourceCell()}>
+          <SourceBadge scope={origin} />
+        </div>
+      )}
 
       <div className={actionCell()}>
         {!readOnly && (

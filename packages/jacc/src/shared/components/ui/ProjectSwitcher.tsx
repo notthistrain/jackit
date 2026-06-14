@@ -1,9 +1,9 @@
 import type { Project } from '@/shared/hooks/useProjects'
-import { open } from '@tauri-apps/plugin-dialog'
 import { ChevronDown, FolderOpen, Pin } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/i18n'
 import { useProjects } from '@/shared/hooks/useProjects'
+import { useSelectProject } from '@/shared/hooks/useSelectProject'
 import { useAppStore } from '@/stores/useAppStore'
 import { projectSwitcher } from './project-switcher.variants'
 
@@ -12,7 +12,8 @@ export function ProjectSwitcher() {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { currentProject, setProject } = useAppStore()
-  const { projects, add, open: openProject, pin } = useProjects()
+  const { projects, open: openProject, pin } = useProjects()
+  const selectProject = useSelectProject()
 
   const {
     root,
@@ -51,13 +52,8 @@ export function ProjectSwitcher() {
   const currentName_ = currentProject ? currentProject.split(/[/\\]/).pop() : null
 
   async function handleSelectFolder() {
-    const selected = await open({ directory: true })
-    if (selected) {
-      await add(selected)
-      await openProject(selected)
-      setProject(selected)
-      setIsOpen(false)
-    }
+    await selectProject()
+    setIsOpen(false)
   }
 
   async function handleSwitchProject(project: Project) {
