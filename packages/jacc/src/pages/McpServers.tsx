@@ -1,5 +1,5 @@
 import type { McpServer } from '@/features/mcp-servers/hooks/useMcpServers'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AddMcpServerForm } from '@/features/mcp-servers/components/AddMcpServerForm'
 import { McpServerItem } from '@/features/mcp-servers/components/McpServerItem'
 import { useMcpServers } from '@/features/mcp-servers/hooks/useMcpServers'
@@ -20,6 +20,12 @@ export function McpServers() {
   const [newValues, setNewValues] = useState({ name: '', command: '', args: '' })
   const showSource = configScope === 'project'
   const needsProject = configScope === 'project' && !currentProject
+  // 新增表单置于列表顶部，打开时滚到可视区，避免服务器多时表单被挤出屏幕
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (showAdd)
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [showAdd])
 
   async function handleDelete(name: string) {
     await remove(name)
@@ -45,6 +51,17 @@ export function McpServers() {
         ? <EmptyState onSelectProject={selectProject} />
         : (
             <>
+              <div ref={formRef}>
+                <AddMcpServerForm
+                  visible={showAdd}
+                  values={newValues}
+                  onChange={setNewValues}
+                  onSubmit={handleSubmit}
+                  onCancel={() => setShowAdd(false)}
+                  t={t}
+                />
+              </div>
+
               <div className="flex flex-col gap-2">
                 {Object.entries(servers).map(([name, server]) => (
                   <McpServerItem
@@ -61,15 +78,6 @@ export function McpServers() {
                   />
                 ))}
               </div>
-
-              <AddMcpServerForm
-                visible={showAdd}
-                values={newValues}
-                onChange={setNewValues}
-                onSubmit={handleSubmit}
-                onCancel={() => setShowAdd(false)}
-                t={t}
-              />
 
               <Fab onClick={() => setShowAdd(true)} />
             </>

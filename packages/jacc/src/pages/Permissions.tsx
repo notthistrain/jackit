@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AddPermissionForm } from '@/features/permissions/components/AddPermissionForm'
 import { PermissionTable } from '@/features/permissions/components/PermissionTable'
 import { usePermissions } from '@/features/permissions/hooks/usePermissions'
@@ -20,6 +20,12 @@ export function Permissions() {
   )
   const showSource = configScope === 'project'
   const needsProject = configScope === 'project' && !currentProject
+  // 新增表单置于列表顶部，打开时滚到可视区，避免规则多时表单被挤出屏幕
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (showAdd)
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [showAdd])
 
   async function handleSubmit() {
     if (!newValues.pattern.trim())
@@ -40,6 +46,16 @@ export function Permissions() {
         ? <EmptyState onSelectProject={selectProject} />
         : (
             <>
+              <div ref={formRef}>
+                <AddPermissionForm
+                  visible={showAdd}
+                  values={newValues}
+                  onChange={setNewValues}
+                  onSubmit={handleSubmit}
+                  onCancel={() => setShowAdd(false)}
+                  t={t}
+                />
+              </div>
               <PermissionTable
                 kind="allow"
                 rules={allowRules}
@@ -54,14 +70,6 @@ export function Permissions() {
                 origin={origin}
                 showSource={showSource}
                 onDelete={i => remove('deny', i)}
-                t={t}
-              />
-              <AddPermissionForm
-                visible={showAdd}
-                values={newValues}
-                onChange={setNewValues}
-                onSubmit={handleSubmit}
-                onCancel={() => setShowAdd(false)}
                 t={t}
               />
               <Fab onClick={() => setShowAdd(true)} />
