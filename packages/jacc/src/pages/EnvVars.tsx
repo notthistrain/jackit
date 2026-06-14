@@ -1,5 +1,5 @@
 import type { EnvVarMeta } from '@/features/env-vars/api/env-catalog'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { findEnvMeta } from '@/features/env-vars/api/env-catalog'
 import { AddEnvVarForm } from '@/features/env-vars/components/AddEnvVarForm'
 import { EnvVarRow } from '@/features/env-vars/components/EnvVarRow'
@@ -19,6 +19,12 @@ export function EnvVars() {
   const [showAdd, setShowAdd] = useState(false)
   const [newValues, setNewValues] = useState<{ meta: EnvVarMeta | null, value: string }>({ meta: null, value: '' })
   const showSource = configScope === 'project'
+  // 新增表单置于列表顶部，打开时滚到可视区，避免 env 多时表单被挤出屏幕
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (showAdd)
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [showAdd])
 
   async function handleSubmit() {
     if (!newValues.meta?.name.trim())
@@ -45,6 +51,18 @@ export function EnvVars() {
                   <span>{t('envvars.modelHint')}</span>
                 </div>
               )}
+
+              <div ref={formRef}>
+                <AddEnvVarForm
+                  visible={showAdd}
+                  values={newValues}
+                  onChange={setNewValues}
+                  onSubmit={handleSubmit}
+                  onCancel={() => setShowAdd(false)}
+                  existingKeys={entries.map(e => e.key)}
+                  t={t}
+                />
+              </div>
 
               <div className="bg-card border border-border-light rounded-[4px] overflow-hidden">
                 <div className="flex px-3.5 py-2 bg-sidebar border-b border-border-light text-[11px] text-muted font-medium">
@@ -81,16 +99,6 @@ export function EnvVars() {
                   />
                 ))}
               </div>
-
-              <AddEnvVarForm
-                visible={showAdd}
-                values={newValues}
-                onChange={setNewValues}
-                onSubmit={handleSubmit}
-                onCancel={() => setShowAdd(false)}
-                existingKeys={entries.map(e => e.key)}
-                t={t}
-              />
 
               <Fab onClick={() => setShowAdd(true)} />
             </>
