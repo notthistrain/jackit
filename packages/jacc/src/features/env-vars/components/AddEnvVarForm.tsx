@@ -1,9 +1,12 @@
+import type { EnvVarMeta } from '../api/env-catalog'
+import { EnvValueInput } from './EnvValueInput'
+import { EnvVarCombobox } from './EnvVarCombobox'
 import { addEnvVarFormVariants } from './add-env-var-form.variants'
 
 export interface AddEnvVarFormProps {
   visible: boolean
-  values: { key: string, value: string }
-  onChange: (values: { key: string, value: string }) => void
+  values: { meta: EnvVarMeta | null, value: string }
+  onChange: (values: { meta: EnvVarMeta | null, value: string }) => void
   onSubmit: () => void
   onCancel: () => void
   t: (key: string, params?: Record<string, string>) => string
@@ -20,7 +23,7 @@ export function AddEnvVarForm({
   if (!visible)
     return null
 
-  const { container, formRow, inputGroup, label, input, submitBtn, cancelBtn }
+  const { container, formRow, inputGroup, label, submitBtn, cancelBtn }
     = addEnvVarFormVariants()
 
   return (
@@ -28,20 +31,20 @@ export function AddEnvVarForm({
       <div className={formRow()}>
         <div className={inputGroup()}>
           <div className={label()}>{t('envvars.add.name')}</div>
-          <input
-            value={values.key}
-            onChange={e => onChange({ ...values, key: e.target.value })}
-            placeholder="MY_VAR"
-            className={input()}
+          <EnvVarCombobox
+            value={values.meta?.name ?? ''}
+            onSelect={meta => onChange({ meta, value: '' })}
           />
         </div>
         <div className={inputGroup()}>
           <div className={label()}>{t('envvars.add.value')}</div>
-          <input
+          <EnvValueInput
+            type={values.meta?.type ?? 'string'}
             value={values.value}
-            onChange={e => onChange({ ...values, value: e.target.value })}
-            placeholder="value"
-            className={input()}
+            enumValues={values.meta?.enumValues}
+            default={values.meta?.default}
+            unit={values.meta?.unit}
+            onChange={value => onChange({ ...values, value })}
           />
         </div>
         <button onClick={onSubmit} className={submitBtn()}>

@@ -1,5 +1,7 @@
 import type { ConfigOrigin } from '@/shared/hooks/useConfig'
+import type { EnvVarMeta } from '../api/env-catalog'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
+import { EnvValueInput } from './EnvValueInput'
 import { envVarRowVariants } from './env-var-row.variants'
 
 export interface EnvVarRowProps {
@@ -8,9 +10,10 @@ export interface EnvVarRowProps {
   origin: ConfigOrigin | 'models'
   showSource?: boolean
   readOnly?: boolean
-  onLocalChange?: (key: string, value: string) => void
-  onBlur?: (key: string) => void
-  onDelete?: (key: string) => void
+  slotManaged?: boolean
+  meta?: EnvVarMeta
+  onCommit?: (key: string, value: string) => void
+  onDelete?: (key: string, origin: ConfigOrigin) => void
   t: (key: string, params?: Record<string, string>) => string
 }
 
@@ -20,31 +23,35 @@ export function EnvVarRow({
   origin,
   showSource,
   readOnly = false,
-  onLocalChange,
-  onBlur,
+  slotManaged = false,
+  meta,
+  onCommit,
   onDelete,
   t,
 }: EnvVarRowProps) {
-  const { root, name, valueCell, input, managedHint, sourceCell, actionCell, deleteBtn }
+  const { root, name, valueCell, managedHint, sourceCell, actionCell, deleteBtn }
     = envVarRowVariants({ readOnly })
+  const masked = readOnly || slotManaged
 
   return (
     <div className={root()}>
-      <div className={name()} title={readOnly ? undefined : envKey}>
+      <div className={name()} title={masked ? undefined : envKey}>
         {envKey}
       </div>
 
       <div className={valueCell()}>
-        {readOnly
+        {masked
           ? (
-              <div className={managedHint()}>{t('envvars.managedByModels')}</div>
+              <div className={managedHint()}>•••• {t('envvars.managedByModels')}</div>
             )
           : (
-              <input
-                defaultValue={value}
-                onChange={e => onLocalChange?.(envKey, e.target.value)}
-                onBlur={() => onBlur?.(envKey)}
-                className={input()}
+              <EnvValueInput
+                type={meta?.type ?? 'string'}
+                value={value}
+                enumValues={meta?.enumValues}
+                default={meta?.default}
+                unit={meta?.unit}
+                onChange={v => onCommit?.(envKey, v)}
               />
             )}
       </div>
@@ -56,8 +63,8 @@ export function EnvVarRow({
       )}
 
       <div className={actionCell()}>
-        {!readOnly && (
-          <button onClick={() => onDelete?.(envKey)} className={deleteBtn()}>
+        {!readOnly && !slotManaged && origin !== 'models' && (
+          <button onClick={() => onDelete?.(envKey, origin as ConfigOrigin)} className={deleteBtn()}>
             ×
           </button>
         )}

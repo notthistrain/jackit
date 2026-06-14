@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
+import type { EnvVarMeta } from '@/features/env-vars/api/env-catalog'
+import { findEnvMeta } from '@/features/env-vars/api/env-catalog'
 import { AddEnvVarForm } from '@/features/env-vars/components/AddEnvVarForm'
 import { EnvVarRow } from '@/features/env-vars/components/EnvVarRow'
 import { useEnvVars } from '@/features/env-vars/hooks/useEnvVars'
@@ -12,31 +14,17 @@ import { useAppStore } from '@/stores/useAppStore'
 export function EnvVars() {
   const { t } = useT()
   const { configScope, currentProject, setConfigScope } = useAppStore()
-  const { regularEntries, modelEntries, origin, add, remove, update } = useEnvVars()
+  const { regularEntries, modelEntries, needsProject, setVar, remove } = useEnvVars()
   const selectProject = useSelectProject()
   const [showAdd, setShowAdd] = useState(false)
-  const [newValues, setNewValues] = useState({ key: '', value: '' })
-  const pendingRef = useRef<Record<string, string>>({})
+  const [newValues, setNewValues] = useState<{ meta: EnvVarMeta | null, value: string }>({ meta: null, value: '' })
   const showSource = configScope === 'project'
-  const needsProject = configScope === 'project' && !currentProject
-
-  function handleLocalChange(key: string, value: string) {
-    pendingRef.current[key] = value
-  }
-
-  async function handleBlur(key: string) {
-    if (key in pendingRef.current) {
-      const v = pendingRef.current[key]
-      delete pendingRef.current[key]
-      await update(key, v)
-    }
-  }
 
   async function handleSubmit() {
-    if (!newValues.key.trim())
+    if (!newValues.meta?.name.trim())
       return
-    await add(newValues.key, newValues.value)
-    setNewValues({ key: '', value: '' })
+    await setVar(newValues.meta.name, newValues.value)
+    setNewValues({ meta: null, value: '' })
     setShowAdd(false)
   }
 
@@ -66,25 +54,26 @@ export function EnvVars() {
                   <div className="w-[30px]"></div>
                 </div>
 
-                {regularEntries.map(([k, v]) => (
+                {regularEntries.map(e => (
                   <EnvVarRow
-                    key={k}
-                    envKey={k}
-                    value={v}
-                    origin={origin}
+                    key={e.key}
+                    envKey={e.key}
+                    value={e.value}
+                    origin={e.origin}
                     showSource={showSource}
-                    onLocalChange={handleLocalChange}
-                    onBlur={handleBlur}
+                    meta={findEnvMeta(e.key)}
+                    slotManaged={findEnvMeta(e.key)?.slotManaged}
+                    onCommit={(k, v) => setVar(k, v)}
                     onDelete={remove}
                     t={t}
                   />
                 ))}
 
-                {modelEntries.map(([k, v]) => (
+                {modelEntries.map(e => (
                   <EnvVarRow
-                    key={k}
-                    envKey={k}
-                    value={v}
+                    key={e.key}
+                    envKey={e.key}
+                    value={e.value}
                     origin="models"
                     showSource
                     readOnly
