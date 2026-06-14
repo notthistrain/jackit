@@ -126,6 +126,7 @@
   "scope.label": "Scope",
   "source.shared": "Shared",
   "source.local": "Local",
+  "config.wroteLocal": "Saved to settings.local.json, won't be committed to git",
   "source.global": "Global",
   "source.project": "Project",
   "source.user": "User",
