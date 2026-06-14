@@ -124,12 +124,20 @@ pub async fn delete_config(
 ) -> AppResult<()>;
 ```
 
-### 4.3 槽位写入
-`write_slot_env` 在 `scope=Project` 时目标改为 `settings.local.json`（槽位含密钥，天然敏感），并触发 `ensure_local_settings_gitignored`。
+### 4.3 槽位 scope 化（读写两侧，比初稿估计的大）
+
+现状（自审核实）：`bind_slot` / `unbind_slot` / `set_current_model` / `get_slot_bindings` 四个公开命令**全部硬编码 `global_settings_path()`**，前端 `useSlotBindings` 调用**完全不带 scope/project 参数**。槽位链路目前没有 scope 概念。
+
+要让槽位区跟随页面级 scope，需改造**读写两侧**：
+
+- **写侧**：`bind_slot` / `unbind_slot` / `set_current_model` 四命令签名加 `scope + project_path`。`scope=Project` 时，目标为 `settings.local.json`（槽位含密钥，天然敏感），并触发 `ensure_local_settings_gitignored`；`scope=Global` 维持现状。
+- **读侧**：`get_slot_bindings` 同样加 `scope + project_path`，按 scope 读对应层的 settings 解析绑定状态与漂移。**否则切到项目视图时槽位区仍显示全局绑定，与「项目视图=项目层实际内容」自相矛盾。**
+- **改动可控**：底层 `*_at` 函数（`bind_slot_at` / `set_current_model_at` / `get_slot_bindings_full_at` 等）**已参数化 `settings_path`**，本节改动集中在「4 个公开命令签名 + 前端 useSlotBindings 全链路 + lib.rs 注册」，不触碰核心解析逻辑。
+- 这是 Plan A 中一个**独立成组、有分量**的任务块，不可当作顺带处理。
 
 ### 4.4 兼容性
 - `read_merged_config` 保留不动（其它特性可能仍依赖；本特性页面改用 `read_config_layer`）。
-- 现有 `write_config` 调用方需补 `sensitive` 参数（非本特性调用传 `false`，语义不变）。这是**破坏性签名变更**，实现计划需统一更新所有调用点。
+- 现有 `write_config` 调用方需补 `sensitive` 参数。自审核实：调用点**仅前端 `useConfig.ts` 一处** + `lib.rs` 注册一处，影响面小，并非大范围破坏。`delete_config` 加 `origin` 同样仅 `useConfig.ts` 一处。
 
 ## 5. 前端设计（React / TypeScript）
 
@@ -147,7 +155,8 @@ pub async fn delete_config(
 四页：`configScope === 'project' && !currentProject` → 渲染 `EmptyState`，不渲染配置表。
 
 ### 5.4 SourceBadge 扩展
-- 支持 `shared`（「共享」灰）/ `local`（「本地」绿）；保留 `models` 的 🧠。
+- 现有 `scope` 类型为 `'global' | 'project' | 'user' | 'plugin' | 'models'`。新增 `'shared'`（「共享」灰）/ `'local'`（「本地」绿）；保留 `models` 的 🧠。
+- **`'project'` 的去留**：项目视图改用 `shared` / `local` 二选一（按 origin），不再用笼统的 `'project'`。实现时先 grep 全仓库 `scope="project"` / `scope={'project'}` 的引用——若仅本特性四页在用，则从联合类型移除 `'project'`；若有其它特性仍引用，则保留 `'project'` 不动，仅新增 `shared`/`local`。`user`/`plugin` 维持不动。
 - 来源列**仅项目视图渲染**；全局视图列头与单元格一并隐藏。
 
 ### 5.5 env-catalog 数据模块
@@ -180,7 +189,7 @@ export function searchCatalog(query: string): EnvVarMeta[] // 模糊匹配 name�
 
 ### 5.7 其它三页
 - 统一加顶部 `ScopeSwitcher` + 无项目守卫，删除按项 scope 推导，读写走当前 `configScope`。
-- 通用页槽位区：scope 影响槽位凭证写入目标层；effortLevel/skipDangerous 走对应 scope 的 settings.json。
+- 通用页槽位区：`useSlotBindings` 全链路改造，读（`get_slot_bindings`）与写（`bind_slot`/`unbind_slot`/`set_current_model`）都带当前 `configScope` + `currentProject`；项目级槽位凭证落 `settings.local.json`。effortLevel/skipDangerous 走对应 scope 的 settings.json。
 - 权限/MCP：`usePermissions`/`useMcpServers` 改为读写当前 scope 单层。
 
 ## 6. 实现阶段硬约束：视觉伴侣验收
@@ -207,7 +216,7 @@ export function searchCatalog(query: string): EnvVarMeta[] // 模糊匹配 name�
 
 体量较大，建议 writing-plans 拆为两个可独立验证的子计划，先 A 后 B（B 依赖 A 的 scope 与分流机制）：
 
-- **Plan A — scope 维度基建**：claude_settings/config.rs 扩展、gitignore helper、`read_config_layer`、写入分流、`useAppStore` scope、`ScopeSwitcher`、`useConfig` 重构、四页接入 + 无项目守卫 + 来源 pill。产出：四页可在全局/项目切换并正确分流敏感信息。
+- **Plan A — scope 维度基建**：claude_settings/config.rs 扩展、gitignore helper、`read_config_layer`、写入分流、`useAppStore` scope、`ScopeSwitcher`、`useConfig` 重构、四页接入 + 无项目守卫 + 来源 pill，以及**槽位 scope 化（读写两侧，独立成组）**——见 4.3。产出：四页可在全局/项目切换并正确分流敏感信息，槽位区随 scope 读写对应层。
 - **Plan B — env 目录化**：`env-catalog.ts`、`EnvVarCombobox`、`EnvValueInput`、环境变量页新增表单重构、槽位置灰行。
 
 两子计划的 UI 任务均以视觉伴侣验收为完成关卡。
@@ -222,6 +231,7 @@ export function searchCatalog(query: string): EnvVarMeta[] // 模糊匹配 name�
 6. scope 栏在标题右侧，带「作用域」前缀标签，全局紫/项目绿。
 7. 槽位区跟随页面级 scope（废弃逐槽位/卡片头切换）。
 8. 自定义变量按非敏感处理，仅提示不拦截（已知取舍）。
+9. 槽位 scope 化覆盖读写两侧：`get_slot_bindings` 也按 scope 读对应层，否则项目视图仍显示全局绑定（自审补）。
 
 ## 附录 A：env 变量目录数据来源
 
