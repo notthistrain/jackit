@@ -1,25 +1,60 @@
-import { useCallback } from 'react'
-import { useConfig } from '@/shared/hooks/useConfig'
-import { deleteEnvVar, extractEnv, setEnvVar, splitEnv } from '../api/env-vars-api'
+import { invoke } from '@tauri-apps/api/core'
+import { useCallback, useEffect, useState } from 'react'
+import { useT } from '@/i18n'
+import { useToast } from '@/providers/ToastProvider'
+import { useAppStore } from '@/stores/useAppStore'
+import type { ConfigOrigin } from '@/shared/hooks/useConfig'
+import { findEnvMeta } from '../api/env-catalog'
+import { MODEL_ENV_KEYS } from '../api/env-vars-api'
 
-// 已知限制（Plan A）：env 作为单个顶层 key 整体写入，sensitive=false → settings.json。
-// 逐变量敏感分流（含密钥变量落 settings.local.json）由 Plan B 引入 catalog 后实现。
+export interface EnvEntry { key: string, value: string, origin: ConfigOrigin }
+interface EnvLayer { vars: EnvEntry[] }
+interface WriteResult { wrote_local: boolean, gitignore_updated: boolean }
+
+// 逐变量敏感分流：含密钥变量（catalog sensitive=true）落 settings.local.json，
+// 非敏感落 settings.json。槽位托管变量（MODEL_ENV_KEYS）展示但不可在此编辑。
 export function useEnvVars() {
-  const { config, writeConfig } = useConfig()
-  const { env, origin } = extractEnv(config)
-  const { regularEntries, modelEntries } = splitEnv(env)
+  const { configScope, currentProject } = useAppStore()
+  const [entries, setEntries] = useState<EnvEntry[]>([])
+  const { success, error } = useToast()
+  const { t } = useT()
+  const needsProject = configScope === 'project' && !currentProject
 
-  const add = useCallback(async (key: string, value: string) => {
-    await writeConfig('env', setEnvVar(env, key, value), false)
-  }, [env, writeConfig])
+  const refresh = useCallback(async () => {
+    if (needsProject) {
+      setEntries([])
+      return
+    }
+    try {
+      const layer = await invoke<EnvLayer>('read_env_layer', { scope: configScope, projectPath: currentProject })
+      setEntries(layer.vars.map(v => ({ ...v, value: String(v.value) })))
+    }
+    catch (e) { error(String(e)) }
+  }, [configScope, currentProject, needsProject, error])
 
-  const remove = useCallback(async (key: string) => {
-    await writeConfig('env', deleteEnvVar(env, key), false)
-  }, [env, writeConfig])
+  const setVar = useCallback(async (key: string, value: string) => {
+    const sensitive = findEnvMeta(key)?.sensitive ?? false
+    const res = await invoke<WriteResult>('set_env_var', {
+      scope: configScope, projectPath: currentProject, key, value, sensitive,
+    })
+    if (res.wrote_local)
+      success(t('config.wroteLocal'))
+    await refresh()
+  }, [configScope, currentProject, refresh, success, t])
 
-  const update = useCallback(async (key: string, value: string) => {
-    await writeConfig('env', setEnvVar(env, key, value), false)
-  }, [env, writeConfig])
+  const remove = useCallback(async (key: string, origin: ConfigOrigin) => {
+    await invoke('delete_env_var', { scope: configScope, projectPath: currentProject, key, origin })
+    await refresh()
+  }, [configScope, currentProject, refresh])
 
-  return { regularEntries, modelEntries, origin, add, remove, update }
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  // 槽位托管变量（由「通用」页槽位写入）：展示但不可在此编辑
+  const modelKeys = MODEL_ENV_KEYS as readonly string[]
+  const regularEntries = entries.filter(e => !modelKeys.includes(e.key))
+  const modelEntries = entries.filter(e => modelKeys.includes(e.key))
+
+  return { entries, regularEntries, modelEntries, needsProject, refresh, setVar, remove }
 }
