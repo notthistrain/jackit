@@ -1,30 +1,30 @@
-import type { MergedConfig } from '@/shared/hooks/useConfig'
+import type { LayerConfig } from '@/shared/hooks/useConfig'
 import { describe, expect, it } from 'vitest'
 import { extractMcpServers, removeServer, upsertServer } from './mcp-servers-api'
 
 describe('extractMcpServers', () => {
-  it('extracts servers and scope when mcpServers item exists', () => {
-    const config: MergedConfig = {
+  it('extracts servers and origin when mcpServers item exists', () => {
+    const config: LayerConfig = {
       items: [
-        { key: 'mcpServers', value: { a: { command: 'x' }, b: { command: 'y' } }, scope: 'project' },
+        { key: 'mcpServers', value: { a: { command: 'x' }, b: { command: 'y' } }, origin: 'shared' },
       ],
     }
     const result = extractMcpServers(config)
     expect(result.servers).toEqual({ a: { command: 'x' }, b: { command: 'y' } })
-    expect(result.scope).toBe('project')
+    expect(result.origin).toBe('shared')
   })
 
-  it('returns empty servers and global scope when mcpServers item does not exist', () => {
-    const config: MergedConfig = { items: [{ key: 'other', value: {}, scope: 'global' }] }
+  it('returns empty servers and global origin when mcpServers item does not exist', () => {
+    const config: LayerConfig = { items: [{ key: 'other', value: {}, origin: 'global' }] }
     const result = extractMcpServers(config)
     expect(result.servers).toEqual({})
-    expect(result.scope).toBe('global')
+    expect(result.origin).toBe('global')
   })
 
-  it('returns empty servers and global scope when config is null', () => {
+  it('returns empty servers and global origin when config is null', () => {
     const result = extractMcpServers(null)
     expect(result.servers).toEqual({})
-    expect(result.scope).toBe('global')
+    expect(result.origin).toBe('global')
   })
 })
 

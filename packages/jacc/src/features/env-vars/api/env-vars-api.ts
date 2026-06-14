@@ -1,4 +1,4 @@
-import type { MergedConfig } from '@/shared/hooks/useConfig'
+import type { ConfigOrigin, LayerConfig } from '@/shared/hooks/useConfig'
 
 export const MODEL_ENV_KEYS = [
   'ANTHROPIC_BASE_URL',
@@ -9,14 +9,14 @@ export const MODEL_ENV_KEYS = [
   'ANTHROPIC_DEFAULT_HAIKU_MODEL',
 ] as const
 
-export function extractEnv(config: MergedConfig | null): {
+export function extractEnv(config: LayerConfig | null): {
   env: Record<string, string>
-  scope: 'global' | 'project'
+  origin: ConfigOrigin
 } {
   const item = config?.items.find(i => i.key === 'env')
   return {
     env: (item?.value as Record<string, string>) || {},
-    scope: item?.scope || 'global',
+    origin: item?.origin || 'global',
   }
 }
 

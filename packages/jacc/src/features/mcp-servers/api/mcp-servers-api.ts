@@ -1,4 +1,4 @@
-import type { MergedConfig } from '@/shared/hooks/useConfig'
+import type { ConfigOrigin, LayerConfig } from '@/shared/hooks/useConfig'
 
 export interface McpServer {
   command: string
@@ -6,14 +6,14 @@ export interface McpServer {
   env?: Record<string, string>
 }
 
-export function extractMcpServers(config: MergedConfig | null): {
+export function extractMcpServers(config: LayerConfig | null): {
   servers: Record<string, McpServer>
-  scope: 'global' | 'project'
+  origin: ConfigOrigin
 } {
   const item = config?.items.find(i => i.key === 'mcpServers')
   return {
     servers: (item?.value as Record<string, McpServer>) || {},
-    scope: item?.scope || 'global',
+    origin: item?.origin || 'global',
   }
 }
 

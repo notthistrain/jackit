@@ -3,32 +3,32 @@ import { addRule, extractPermissions, removeRule } from './permissions-api'
 
 describe('permissions-api', () => {
   describe('extractPermissions', () => {
-    it('returns empty permissions and global scope when config is null', () => {
+    it('returns empty permissions and global origin when config is null', () => {
       const result = extractPermissions(null)
       expect(result.permissions).toEqual({})
-      expect(result.scope).toBe('global')
+      expect(result.origin).toBe('global')
     })
 
-    it('returns empty permissions and global scope when permissions item is missing', () => {
-      const config = { items: [{ key: 'other', value: 'foo', scope: 'project' as const }] }
+    it('returns empty permissions and global origin when permissions item is missing', () => {
+      const config = { items: [{ key: 'other', value: 'foo', origin: 'shared' as const }] }
       const result = extractPermissions(config)
       expect(result.permissions).toEqual({})
-      expect(result.scope).toBe('global')
+      expect(result.origin).toBe('global')
     })
 
-    it('extracts permissions and scope from config item', () => {
+    it('extracts permissions and origin from config item', () => {
       const config = {
         items: [
           {
             key: 'permissions',
             value: { allow: [{ tool: 'Bash', pattern: 'ls' }], deny: [] },
-            scope: 'project' as const,
+            origin: 'shared' as const,
           },
         ],
       }
       const result = extractPermissions(config)
       expect(result.permissions).toEqual({ allow: [{ tool: 'Bash', pattern: 'ls' }], deny: [] })
-      expect(result.scope).toBe('project')
+      expect(result.origin).toBe('shared')
     })
   })
 

@@ -3,21 +3,21 @@ import { deleteEnvVar, extractEnv, setEnvVar, splitEnv } from './env-vars-api'
 
 describe('env-vars-api', () => {
   describe('extractEnv', () => {
-    it('returns empty env and global scope when config is null', () => {
+    it('returns empty env and global origin when config is null', () => {
       const result = extractEnv(null)
-      expect(result).toEqual({ env: {}, scope: 'global' })
+      expect(result).toEqual({ env: {}, origin: 'global' })
     })
 
-    it('returns empty env and global scope when env item not found', () => {
-      const result = extractEnv({ items: [{ key: 'other', value: 'x', scope: 'global' }] })
-      expect(result).toEqual({ env: {}, scope: 'global' })
+    it('returns empty env and global origin when env item not found', () => {
+      const result = extractEnv({ items: [{ key: 'other', value: 'x', origin: 'global' }] })
+      expect(result).toEqual({ env: {}, origin: 'global' })
     })
 
-    it('returns env object and scope when env item exists', () => {
+    it('returns env object and origin when env item exists', () => {
       const result = extractEnv({
-        items: [{ key: 'env', value: { MY_VAR: 'a' }, scope: 'project' }],
+        items: [{ key: 'env', value: { MY_VAR: 'a' }, origin: 'shared' }],
       })
-      expect(result).toEqual({ env: { MY_VAR: 'a' }, scope: 'project' })
+      expect(result).toEqual({ env: { MY_VAR: 'a' }, origin: 'shared' })
     })
   })
 
