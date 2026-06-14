@@ -311,52 +311,27 @@ pub async fn set_current_model_at(
         _ => slot.to_string(),
     };
 
-    let mut settings: serde_json::Value = if settings_path.exists() {
-        let content = std::fs::read_to_string(settings_path)?;
-        serde_json::from_str(&content)?
-    } else {
-        serde_json::json!({})
-    };
-
-    settings
-        .as_object_mut()
-        .unwrap()
-        .insert("model".to_string(), serde_json::Value::String(model_value));
-
-    let env = settings
-        .as_object_mut()
-        .unwrap()
-        .entry("env")
-        .or_insert_with(|| serde_json::json!({}));
-
-    let env_obj = env.as_object_mut().unwrap();
-    env_obj.insert(
-        "ANTHROPIC_BASE_URL".to_string(),
-        serde_json::Value::String(base_url),
-    );
-    env_obj.insert(
-        "ANTHROPIC_AUTH_TOKEN".to_string(),
-        serde_json::Value::String(api_key),
-    );
-
-    // 同时更新 DEFAULT_*_MODEL，让 Claude Code 知道 slot 对应的模型名
     let default_key = match slot {
         "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
         "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
         "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
         _ => "ANTHROPIC_MODEL",
     };
-    env_obj.insert(
-        default_key.to_string(),
-        serde_json::Value::String(model_name),
-    );
 
-    let content = serde_json::to_string_pretty(&settings)?;
-    if let Some(parent) = settings_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    std::fs::write(settings_path, content)?;
-    Ok(())
+    crate::claude_settings::update(settings_path, move |obj| {
+        obj.insert("model".to_string(), serde_json::Value::String(model_value));
+        let env = obj
+            .entry("env")
+            .or_insert_with(|| serde_json::json!({}));
+        let env_obj = env.as_object_mut().ok_or_else(|| {
+            AppError::Custom("settings.env 不是对象".to_string())
+        })?;
+        env_obj.insert("ANTHROPIC_BASE_URL".to_string(), serde_json::Value::String(base_url));
+        env_obj.insert("ANTHROPIC_AUTH_TOKEN".to_string(), serde_json::Value::String(api_key));
+        env_obj.insert(default_key.to_string(), serde_json::Value::String(model_name));
+        Ok(())
+    })
+    .await
 }
 
 fn get_global_settings_path() -> std::path::PathBuf {
@@ -618,6 +593,25 @@ mod tests {
         assert_eq!(settings["model"], "sonnet[1m]");
         assert_eq!(settings["env"]["ANTHROPIC_BASE_URL"], "https://api.deepseek.com");
         assert_eq!(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "ds-bbb");
+    }
+
+    #[tokio::test]
+    async fn set_current_model_writes_atomically_valid_json() {
+        let pool = setup_test_db().await;
+        let mid = insert_full_model(
+            &pool, "Anthropic", "https://api.anthropic.com", "sk-ant-aaa", "claude-opus-4-6",
+        )
+        .await;
+        bind_slot_inner(&pool, "opus", mid).await.unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        // 预置一个已有 key，验证写入不覆盖丢失（重构为 update() 后仍须保持）
+        std::fs::write(&path, "{\n  \"keep\": true\n}\n").unwrap();
+        set_current_model_at(&pool, "opus", None, &path).await.unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["keep"], true, "已有 key 必须保留");
+        assert_eq!(v["model"], "opus");
     }
 
     #[tokio::test]
