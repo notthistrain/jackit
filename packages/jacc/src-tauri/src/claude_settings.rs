@@ -49,7 +49,8 @@ pub fn ensure_local_settings_gitignored(project: &Path) -> AppResult<bool> {
     use std::io::Write;
     tmp.write_all(next.as_bytes())?;
     tmp.flush()?;
-    tmp.persist(&gitignore).map_err(|e| std::io::Error::other(e.to_string()))?;
+    tmp.persist(&gitignore)
+        .map_err(|e| std::io::Error::other(format!("persist {} failed: {}", gitignore.display(), e.error)))?;
     Ok(true)
 }
 
@@ -115,13 +116,15 @@ where
     use std::io::Write;
     tmp.write_all(content.as_bytes())?;
     tmp.flush()?;
-    tmp.persist(path).map_err(|e| std::io::Error::other(e.to_string()))?;
+    tmp.persist(path)
+        .map_err(|e| std::io::Error::other(format!("persist {} failed: {}", path.display(), e.error)))?;
 
     tracing::info!(path = %path.display(), "settings.json written");
     Ok(())
 }
 
-fn slot_env_key(slot: &str) -> &'static str {
+/// 槽位 → 默认模型 env 键。slots 模块与 write_slot_env/clear_slot_env 共用此映射。
+pub fn slot_env_key(slot: &str) -> &'static str {
     match slot {
         "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
         "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",

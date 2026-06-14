@@ -53,15 +53,6 @@ pub struct SlotBindingFull {
 
 const ALLOWED_SLOTS: &[&str] = &["opus", "sonnet", "haiku"];
 
-fn slot_default_env_key(slot: &str) -> &'static str {
-    match slot {
-        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
-        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
-        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
-        _ => "ANTHROPIC_MODEL",
-    }
-}
-
 pub(crate) async fn get_slot_bindings_full_at(
     pool: &SqlitePool,
     settings_path: &std::path::Path,
@@ -91,7 +82,7 @@ pub(crate) async fn get_slot_bindings_full_at(
 
     let mut out = Vec::new();
     for (slot, model_id, model_name, _ctx, api_key, base_url, provider_name, provider_id) in rows {
-        let env_model_key = slot_default_env_key(&slot);
+        let env_model_key = crate::claude_settings::slot_env_key(&slot);
         let actual_model = env.get(env_model_key).and_then(|v| v.as_str()).map(String::from);
         let actual_base = env.get("ANTHROPIC_BASE_URL").and_then(|v| v.as_str()).map(String::from);
         let actual_token = env.get("ANTHROPIC_AUTH_TOKEN").and_then(|v| v.as_str()).map(String::from);
@@ -294,8 +285,8 @@ pub async fn set_current_model_at(
     if !ALLOWED_SLOTS.contains(&slot) {
         return Err(AppError::Custom(format!("INVALID_SLOT:{}", slot)));
     }
-    let row = sqlx::query_as::<_, (String, Option<String>, String, String)>(
-        "SELECT m.model_name, ms.context_size, ak.api_key, p.base_url
+    let row = sqlx::query_as::<_, (String, String, String)>(
+        "SELECT m.model_name, ak.api_key, p.base_url
          FROM model_slots ms
          JOIN models m ON ms.model_id = m.id
          JOIN api_keys ak ON m.api_key_id = ak.id
@@ -307,19 +298,15 @@ pub async fn set_current_model_at(
     .await
     .map_err(|_| AppError::Custom(format!("SLOT_NOT_BOUND:{}", slot)))?;
 
-    let (model_name, _slot_ctx, api_key, base_url) = row;
+    let (model_name, api_key, base_url) = row;
 
     let model_value = match context_size {
         Some(ctx) if !ctx.is_empty() => format!("{}[{}]", slot, ctx),
         _ => slot.to_string(),
     };
 
-    let default_key = match slot {
-        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
-        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
-        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
-        _ => "ANTHROPIC_MODEL",
-    };
+    // 上下文大小取自调用方入参；DB 的 ms.context_size 不在此使用
+    let default_key = crate::claude_settings::slot_env_key(slot);
 
     crate::claude_settings::update(settings_path, move |obj| {
         obj.insert("model".to_string(), serde_json::Value::String(model_value));

@@ -111,6 +111,34 @@ async fn delete_kv_routed(project: &Path, key: &str, origin: ConfigOrigin) -> Ap
     crate::claude_settings::delete_kv(&path, key).await
 }
 
+/// 项目 scope 下按 sensitive 分流写入 env 子键（不影响 env 内其它键）。
+async fn write_env_kv_routed(
+    project: &Path,
+    key: &str,
+    value: serde_json::Value,
+    sensitive: bool,
+) -> AppResult<WriteConfigResult> {
+    if sensitive {
+        let local = crate::claude_settings::project_local_settings_path(project);
+        crate::claude_settings::write_env_kv(&local, key, value).await?;
+        let gitignore_updated = crate::claude_settings::ensure_local_settings_gitignored(project)?;
+        Ok(WriteConfigResult { wrote_local: true, gitignore_updated })
+    } else {
+        let shared = crate::claude_settings::project_settings_path(project);
+        crate::claude_settings::write_env_kv(&shared, key, value).await?;
+        Ok(WriteConfigResult { wrote_local: false, gitignore_updated: false })
+    }
+}
+
+/// 项目 scope 下按 origin 删对应文件的 env 子键。
+async fn delete_env_kv_routed(project: &Path, key: &str, origin: ConfigOrigin) -> AppResult<()> {
+    let path = match origin {
+        ConfigOrigin::Local => crate::claude_settings::project_local_settings_path(project),
+        _ => crate::claude_settings::project_settings_path(project),
+    };
+    crate::claude_settings::delete_env_kv(&path, key).await
+}
+
 #[tauri::command]
 pub async fn read_config_layer(
     scope: ConfigScope,
@@ -250,7 +278,8 @@ pub async fn reset_corrupted_settings(
             let pp = project_path.ok_or_else(|| {
                 crate::error::AppError::Custom("项目路径不能为空".into())
             })?;
-            crate::claude_settings::project_settings_path(Path::new(&pp))
+            let validated = crate::path_guard::validate_project_path(&pp)?;
+            crate::claude_settings::project_settings_path(&validated)
         }
     };
     if let Some(parent) = path.parent() {
@@ -260,7 +289,8 @@ pub async fn reset_corrupted_settings(
     let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
     tmp.write_all(b"{}\n")?;
     tmp.flush()?;
-    tmp.persist(&path).map_err(|e| std::io::Error::other(e.to_string()))?;
+    tmp.persist(&path)
+        .map_err(|e| std::io::Error::other(format!("persist {} failed: {}", path.display(), e.error)))?;
     tracing::warn!(path = %path.display(), "settings.json reset to empty object by user");
     Ok(())
 }
@@ -350,16 +380,7 @@ pub async fn set_env_var(
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
                 let validated = crate::path_guard::validate_project_path(&pp)?;
-                if sensitive {
-                    let local = crate::claude_settings::project_local_settings_path(&validated);
-                    crate::claude_settings::write_env_kv(&local, &key, value).await?;
-                    let gitignore_updated = crate::claude_settings::ensure_local_settings_gitignored(&validated)?;
-                    Ok(WriteConfigResult { wrote_local: true, gitignore_updated })
-                } else {
-                    let shared = crate::claude_settings::project_settings_path(&validated);
-                    crate::claude_settings::write_env_kv(&shared, &key, value).await?;
-                    Ok(WriteConfigResult { wrote_local: false, gitignore_updated: false })
-                }
+                write_env_kv_routed(&validated, &key, value, sensitive).await
             }
         }
     })
@@ -373,20 +394,19 @@ pub async fn delete_env_var(
     origin: ConfigOrigin,
 ) -> AppResult<()> {
     log_command!("delete_env_var", {
-        let path = match scope {
-            ConfigScope::Global => crate::claude_settings::global_settings_path(),
+        match scope {
+            ConfigScope::Global => {
+                let path = crate::claude_settings::global_settings_path();
+                crate::claude_settings::delete_env_kv(&path, &key).await
+            }
             ConfigScope::Project => {
                 let pp = project_path.ok_or_else(|| {
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
                 let validated = crate::path_guard::validate_project_path(&pp)?;
-                match origin {
-                    ConfigOrigin::Local => crate::claude_settings::project_local_settings_path(&validated),
-                    _ => crate::claude_settings::project_settings_path(&validated),
-                }
+                delete_env_kv_routed(&validated, &key, origin).await
             }
-        };
-        crate::claude_settings::delete_env_kv(&path, &key).await
+        }
     })
 }
 
