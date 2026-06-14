@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n'
 import { useEffect, useState } from 'react'
 import { SelectRow, SlotRow, ToggleRow } from '@/features/general'
+import { buildDriftItems } from '@/features/general/utils/drift'
 import { useT } from '@/i18n'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 import { useConfig } from '@/shared/hooks/useConfig'
@@ -51,9 +52,7 @@ export function General() {
   function buildSlotProps(slot: Slot) {
     const binding = bindings.find(b => b.intent.slot === slot)
     const isCurrent = slot === currentSlot
-    const driftItems = binding
-      ? [!binding.matches.model_name && t('general.slot.driftModel'), !binding.matches.base_url && t('general.slot.driftUrl'), !binding.matches.api_key && t('general.slot.driftKey')].filter(Boolean)
-      : []
+    const driftItems = binding ? buildDriftItems(binding, t) : []
     const ctx = slotContexts[slot]
     return {
       slot,

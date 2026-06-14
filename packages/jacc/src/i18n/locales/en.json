@@ -29,6 +29,8 @@
   "general.slot.driftModel": "Model",
   "general.slot.driftUrl": "URL",
   "general.slot.driftKey": "Key",
+  "general.slot.driftActual": "actual {value}",
+  "general.slot.driftEmpty": "empty",
   "general.apply": "Apply",
   "general.effortLevel": "Effort Level",
   "general.effortLevel.desc": "Reasoning effort level",

@@ -29,6 +29,8 @@
   "general.slot.driftModel": "模型",
   "general.slot.driftUrl": "URL",
   "general.slot.driftKey": "密钥",
+  "general.slot.driftActual": "实际 {value}",
+  "general.slot.driftEmpty": "空",
   "general.apply": "应用",
   "general.effortLevel": "Effort Level",
   "general.effortLevel.desc": "推理努力程度",

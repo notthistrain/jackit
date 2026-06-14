@@ -66,7 +66,7 @@ export function SlotRow({
         ))}
       </select>
 
-      {isBound && !isCurrent && (
+      {isBound && (!isCurrent || isDrifted) && (
         <button onClick={onApply} className={styles.applyButton()}>
           {t('general.apply')}
         </button>
