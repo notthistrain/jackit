@@ -19,6 +19,40 @@ pub fn project_settings_path(project: &Path) -> PathBuf {
     project.join(".claude").join("settings.json")
 }
 
+/// 项目本地 settings.local.json：<project>/.claude/settings.local.json
+pub fn project_local_settings_path(project: &Path) -> PathBuf {
+    project.join(".claude").join("settings.local.json")
+}
+
+/// 确保 <project>/.gitignore 含 ".claude/settings.local.json" 行。
+/// 已存在返回 false 不写；否则追加并原子写入，返回 true。
+pub fn ensure_local_settings_gitignored(project: &Path) -> AppResult<bool> {
+    const LINE: &str = ".claude/settings.local.json";
+    let gitignore = project.join(".gitignore");
+    let existing = if gitignore.exists() {
+        std::fs::read_to_string(&gitignore)?
+    } else {
+        String::new()
+    };
+    if existing.lines().any(|l| l.trim() == LINE) {
+        return Ok(false);
+    }
+    let mut next = existing;
+    if !next.is_empty() && !next.ends_with('\n') {
+        next.push('\n');
+    }
+    next.push_str(LINE);
+    next.push('\n');
+    let parent = gitignore.parent().unwrap_or_else(|| Path::new("."));
+    std::fs::create_dir_all(parent)?;
+    let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
+    use std::io::Write;
+    tmp.write_all(next.as_bytes())?;
+    tmp.flush()?;
+    tmp.persist(&gitignore).map_err(|e| std::io::Error::other(e.to_string()))?;
+    Ok(true)
+}
+
 pub async fn read(path: &Path) -> AppResult<serde_json::Value> {
     if !path.exists() {
         return Ok(serde_json::json!({}));
@@ -329,5 +363,38 @@ mod tests {
         assert_eq!(read_value(&path)["foo"], "bar");
         delete_kv(&path, "foo").await.unwrap();
         assert!(read_value(&path).get("foo").is_none());
+    }
+
+    #[test]
+    fn local_settings_path_appends_local_filename() {
+        let p = project_local_settings_path(std::path::Path::new("/proj"));
+        assert!(p.ends_with(".claude/settings.local.json"));
+    }
+
+    #[test]
+    fn gitignore_creates_file_when_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let wrote = ensure_local_settings_gitignored(dir.path()).unwrap();
+        assert!(wrote);
+        let content = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
+        assert!(content.lines().any(|l| l.trim() == ".claude/settings.local.json"));
+    }
+
+    #[test]
+    fn gitignore_idempotent_when_line_present() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".gitignore"), "node_modules\n.claude/settings.local.json\n").unwrap();
+        let wrote = ensure_local_settings_gitignored(dir.path()).unwrap();
+        assert!(!wrote);
+    }
+
+    #[test]
+    fn gitignore_preserves_existing_and_appends() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".gitignore"), "dist\n").unwrap();
+        ensure_local_settings_gitignored(dir.path()).unwrap();
+        let content = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
+        assert!(content.contains("dist"));
+        assert!(content.trim_end().ends_with(".claude/settings.local.json"));
     }
 }
