@@ -14,7 +14,7 @@ import { useAppStore } from '@/stores/useAppStore'
 export function EnvVars() {
   const { t } = useT()
   const { configScope, setConfigScope } = useAppStore()
-  const { regularEntries, modelEntries, needsProject, setVar, remove } = useEnvVars()
+  const { entries, regularEntries, modelEntries, needsProject, setVar, remove } = useEnvVars()
   const selectProject = useSelectProject()
   const [showAdd, setShowAdd] = useState(false)
   const [newValues, setNewValues] = useState<{ meta: EnvVarMeta | null, value: string }>({ meta: null, value: '' })
@@ -88,6 +88,7 @@ export function EnvVars() {
                 onChange={setNewValues}
                 onSubmit={handleSubmit}
                 onCancel={() => setShowAdd(false)}
+                existingKeys={entries.map(e => e.key)}
                 t={t}
               />
 

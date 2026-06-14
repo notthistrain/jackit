@@ -9,6 +9,7 @@ export interface AddEnvVarFormProps {
   onChange: (values: { meta: EnvVarMeta | null, value: string }) => void
   onSubmit: () => void
   onCancel: () => void
+  existingKeys?: string[]
   t: (key: string, params?: Record<string, string>) => string
 }
 
@@ -18,6 +19,7 @@ export function AddEnvVarForm({
   onChange,
   onSubmit,
   onCancel,
+  existingKeys,
   t,
 }: AddEnvVarFormProps) {
   if (!visible)
@@ -34,6 +36,7 @@ export function AddEnvVarForm({
           <EnvVarCombobox
             value={values.meta?.name ?? ''}
             onSelect={meta => onChange({ meta, value: '' })}
+            existingKeys={existingKeys}
           />
         </div>
         <div className={inputGroup()}>

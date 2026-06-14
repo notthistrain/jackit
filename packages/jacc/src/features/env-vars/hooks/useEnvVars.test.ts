@@ -63,4 +63,38 @@ describe('useEnvVars per-var routing', () => {
     })
     expect(mocks.invoke).toHaveBeenCalledWith('set_env_var', expect.objectContaining({ key: 'MY_CUSTOM', sensitive: false }))
   })
+
+  it('surfaces a just-set variable to the top of regularEntries (env 多时也能看到)', async () => {
+    mocks.invoke.mockImplementation((cmd: string) =>
+      cmd === 'read_env_layer'
+        ? Promise.resolve({
+            vars: [
+              { key: 'AAA', value: '1', origin: 'shared' },
+              { key: 'BBB', value: '2', origin: 'shared' },
+            ],
+          })
+        : Promise.resolve({ wrote_local: false, gitignore_updated: false }),
+    )
+    const { useEnvVars } = await import('./useEnvVars')
+    const { result } = renderHook(() => useEnvVars())
+    await waitFor(() => expect(result.current.regularEntries.length).toBe(2))
+
+    // setVar 后第二次读：后端字母序把 ZZZ 排到最后
+    mocks.invoke.mockImplementation((cmd: string) =>
+      cmd === 'read_env_layer'
+        ? Promise.resolve({
+            vars: [
+              { key: 'AAA', value: '1', origin: 'shared' },
+              { key: 'BBB', value: '2', origin: 'shared' },
+              { key: 'ZZZ', value: '3', origin: 'shared' },
+            ],
+          })
+        : Promise.resolve({ wrote_local: false, gitignore_updated: false }),
+    )
+    await act(async () => {
+      await result.current.setVar('ZZZ', '3')
+    })
+    await waitFor(() => expect(result.current.regularEntries.length).toBe(3))
+    expect(result.current.regularEntries[0].key).toBe('ZZZ')
+  })
 })

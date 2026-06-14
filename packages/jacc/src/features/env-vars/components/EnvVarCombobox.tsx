@@ -7,19 +7,27 @@ import { envVarCombobox } from './env-var-combobox.variants'
 export interface EnvVarComboboxProps {
   value: string
   onSelect: (meta: EnvVarMeta) => void
+  /** 已设置的变量名，下拉项中去重（不重复展示/添加） */
+  existingKeys?: string[]
   className?: string
 }
 
 const GROUP_ORDER: EnvGroup[] = ['auth', 'endpoint', 'model', 'cache', 'bedrock', 'vertex', 'foundry', 'feature', 'context', 'effort', 'timeout', 'proxy', 'tls', 'telemetry', 'ui', 'session', 'debug']
 
-export function EnvVarCombobox({ value, onSelect }: EnvVarComboboxProps) {
+export function EnvVarCombobox({ value, onSelect, existingKeys }: EnvVarComboboxProps) {
   const { t } = useT()
   const [query, setQuery] = useState(value)
   const [open, setOpen] = useState(false)
   const { root, input, dropdown, groupTitle, optionName, optionHint, custom } = envVarCombobox()
 
-  const results = useMemo(() => searchCatalog(query), [query])
-  const exact = results.some(m => m.name === query.trim())
+  // 去重：已设置的变量不出现在下拉项
+  const existingSet = useMemo(() => new Set(existingKeys ?? []), [existingKeys])
+  const results = useMemo(
+    () => searchCatalog(query).filter(m => !existingSet.has(m.name)),
+    [query, existingSet],
+  )
+  const trimmed = query.trim()
+  const exact = results.some(m => m.name === trimmed)
   const grouped = useMemo(() => {
     const map = new Map<EnvGroup, EnvVarMeta[]>()
     for (const m of results) {
@@ -46,6 +54,7 @@ export function EnvVarCombobox({ value, onSelect }: EnvVarComboboxProps) {
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
         placeholder={t('envvars.add.searchPlaceholder')}
         className={input()}
       />
@@ -59,7 +68,12 @@ export function EnvVarCombobox({ value, onSelect }: EnvVarComboboxProps) {
                   key={meta.name}
                   data-disabled={!!meta.slotManaged}
                   title={meta.description + (meta.sensitive ? t('envvars.add.sensitiveHint') : '')}
-                  onClick={() => pick(meta)}
+                  // onMouseDown + preventDefault：点击选项时不让 input 失焦，
+                  // 否则 onBlur 会先于 onClick 关闭下拉，导致选不上。
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    pick(meta)
+                  }}
                   className={envVarCombobox({ disabled: !!meta.slotManaged }).option()}
                 >
                   <span className={optionName()}>{meta.name}</span>
@@ -70,15 +84,16 @@ export function EnvVarCombobox({ value, onSelect }: EnvVarComboboxProps) {
               ))}
             </div>
           ))}
-          {query.trim() && !exact && (
+          {trimmed && !exact && !existingSet.has(trimmed) && (
             <div
               className={custom()}
-              onClick={() => {
-                onSelect({ name: query.trim(), group: 'feature', type: 'string', sensitive: false, description: '' })
+              onMouseDown={(e) => {
+                e.preventDefault()
+                onSelect({ name: trimmed, group: 'feature', type: 'string', sensitive: false, description: '' })
                 setOpen(false)
               }}
             >
-              {t('envvars.add.useCustom', { name: query.trim() })}
+              {t('envvars.add.useCustom', { name: trimmed })}
             </div>
           )}
         </div>
