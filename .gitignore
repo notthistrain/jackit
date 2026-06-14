@@ -42,3 +42,4 @@ pnpm-debug.log*
 .audit
 logs
 .superpowers
+.claude/settings.local.json
