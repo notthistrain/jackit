@@ -83,9 +83,14 @@ describe('slotRow', () => {
     expect(onApply).toHaveBeenCalledTimes(1)
   })
 
-  it('does not show apply button when isCurrent=true', () => {
-    render(<SlotRow {...baseProps()} isBound={true} isCurrent={true} />)
+  it('does not show apply button when isCurrent=true and not drifted', () => {
+    render(<SlotRow {...baseProps()} isBound={true} isCurrent={true} isDrifted={false} />)
     expect(screen.queryByText('general.apply')).toBeNull()
+  })
+
+  it('shows apply button when current slot has drifted (so user can re-sync)', () => {
+    render(<SlotRow {...baseProps()} isBound={true} isCurrent={true} isDrifted={true} />)
+    expect(screen.getByText('general.apply')).toBeTruthy()
   })
 
   it('does not show apply button when isBound=false', () => {

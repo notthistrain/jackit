@@ -6,7 +6,6 @@ export interface AddPermissionFormProps {
     type: 'allow' | 'deny'
     tool: string
     pattern: string
-    scope: 'global' | 'project'
   }
   onChange: (values: AddPermissionFormProps['values']) => void
   onSubmit: () => void
@@ -49,14 +48,6 @@ export function AddPermissionForm({
           {tools.map(tool => (
             <option key={tool} value={tool}>{tool}</option>
           ))}
-        </select>
-        <select
-          value={values.scope}
-          onChange={e => onChange({ ...values, scope: e.target.value as 'global' | 'project' })}
-          className={styles.select()}
-        >
-          <option value="project">{t('permissions.add.scopeProject')}</option>
-          <option value="global">{t('permissions.add.scopeGlobal')}</option>
         </select>
       </div>
       <div className={styles.inputRow()}>

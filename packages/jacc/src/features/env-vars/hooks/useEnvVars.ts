@@ -1,23 +1,79 @@
-import { useCallback } from 'react'
-import { useConfig } from '@/shared/hooks/useConfig'
-import { deleteEnvVar, extractEnv, setEnvVar, splitEnv } from '../api/env-vars-api'
+import type { ConfigOrigin } from '@/shared/hooks/useConfig'
+import { invoke } from '@tauri-apps/api/core'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useT } from '@/i18n'
+import { useToast } from '@/providers/ToastProvider'
+import { useAppStore } from '@/stores/useAppStore'
+import { findEnvMeta } from '../api/env-catalog'
+import { MODEL_ENV_KEYS } from '../api/env-vars-api'
 
+export interface EnvEntry { key: string, value: string, origin: ConfigOrigin }
+interface EnvLayer { vars: EnvEntry[] }
+interface WriteResult { wrote_local: boolean, gitignore_updated: boolean }
+
+// 逐变量敏感分流：含密钥变量（catalog sensitive=true）落 settings.local.json，
+// 非敏感落 settings.json。槽位托管变量（MODEL_ENV_KEYS）展示但不可在此编辑。
 export function useEnvVars() {
-  const { config, writeConfig } = useConfig()
-  const { env, scope } = extractEnv(config)
-  const { regularEntries, modelEntries } = splitEnv(env)
+  const { configScope, currentProject } = useAppStore()
+  const [entries, setEntries] = useState<EnvEntry[]>([])
+  // 本次会话新增/编辑过的 key（最近在前），用于把刚加的变量置顶展示
+  const [recentKeys, setRecentKeys] = useState<string[]>([])
+  const { success, error } = useToast()
+  const { t } = useT()
+  // stale guard：快速切换 scope/project 时只采纳最后一次读取
+  const reqId = useRef(0)
+  const needsProject = configScope === 'project' && !currentProject
 
-  const add = useCallback(async (key: string, value: string) => {
-    await writeConfig(scope, 'env', setEnvVar(env, key, value))
-  }, [env, scope, writeConfig])
+  const refresh = useCallback(async () => {
+    if (needsProject) {
+      setEntries([])
+      return
+    }
+    const id = ++reqId.current
+    try {
+      const layer = await invoke<EnvLayer>('read_env_layer', { scope: configScope, projectPath: currentProject })
+      if (id === reqId.current)
+        setEntries(layer.vars.map(v => ({ ...v, value: String(v.value) })))
+    }
+    catch (e) {
+      if (id === reqId.current)
+        error(String(e))
+    }
+  }, [configScope, currentProject, needsProject, error])
 
-  const remove = useCallback(async (key: string) => {
-    await writeConfig(scope, 'env', deleteEnvVar(env, key))
-  }, [env, scope, writeConfig])
+  const setVar = useCallback(async (key: string, value: string) => {
+    const sensitive = findEnvMeta(key)?.sensitive ?? false
+    const res = await invoke<WriteResult>('set_env_var', {
+      scope: configScope,
+      projectPath: currentProject,
+      key,
+      value,
+      sensitive,
+    })
+    if (res.wrote_local)
+      success(t('config.wroteLocal'))
+    // 记录本次会话新增/编辑的 key，置顶展示，避免长列表里看不到刚加的项
+    setRecentKeys(prev => [key, ...prev.filter(k => k !== key)])
+    await refresh()
+  }, [configScope, currentProject, refresh, success, t])
 
-  const update = useCallback(async (key: string, value: string) => {
-    await writeConfig(scope, 'env', setEnvVar(env, key, value))
-  }, [env, scope, writeConfig])
+  const remove = useCallback(async (key: string, origin: ConfigOrigin) => {
+    await invoke('delete_env_var', { scope: configScope, projectPath: currentProject, key, origin })
+    await refresh()
+  }, [configScope, currentProject, refresh])
 
-  return { regularEntries, modelEntries, scope, add, remove, update }
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  // 槽位托管变量（由「通用」页槽位写入）：展示但不可在此编辑
+  const modelKeys = MODEL_ENV_KEYS as readonly string[]
+  const rest = entries.filter(e => !modelKeys.includes(e.key))
+  // 本次会话新增/编辑的变量置顶（最近优先），其余按后端返回顺序
+  const recentPresent = recentKeys.map(k => rest.find(e => e.key === k)).filter((e): e is EnvEntry => !!e)
+  const recentSet = new Set(recentKeys)
+  const regularEntries = [...recentPresent, ...rest.filter(e => !recentSet.has(e.key))]
+  const modelEntries = entries.filter(e => modelKeys.includes(e.key))
+
+  return { entries, regularEntries, modelEntries, needsProject, refresh, setVar, remove }
 }

@@ -89,9 +89,13 @@ pub fn run() {
             commands::slots::set_current_model,
             // config
             commands::config::read_merged_config,
+            commands::config::read_config_layer,
             commands::config::write_config,
             commands::config::delete_config,
             commands::config::reset_corrupted_settings,
+            commands::config::read_env_layer,
+            commands::config::set_env_var,
+            commands::config::delete_env_var,
             // delete preview
             commands::delete_preview::preview_delete_impact,
             // skills

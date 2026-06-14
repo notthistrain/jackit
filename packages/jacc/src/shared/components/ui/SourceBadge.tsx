@@ -2,16 +2,17 @@ import { useT } from '@/i18n'
 import { sourceBadge } from './source-badge.variants'
 
 export interface SourceBadgeProps {
-  scope: 'global' | 'project' | 'user' | 'plugin' | 'models'
+  scope: 'global' | 'project' | 'user' | 'plugin' | 'models' | 'shared' | 'local'
   className?: string
 }
 
-const scopeLabelKeys: Record<string, string> = {
+const scopeLabelKeys: Record<Exclude<SourceBadgeProps['scope'], 'models'>, string> = {
   global: 'source.global',
   project: 'source.project',
   user: 'source.user',
   plugin: 'source.plugin',
-  models: '🧠',
+  shared: 'source.shared',
+  local: 'source.local',
 }
 
 export function SourceBadge({ scope, className }: SourceBadgeProps) {

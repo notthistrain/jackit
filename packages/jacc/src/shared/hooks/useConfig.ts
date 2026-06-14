@@ -1,80 +1,95 @@
 import { invoke } from '@tauri-apps/api/core'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useT } from '@/i18n'
 import { useToast } from '@/providers/ToastProvider'
 import { useAppStore } from '@/stores/useAppStore'
 
-export interface MergedConfigItem {
+export type ConfigOrigin = 'global' | 'shared' | 'local'
+
+export interface LayerConfigItem {
   key: string
   value: unknown
-  scope: 'global' | 'project'
+  origin: ConfigOrigin
 }
 
-export interface MergedConfig {
-  items: MergedConfigItem[]
+export interface LayerConfig {
+  items: LayerConfigItem[]
+}
+
+interface WriteConfigResult {
+  wrote_local: boolean
+  gitignore_updated: boolean
 }
 
 export function useConfig() {
-  const { currentProject } = useAppStore()
-  const [config, setConfig] = useState<MergedConfig | null>(null)
+  const { configScope, currentProject } = useAppStore()
+  const [config, setConfig] = useState<LayerConfig | null>(null)
   const [loading, setLoading] = useState(false)
-  const { error } = useToast()
+  const { success, error } = useToast()
+  const { t } = useT()
+  // stale guard：快速切换 scope/project 时只采纳最后一次读取，避免乱序覆盖
+  const reqId = useRef(0)
+
+  const needsProject = configScope === 'project' && !currentProject
 
   const refresh = useCallback(async () => {
+    if (needsProject) {
+      setConfig({ items: [] })
+      return
+    }
+    const id = ++reqId.current
     setLoading(true)
     try {
-      const result = await invoke<MergedConfig>('read_merged_config', {
-        projectPath: currentProject || '',
+      const result = await invoke<LayerConfig>('read_config_layer', {
+        scope: configScope,
+        projectPath: currentProject,
       })
+      if (id !== reqId.current)
+        return
       setConfig(result)
     }
     catch (e) {
-      error(String(e))
+      if (id === reqId.current)
+        error(String(e))
     }
     finally {
-      setLoading(false)
+      if (id === reqId.current)
+        setLoading(false)
     }
-  }, [currentProject, error])
+  }, [configScope, currentProject, needsProject, error])
 
   const writeConfig = useCallback(
-    async (scope: 'global' | 'project', key: string, value: unknown) => {
-      try {
-        await invoke('write_config', {
-          scope,
-          projectPath: currentProject,
-          key,
-          value,
-        })
-        await refresh()
-      }
-      catch (e) {
-        error(String(e))
-        throw e
-      }
+    async (key: string, value: unknown, sensitive: boolean) => {
+      const res = await invoke<WriteConfigResult>('write_config', {
+        scope: configScope,
+        projectPath: currentProject,
+        key,
+        value,
+        sensitive,
+      })
+      if (res.wrote_local)
+        success(t('config.wroteLocal'))
+      await refresh()
     },
-    [currentProject, refresh, error],
+    [configScope, currentProject, refresh, success, t],
   )
 
   const deleteConfig = useCallback(
-    async (scope: 'global' | 'project', key: string) => {
-      try {
-        await invoke('delete_config', {
-          scope,
-          projectPath: currentProject,
-          key,
-        })
-        await refresh()
-      }
-      catch (e) {
-        error(String(e))
-        throw e
-      }
+    async (key: string, origin: ConfigOrigin) => {
+      await invoke('delete_config', {
+        scope: configScope,
+        projectPath: currentProject,
+        key,
+        origin,
+      })
+      await refresh()
     },
-    [currentProject, refresh, error],
+    [configScope, currentProject, refresh],
   )
 
   useEffect(() => {
     refresh()
   }, [refresh])
 
-  return { config, loading, refresh, writeConfig, deleteConfig }
+  return { config, loading, needsProject, refresh, writeConfig, deleteConfig }
 }

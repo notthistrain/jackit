@@ -1,11 +1,13 @@
 import type { PermissionRule } from '../api/permissions-api'
+import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 import { permissionTableVariants } from './permission-table.variants'
 
 export interface PermissionTableProps {
   kind: 'allow' | 'deny'
   rules: PermissionRule[]
-  scope: 'global' | 'project'
+  origin: ConfigOrigin
+  showSource?: boolean
   onDelete: (index: number) => void
   t: (key: string, params?: Record<string, string>) => string
 }
@@ -13,7 +15,8 @@ export interface PermissionTableProps {
 export function PermissionTable({
   kind,
   rules,
-  scope,
+  origin,
+  showSource,
   onDelete,
   t,
 }: PermissionTableProps) {
@@ -42,7 +45,7 @@ export function PermissionTable({
           <div className={styles.headerType()}>{headers.type}</div>
           <div className={styles.headerTool()}>{headers.tool}</div>
           <div className={styles.headerPattern()}>{headers.pattern}</div>
-          <div className={styles.headerSource()}>{headers.source}</div>
+          {showSource && <div className={styles.headerSource()}>{headers.source}</div>}
           <div className={styles.headerAction()}></div>
         </div>
         {rules.map((rule, i) => (
@@ -52,9 +55,11 @@ export function PermissionTable({
             </div>
             <div className={styles.cellTool()}>{rule.tool}</div>
             <div className={styles.cellPattern()}>{rule.pattern}</div>
-            <div className={styles.cellSource()}>
-              <SourceBadge scope={scope} />
-            </div>
+            {showSource && (
+              <div className={styles.cellSource()}>
+                <SourceBadge scope={origin} />
+              </div>
+            )}
             <div className={styles.cellAction()}>
               <button onClick={() => onDelete(i)} className={styles.deleteButton()}>×</button>
             </div>

@@ -9,7 +9,6 @@ describe('addPermissionForm', () => {
     type: 'allow' as const,
     tool: 'Bash',
     pattern: '',
-    scope: 'project' as const,
   }
 
   it('does not render when visible is false', () => {
@@ -77,24 +76,6 @@ describe('addPermissionForm', () => {
     const toolSelect = screen.getByDisplayValue('Bash')
     await user.selectOptions(toolSelect, 'Read')
     expect(onChange).toHaveBeenCalledWith({ ...defaultValues, tool: 'Read' })
-  })
-
-  it('calls onChange when scope select changes', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
-    render(
-      <AddPermissionForm
-        visible={true}
-        values={defaultValues}
-        onChange={onChange}
-        onSubmit={vi.fn()}
-        onCancel={vi.fn()}
-        t={mockT}
-      />,
-    )
-    const scopeSelect = screen.getByDisplayValue('permissions.add.scopeProject')
-    await user.selectOptions(scopeSelect, 'global')
-    expect(onChange).toHaveBeenCalledWith({ ...defaultValues, scope: 'global' })
   })
 
   it('calls onChange when pattern input changes', async () => {

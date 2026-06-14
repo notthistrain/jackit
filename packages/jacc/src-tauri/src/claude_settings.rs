@@ -19,6 +19,41 @@ pub fn project_settings_path(project: &Path) -> PathBuf {
     project.join(".claude").join("settings.json")
 }
 
+/// 项目本地 settings.local.json：<project>/.claude/settings.local.json
+pub fn project_local_settings_path(project: &Path) -> PathBuf {
+    project.join(".claude").join("settings.local.json")
+}
+
+/// 确保 <project>/.gitignore 含 ".claude/settings.local.json" 行。
+/// 已存在返回 false 不写；否则追加并原子写入，返回 true。
+pub fn ensure_local_settings_gitignored(project: &Path) -> AppResult<bool> {
+    const LINE: &str = ".claude/settings.local.json";
+    let gitignore = project.join(".gitignore");
+    let existing = if gitignore.exists() {
+        std::fs::read_to_string(&gitignore)?
+    } else {
+        String::new()
+    };
+    if existing.lines().any(|l| l.trim() == LINE) {
+        return Ok(false);
+    }
+    let mut next = existing;
+    if !next.is_empty() && !next.ends_with('\n') {
+        next.push('\n');
+    }
+    next.push_str(LINE);
+    next.push('\n');
+    let parent = gitignore.parent().unwrap_or_else(|| Path::new("."));
+    std::fs::create_dir_all(parent)?;
+    let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
+    use std::io::Write;
+    tmp.write_all(next.as_bytes())?;
+    tmp.flush()?;
+    tmp.persist(&gitignore)
+        .map_err(|e| std::io::Error::other(format!("persist {} failed: {}", gitignore.display(), e.error)))?;
+    Ok(true)
+}
+
 pub async fn read(path: &Path) -> AppResult<serde_json::Value> {
     if !path.exists() {
         return Ok(serde_json::json!({}));
@@ -81,13 +116,15 @@ where
     use std::io::Write;
     tmp.write_all(content.as_bytes())?;
     tmp.flush()?;
-    tmp.persist(path).map_err(|e| std::io::Error::other(e.to_string()))?;
+    tmp.persist(path)
+        .map_err(|e| std::io::Error::other(format!("persist {} failed: {}", path.display(), e.error)))?;
 
     tracing::info!(path = %path.display(), "settings.json written");
     Ok(())
 }
 
-fn slot_env_key(slot: &str) -> &'static str {
+/// 槽位 → 默认模型 env 键。slots 模块与 write_slot_env/clear_slot_env 共用此映射。
+pub fn slot_env_key(slot: &str) -> &'static str {
     match slot {
         "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
         "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
@@ -143,6 +180,30 @@ pub async fn delete_kv(path: &Path, key: &str) -> AppResult<()> {
         obj.remove(key);
         Ok(())
     }).await
+}
+
+/// 写入 env 子对象内单个键，不影响 env 内其它键与顶层其它 key。
+pub async fn write_env_kv(path: &Path, key: &str, value: serde_json::Value) -> AppResult<()> {
+    update(path, |obj| {
+        let env = obj.entry("env").or_insert_with(|| serde_json::json!({}));
+        let env_obj = env
+            .as_object_mut()
+            .ok_or_else(|| AppError::Custom("settings.env 不是对象".to_string()))?;
+        env_obj.insert(key.to_string(), value);
+        Ok(())
+    })
+    .await
+}
+
+/// 删除 env 子对象内单个键。
+pub async fn delete_env_kv(path: &Path, key: &str) -> AppResult<()> {
+    update(path, |obj| {
+        if let Some(env) = obj.get_mut("env").and_then(|v| v.as_object_mut()) {
+            env.remove(key);
+        }
+        Ok(())
+    })
+    .await
 }
 
 pub async fn purge_token(path: &Path, base_url: &str, api_key: &str) -> AppResult<()> {
@@ -329,5 +390,61 @@ mod tests {
         assert_eq!(read_value(&path)["foo"], "bar");
         delete_kv(&path, "foo").await.unwrap();
         assert!(read_value(&path).get("foo").is_none());
+    }
+
+    #[test]
+    fn local_settings_path_appends_local_filename() {
+        let p = project_local_settings_path(std::path::Path::new("/proj"));
+        assert!(p.ends_with(".claude/settings.local.json"));
+    }
+
+    #[test]
+    fn gitignore_creates_file_when_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let wrote = ensure_local_settings_gitignored(dir.path()).unwrap();
+        assert!(wrote);
+        let content = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
+        assert!(content.lines().any(|l| l.trim() == ".claude/settings.local.json"));
+    }
+
+    #[test]
+    fn gitignore_idempotent_when_line_present() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".gitignore"), "node_modules\n.claude/settings.local.json\n").unwrap();
+        let wrote = ensure_local_settings_gitignored(dir.path()).unwrap();
+        assert!(!wrote);
+    }
+
+    #[test]
+    fn gitignore_preserves_existing_and_appends() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".gitignore"), "dist\n").unwrap();
+        ensure_local_settings_gitignored(dir.path()).unwrap();
+        let content = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
+        assert!(content.contains("dist"));
+        assert!(content.trim_end().ends_with(".claude/settings.local.json"));
+    }
+
+    #[tokio::test]
+    async fn write_env_kv_merges_without_clobbering_siblings() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        write_env_kv(&path, "FOO", serde_json::json!("1")).await.unwrap();
+        write_env_kv(&path, "BAR", serde_json::json!("2")).await.unwrap();
+        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["env"]["FOO"], "1");
+        assert_eq!(v["env"]["BAR"], "2");
+    }
+
+    #[tokio::test]
+    async fn delete_env_kv_removes_only_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        write_env_kv(&path, "FOO", serde_json::json!("1")).await.unwrap();
+        write_env_kv(&path, "BAR", serde_json::json!("2")).await.unwrap();
+        delete_env_kv(&path, "FOO").await.unwrap();
+        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert!(v["env"].get("FOO").is_none());
+        assert_eq!(v["env"]["BAR"], "2");
     }
 }

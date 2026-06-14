@@ -1,4 +1,5 @@
 import type { McpServer } from '../api/mcp-servers-api'
+import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 import { mcpServerItem } from './mcp-server-item.variants'
@@ -7,7 +8,8 @@ export interface McpServerItemProps {
   name: string
   server: McpServer
   expanded: boolean
-  scope: 'global' | 'project'
+  origin: ConfigOrigin
+  showSource?: boolean
   onToggle: () => void
   onSave: (server: McpServer) => void
   onDelete: () => void
@@ -18,7 +20,8 @@ export function McpServerItem({
   name,
   server,
   expanded,
-  scope,
+  origin,
+  showSource,
   onToggle,
   onSave,
   onDelete,
@@ -62,7 +65,7 @@ export function McpServerItem({
           </div>
         </div>
         <div className={headerRight()}>
-          <SourceBadge scope={scope} />
+          {showSource && <SourceBadge scope={origin} />}
           {expanded
             ? (
                 <ChevronUp size={14} className={chevron()} />

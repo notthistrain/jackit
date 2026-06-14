@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
 import { useEffect } from 'react'
 import { Agents } from '@/pages/Agents'
 import { EnvVars } from '@/pages/EnvVars'
@@ -11,14 +10,14 @@ import { Skills } from '@/pages/Skills'
 import { Sidebar } from '@/shared/components/layout/Sidebar'
 import { TitleBar } from '@/shared/components/layout/TitleBar'
 import { EmptyState } from '@/shared/components/ui/EmptyState'
-import { useProjects } from '@/shared/hooks/useProjects'
+import { useSelectProject } from '@/shared/hooks/useSelectProject'
 import { useAppStore } from '@/stores/useAppStore'
 import { layout } from './layout.variants'
 
 export function Layout() {
-  const { currentPage, currentProject, setProject } = useAppStore()
-  const { add, open: openProject } = useProjects()
+  const { currentPage, currentProject } = useAppStore()
   const { root, body, main } = layout()
+  const handleSelectProject = useSelectProject()
 
   // 同步当前激活项目到后端 settings watcher（项目变化时切换监听目标）
   useEffect(() => {
@@ -26,15 +25,6 @@ export function Layout() {
       // watcher 非关键路径，失败静默
     })
   }, [currentProject])
-
-  async function handleSelectProject() {
-    const selected = await open({ directory: true })
-    if (selected) {
-      await add(selected)
-      await openProject(selected)
-      setProject(selected)
-    }
-  }
 
   function renderPage() {
     switch (currentPage) {

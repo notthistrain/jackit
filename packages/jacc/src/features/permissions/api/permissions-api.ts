@@ -1,4 +1,4 @@
-import type { MergedConfig } from '@/shared/hooks/useConfig'
+import type { ConfigOrigin, LayerConfig } from '@/shared/hooks/useConfig'
 
 export interface PermissionRule {
   tool: string
@@ -7,14 +7,14 @@ export interface PermissionRule {
 
 export type PermissionType = 'allow' | 'deny'
 
-export function extractPermissions(config: MergedConfig | null): {
+export function extractPermissions(config: LayerConfig | null): {
   permissions: Record<string, PermissionRule[]>
-  scope: 'global' | 'project'
+  origin: ConfigOrigin
 } {
   const item = config?.items.find(i => i.key === 'permissions')
   return {
     permissions: (item?.value as Record<string, PermissionRule[]>) || {},
-    scope: item?.scope || 'global',
+    origin: item?.origin || 'global',
   }
 }
 

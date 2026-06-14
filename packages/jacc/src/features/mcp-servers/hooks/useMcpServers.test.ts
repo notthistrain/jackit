@@ -11,16 +11,16 @@ vi.mock('@/shared/hooks/useConfig', () => ({
 }))
 
 beforeEach(() => {
-  mocks.config = { items: [{ key: 'mcpServers', value: { a: { command: 'x' } }, scope: 'global' }] }
+  mocks.config = { items: [{ key: 'mcpServers', value: { a: { command: 'x' } }, origin: 'global' }] }
   mocks.writeConfig.mockClear()
 })
 
 describe('useMcpServers', () => {
-  it('exposes servers and scope', async () => {
+  it('exposes servers and origin', async () => {
     const { useMcpServers } = await import('./useMcpServers')
     const { result } = renderHook(() => useMcpServers())
     expect(result.current.servers).toEqual({ a: { command: 'x' } })
-    expect(result.current.scope).toBe('global')
+    expect(result.current.origin).toBe('global')
   })
 
   it('save calls writeConfig with merged servers', async () => {
@@ -29,7 +29,7 @@ describe('useMcpServers', () => {
     await act(async () => {
       await result.current.save('b', { command: 'y' })
     })
-    expect(mocks.writeConfig).toHaveBeenCalledWith('global', 'mcpServers', { a: { command: 'x' }, b: { command: 'y' } })
+    expect(mocks.writeConfig).toHaveBeenCalledWith('mcpServers', { a: { command: 'x' }, b: { command: 'y' } }, false)
   })
 
   it('remove calls writeConfig with server deleted', async () => {
@@ -38,7 +38,7 @@ describe('useMcpServers', () => {
     await act(async () => {
       await result.current.remove('a')
     })
-    expect(mocks.writeConfig).toHaveBeenCalledWith('global', 'mcpServers', {})
+    expect(mocks.writeConfig).toHaveBeenCalledWith('mcpServers', {}, false)
   })
 
   it('add calls writeConfig with new server and parses args', async () => {
@@ -47,10 +47,10 @@ describe('useMcpServers', () => {
     await act(async () => {
       await result.current.add('c', 'cmd', 'arg1 arg2')
     })
-    expect(mocks.writeConfig).toHaveBeenCalledWith('global', 'mcpServers', {
+    expect(mocks.writeConfig).toHaveBeenCalledWith('mcpServers', {
       a: { command: 'x' },
       c: { command: 'cmd', args: ['arg1', 'arg2'] },
-    })
+    }, false)
   })
 
   it('add sets args to undefined when argsString is empty', async () => {
@@ -59,9 +59,9 @@ describe('useMcpServers', () => {
     await act(async () => {
       await result.current.add('d', 'cmd2', '')
     })
-    expect(mocks.writeConfig).toHaveBeenCalledWith('global', 'mcpServers', {
+    expect(mocks.writeConfig).toHaveBeenCalledWith('mcpServers', {
       a: { command: 'x' },
       d: { command: 'cmd2', args: undefined },
-    })
+    }, false)
   })
 })

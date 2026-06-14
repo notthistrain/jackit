@@ -1,11 +1,15 @@
+import type { EnvVarMeta } from '../api/env-catalog'
 import { addEnvVarFormVariants } from './add-env-var-form.variants'
+import { EnvValueInput } from './EnvValueInput'
+import { EnvVarCombobox } from './EnvVarCombobox'
 
 export interface AddEnvVarFormProps {
   visible: boolean
-  values: { key: string, value: string }
-  onChange: (values: { key: string, value: string }) => void
+  values: { meta: EnvVarMeta | null, value: string }
+  onChange: (values: { meta: EnvVarMeta | null, value: string }) => void
   onSubmit: () => void
   onCancel: () => void
+  existingKeys?: string[]
   t: (key: string, params?: Record<string, string>) => string
 }
 
@@ -15,12 +19,13 @@ export function AddEnvVarForm({
   onChange,
   onSubmit,
   onCancel,
+  existingKeys,
   t,
 }: AddEnvVarFormProps) {
   if (!visible)
     return null
 
-  const { container, formRow, inputGroup, label, input, submitBtn, cancelBtn }
+  const { container, formRow, inputGroup, label, submitBtn, cancelBtn }
     = addEnvVarFormVariants()
 
   return (
@@ -28,26 +33,28 @@ export function AddEnvVarForm({
       <div className={formRow()}>
         <div className={inputGroup()}>
           <div className={label()}>{t('envvars.add.name')}</div>
-          <input
-            value={values.key}
-            onChange={e => onChange({ ...values, key: e.target.value })}
-            placeholder="MY_VAR"
-            className={input()}
+          <EnvVarCombobox
+            value={values.meta?.name ?? ''}
+            onSelect={meta => onChange({ meta, value: '' })}
+            existingKeys={existingKeys}
           />
         </div>
         <div className={inputGroup()}>
           <div className={label()}>{t('envvars.add.value')}</div>
-          <input
+          <EnvValueInput
+            type={values.meta?.type ?? 'string'}
             value={values.value}
-            onChange={e => onChange({ ...values, value: e.target.value })}
-            placeholder="value"
-            className={input()}
+            enumValues={values.meta?.enumValues}
+            default={values.meta?.default}
+            unit={values.meta?.unit}
+            onChange={value => onChange({ ...values, value })}
+            t={t}
           />
         </div>
-        <button onClick={onSubmit} className={submitBtn()}>
+        <button type="button" onClick={onSubmit} className={submitBtn()}>
           {t('envvars.add.submit')}
         </button>
-        <button onClick={onCancel} className={cancelBtn()}>
+        <button type="button" onClick={onCancel} className={cancelBtn()}>
           {t('envvars.add.cancel')}
         </button>
       </div>

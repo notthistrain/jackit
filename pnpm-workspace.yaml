@@ -53,6 +53,7 @@ catalog:
   # Vite
   '@vitejs/plugin-react': ^4
   '@vitejs/plugin-vue': ^5
+  '@vitest/coverage-v8': ^3.2.4
   # Vue 生态
   '@vueuse/core': ^14.2.1
   '@webgpu/types': ^0.1.70

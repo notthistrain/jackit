@@ -1,92 +1,72 @@
-import { invoke } from '@tauri-apps/api/core'
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { vi } from 'vitest'
-import { useSlotBindings } from './useSlotBindings'
-
-// Mock Tauri invoke
-vi.mock('@tauri-apps/api/core', () => ({
+const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  store: { configScope: 'global' as 'global' | 'project', currentProject: null as string | null },
+  error: vi.fn(),
 }))
 
-// Mock Tauri event (useSlotBindings subscribes to settings-changed)
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
-}))
-
-// Mock toast (stable references to avoid infinite re-renders)
-const mockToast = { success: vi.fn(), error: vi.fn() }
+vi.mock('@tauri-apps/api/core', () => ({ invoke: mocks.invoke }))
+vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn().mockResolvedValue(() => {}) }))
+vi.mock('@/stores/useAppStore', () => ({ useAppStore: () => mocks.store }))
 vi.mock('@/providers/ToastProvider', () => ({
-  useToast: () => mockToast,
+  useToast: () => ({ error: mocks.error }),
 }))
 
-describe('useSlotBindings', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+beforeEach(() => {
+  mocks.invoke.mockReset().mockResolvedValue([])
+  mocks.store.configScope = 'global'
+  mocks.store.currentProject = null
+})
+
+describe('useSlotBindings scope', () => {
+  it('reads bindings with global scope on mount', async () => {
+    const { useSlotBindings } = await import('./useSlotBindings')
+    renderHook(() => useSlotBindings())
+    await waitFor(() =>
+      expect(mocks.invoke).toHaveBeenCalledWith('get_slot_bindings', { scope: 'global', projectPath: null }))
   })
 
-  it('calls get_slot_bindings on mount', async () => {
-    vi.mocked(invoke).mockResolvedValueOnce([
-      {
-        intent: {
-          slot: 'opus',
-          model_id: 1,
-          model_name: 'claude-opus-4-6',
-          provider_id: 1,
-          provider_name: 'Anthropic',
-          base_url: 'https://api.anthropic.com',
-          api_key_masked: 'sk-ant-***',
-          context_size: null,
-        },
-        actual: {
-          model_name: 'claude-opus-4-6',
-          base_url: 'https://api.anthropic.com',
-          api_key_masked: 'sk-ant-***',
-        },
-        matches: {
-          model_name: true,
-          base_url: true,
-          api_key: true,
-        },
-      },
-    ])
+  it('does not read when project scope without currentProject', async () => {
+    mocks.store.configScope = 'project'
+    const { useSlotBindings } = await import('./useSlotBindings')
+    renderHook(() => useSlotBindings())
+    await waitFor(() => {})
+    expect(mocks.invoke).not.toHaveBeenCalledWith('get_slot_bindings', expect.anything())
+  })
 
+  it('bind passes scope + projectPath', async () => {
+    mocks.store.configScope = 'project'
+    mocks.store.currentProject = '/proj'
+    const { useSlotBindings } = await import('./useSlotBindings')
     const { result } = renderHook(() => useSlotBindings())
-
-    await waitFor(() => {
-      expect(result.current.bindings).toHaveLength(1)
+    await act(async () => {
+      await result.current.bind('opus', 7)
     })
-    expect(invoke).toHaveBeenCalledWith('get_slot_bindings')
+    expect(mocks.invoke).toHaveBeenCalledWith('bind_slot', {
+      slot: 'opus',
+      modelId: 7,
+      scope: 'project',
+      projectPath: '/proj',
+    })
   })
 
-  it('.bind() calls bind_slot with slot + modelId', async () => {
-    vi.mocked(invoke)
-      .mockResolvedValueOnce([]) // initial
-      .mockResolvedValueOnce(undefined) // bind
-      .mockResolvedValueOnce([]) // refresh
-
+  it('setCurrentModel refreshes bindings after apply (so UI updates without relying on fs watcher)', async () => {
+    mocks.store.configScope = 'project'
+    mocks.store.currentProject = '/proj'
+    const { useSlotBindings } = await import('./useSlotBindings')
     const { result } = renderHook(() => useSlotBindings())
-    await waitFor(() => expect(result.current.bindings).toEqual([]))
+    await waitFor(() =>
+      expect(mocks.invoke).toHaveBeenCalledWith('get_slot_bindings', expect.anything()))
+    const readsBefore = mocks.invoke.mock.calls.filter(c => c[0] === 'get_slot_bindings').length
 
     await act(async () => {
-      await result.current.bind('opus', 1)
+      await result.current.setCurrentModel('opus', null)
     })
 
-    expect(invoke).toHaveBeenCalledWith('bind_slot', { slot: 'opus', modelId: 1 })
-  })
-
-  it('.setCurrentModel() calls set_current_model with slot + contextSize', async () => {
-    vi.mocked(invoke)
-      .mockResolvedValueOnce([]) // initial
-      .mockResolvedValueOnce(undefined) // set_current_model
-
-    const { result } = renderHook(() => useSlotBindings())
-    await waitFor(() => expect(result.current.bindings).toEqual([]))
-
-    await act(async () => {
-      await result.current.setCurrentModel('opus', '1m')
-    })
-
-    expect(invoke).toHaveBeenCalledWith('set_current_model', { slot: 'opus', contextSize: '1m' })
+    expect(mocks.invoke).toHaveBeenCalledWith('set_current_model', expect.objectContaining({ slot: 'opus' }))
+    const readsAfter = mocks.invoke.mock.calls.filter(c => c[0] === 'get_slot_bindings').length
+    expect(readsAfter).toBeGreaterThan(readsBefore)
   })
 })

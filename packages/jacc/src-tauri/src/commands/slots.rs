@@ -4,6 +4,7 @@ use std::path::Path;
 use tauri::State;
 
 use super::api_keys::mask_api_key;
+use crate::commands::config::ConfigScope;
 use crate::error::{AppError, AppResult};
 
 #[derive(Debug, Serialize)]
@@ -52,15 +53,6 @@ pub struct SlotBindingFull {
 
 const ALLOWED_SLOTS: &[&str] = &["opus", "sonnet", "haiku"];
 
-fn slot_default_env_key(slot: &str) -> &'static str {
-    match slot {
-        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
-        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
-        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
-        _ => "ANTHROPIC_MODEL",
-    }
-}
-
 pub(crate) async fn get_slot_bindings_full_at(
     pool: &SqlitePool,
     settings_path: &std::path::Path,
@@ -90,7 +82,7 @@ pub(crate) async fn get_slot_bindings_full_at(
 
     let mut out = Vec::new();
     for (slot, model_id, model_name, _ctx, api_key, base_url, provider_name, provider_id) in rows {
-        let env_model_key = slot_default_env_key(&slot);
+        let env_model_key = crate::claude_settings::slot_env_key(&slot);
         let actual_model = env.get(env_model_key).and_then(|v| v.as_str()).map(String::from);
         let actual_base = env.get("ANTHROPIC_BASE_URL").and_then(|v| v.as_str()).map(String::from);
         let actual_token = env.get("ANTHROPIC_AUTH_TOKEN").and_then(|v| v.as_str()).map(String::from);
@@ -210,6 +202,8 @@ pub async fn bind_slot_at(
     model_id: i64,
     settings_path: &Path,
 ) -> AppResult<SlotBindingIntent> {
+    // 绑定仅写 DB；settings_path 由调用方传入以统一槽位命令接口，激活落盘由 set_current_model_at 负责。
+    let _ = settings_path;
     if !ALLOWED_SLOTS.contains(&slot) {
         return Err(AppError::Custom(format!("INVALID_SLOT:{}", slot)));
     }
@@ -291,8 +285,8 @@ pub async fn set_current_model_at(
     if !ALLOWED_SLOTS.contains(&slot) {
         return Err(AppError::Custom(format!("INVALID_SLOT:{}", slot)));
     }
-    let row = sqlx::query_as::<_, (String, Option<String>, String, String)>(
-        "SELECT m.model_name, ms.context_size, ak.api_key, p.base_url
+    let row = sqlx::query_as::<_, (String, String, String)>(
+        "SELECT m.model_name, ak.api_key, p.base_url
          FROM model_slots ms
          JOIN models m ON ms.model_id = m.id
          JOIN api_keys ak ON m.api_key_id = ak.id
@@ -304,59 +298,30 @@ pub async fn set_current_model_at(
     .await
     .map_err(|_| AppError::Custom(format!("SLOT_NOT_BOUND:{}", slot)))?;
 
-    let (model_name, _slot_ctx, api_key, base_url) = row;
+    let (model_name, api_key, base_url) = row;
 
     let model_value = match context_size {
         Some(ctx) if !ctx.is_empty() => format!("{}[{}]", slot, ctx),
         _ => slot.to_string(),
     };
 
-    let mut settings: serde_json::Value = if settings_path.exists() {
-        let content = std::fs::read_to_string(settings_path)?;
-        serde_json::from_str(&content)?
-    } else {
-        serde_json::json!({})
-    };
+    // 上下文大小取自调用方入参；DB 的 ms.context_size 不在此使用
+    let default_key = crate::claude_settings::slot_env_key(slot);
 
-    settings
-        .as_object_mut()
-        .unwrap()
-        .insert("model".to_string(), serde_json::Value::String(model_value));
-
-    let env = settings
-        .as_object_mut()
-        .unwrap()
-        .entry("env")
-        .or_insert_with(|| serde_json::json!({}));
-
-    let env_obj = env.as_object_mut().unwrap();
-    env_obj.insert(
-        "ANTHROPIC_BASE_URL".to_string(),
-        serde_json::Value::String(base_url),
-    );
-    env_obj.insert(
-        "ANTHROPIC_AUTH_TOKEN".to_string(),
-        serde_json::Value::String(api_key),
-    );
-
-    // 同时更新 DEFAULT_*_MODEL，让 Claude Code 知道 slot 对应的模型名
-    let default_key = match slot {
-        "opus" => "ANTHROPIC_DEFAULT_OPUS_MODEL",
-        "sonnet" => "ANTHROPIC_DEFAULT_SONNET_MODEL",
-        "haiku" => "ANTHROPIC_DEFAULT_HAIKU_MODEL",
-        _ => "ANTHROPIC_MODEL",
-    };
-    env_obj.insert(
-        default_key.to_string(),
-        serde_json::Value::String(model_name),
-    );
-
-    let content = serde_json::to_string_pretty(&settings)?;
-    if let Some(parent) = settings_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    std::fs::write(settings_path, content)?;
-    Ok(())
+    crate::claude_settings::update(settings_path, move |obj| {
+        obj.insert("model".to_string(), serde_json::Value::String(model_value));
+        let env = obj
+            .entry("env")
+            .or_insert_with(|| serde_json::json!({}));
+        let env_obj = env.as_object_mut().ok_or_else(|| {
+            AppError::Custom("settings.env 不是对象".to_string())
+        })?;
+        env_obj.insert("ANTHROPIC_BASE_URL".to_string(), serde_json::Value::String(base_url));
+        env_obj.insert("ANTHROPIC_AUTH_TOKEN".to_string(), serde_json::Value::String(api_key));
+        env_obj.insert(default_key.to_string(), serde_json::Value::String(model_name));
+        Ok(())
+    })
+    .await
 }
 
 fn get_global_settings_path() -> std::path::PathBuf {
@@ -364,17 +329,56 @@ fn get_global_settings_path() -> std::path::PathBuf {
     home.join(".claude").join("settings.json")
 }
 
+/// 按 scope 解析槽位读写目标。项目 scope → settings.local.json（槽位含密钥）。
+/// `ensure_gitignore=true`（写盘命令）时确保 .gitignore 含 local 行；
+/// 读命令与不写盘的 bind/unbind 传 false，避免产生文件副作用。
+fn resolve_slot_settings_path(
+    scope: ConfigScope,
+    project_path: Option<String>,
+    ensure_gitignore: bool,
+) -> AppResult<(std::path::PathBuf, bool)> {
+    match scope {
+        ConfigScope::Global => Ok((get_global_settings_path(), false)),
+        ConfigScope::Project => {
+            let pp = project_path
+                .ok_or_else(|| AppError::Custom("项目路径不能为空".to_string()))?;
+            let validated = crate::path_guard::validate_project_path(&pp)?;
+            let gitignored = if ensure_gitignore {
+                crate::claude_settings::ensure_local_settings_gitignored(&validated)?
+            } else {
+                false
+            };
+            Ok((
+                crate::claude_settings::project_local_settings_path(&validated),
+                gitignored,
+            ))
+        }
+    }
+}
+
 #[tauri::command]
-pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<SlotBindingFull>> {
+pub async fn get_slot_bindings(
+    pool: State<'_, SqlitePool>,
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<Vec<SlotBindingFull>> {
     log_read_command!("get_slot_bindings", {
-        get_slot_bindings_full_at(pool.inner(), &crate::claude_settings::global_settings_path()).await
+        let (path, _) = resolve_slot_settings_path(scope, project_path, false)?;
+        get_slot_bindings_full_at(pool.inner(), &path).await
     })
 }
 
 #[tauri::command]
-pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64) -> AppResult<()> {
+pub async fn bind_slot(
+    pool: State<'_, SqlitePool>,
+    slot: String,
+    model_id: i64,
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<()> {
     log_command!("bind_slot", {
-        let path = crate::claude_settings::global_settings_path();
+        // bind 仅写 DB 不写盘，ensure_gitignore=false 避免绑定操作产生文件副作用
+        let (path, _) = resolve_slot_settings_path(scope, project_path, false)?;
         bind_slot_at(pool.inner(), &slot, model_id, &path).await?;
         tracing::info!(slot = %slot, model_id, "slot bound");
         Ok(())
@@ -382,9 +386,14 @@ pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64)
 }
 
 #[tauri::command]
-pub async fn unbind_slot(pool: State<'_, SqlitePool>, slot: String) -> AppResult<()> {
+pub async fn unbind_slot(
+    pool: State<'_, SqlitePool>,
+    slot: String,
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<()> {
     log_command!("unbind_slot", {
-        let path = crate::claude_settings::global_settings_path();
+        let (path, _) = resolve_slot_settings_path(scope, project_path, false)?;
         unbind_slot_at(pool.inner(), &slot, &path).await?;
         tracing::info!(slot = %slot, "slot unbound");
         Ok(())
@@ -396,9 +405,13 @@ pub async fn set_current_model(
     pool: State<'_, SqlitePool>,
     slot: String,
     context_size: Option<String>,
+    scope: ConfigScope,
+    project_path: Option<String>,
 ) -> AppResult<()> {
     log_command!("set_current_model", {
-        set_current_model_at(pool.inner(), &slot, context_size.as_deref(), &get_global_settings_path()).await?;
+        // set_current_model 写盘，项目 scope 落 settings.local.json 并确保 gitignore
+        let (path, _) = resolve_slot_settings_path(scope, project_path, true)?;
+        set_current_model_at(pool.inner(), &slot, context_size.as_deref(), &path).await?;
         tracing::info!(slot = %slot, context_size = ?context_size, "current model set");
         Ok(())
     })
@@ -621,6 +634,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn set_current_model_writes_atomically_valid_json() {
+        let pool = setup_test_db().await;
+        let mid = insert_full_model(
+            &pool, "Anthropic", "https://api.anthropic.com", "sk-ant-aaa", "claude-opus-4-6",
+        )
+        .await;
+        bind_slot_inner(&pool, "opus", mid).await.unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        // 预置一个已有 key，验证写入不覆盖丢失（重构为 update() 后仍须保持）
+        std::fs::write(&path, "{\n  \"keep\": true\n}\n").unwrap();
+        set_current_model_at(&pool, "opus", None, &path).await.unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["keep"], true, "已有 key 必须保留");
+        assert_eq!(v["model"], "opus");
+    }
+
+    #[tokio::test]
     async fn test_set_current_model_unbound_slot() {
         let pool = setup_test_db().await;
         let dir = tempfile::tempdir().unwrap();
@@ -774,5 +806,45 @@ mod tests {
         assert!(r.is_err());
         let err_str = r.unwrap_err().to_string();
         assert!(err_str.contains("INVALID_SLOT") && err_str.contains("evil"));
+    }
+
+    #[tokio::test]
+    async fn slot_path_project_scope_write_resolves_to_local_and_gitignores() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path();
+        std::fs::create_dir_all(proj.join(".claude")).unwrap();
+        let (path, gitignored) = resolve_slot_settings_path(
+            ConfigScope::Project,
+            Some(proj.to_string_lossy().to_string()),
+            true,
+        )
+        .unwrap();
+        assert!(path.ends_with(".claude/settings.local.json"));
+        assert!(gitignored);
+        assert!(proj.join(".gitignore").exists());
+    }
+
+    #[tokio::test]
+    async fn slot_path_project_scope_read_does_not_touch_gitignore() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path();
+        std::fs::create_dir_all(proj.join(".claude")).unwrap();
+        let (path, gitignored) = resolve_slot_settings_path(
+            ConfigScope::Project,
+            Some(proj.to_string_lossy().to_string()),
+            false,
+        )
+        .unwrap();
+        assert!(path.ends_with(".claude/settings.local.json"));
+        assert!(!gitignored);
+        assert!(!proj.join(".gitignore").exists());
+    }
+
+    #[tokio::test]
+    async fn slot_path_global_scope_resolves_to_global() {
+        let (path, gitignored) =
+            resolve_slot_settings_path(ConfigScope::Global, None, false).unwrap();
+        assert!(path.ends_with(".claude/settings.json"));
+        assert!(!gitignored);
     }
 }

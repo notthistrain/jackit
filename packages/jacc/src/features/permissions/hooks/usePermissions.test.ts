@@ -15,40 +15,40 @@ beforeEach(() => {
     items: [{
       key: 'permissions',
       value: { allow: [{ tool: 'Bash', pattern: 'ls' }], deny: [] },
-      scope: 'global',
+      origin: 'global',
     }],
   }
   mocks.writeConfig.mockClear()
 })
 
 describe('usePermissions', () => {
-  it('exposes allowRules/denyRules and scope', async () => {
+  it('exposes allowRules/denyRules and origin', async () => {
     const { usePermissions } = await import('./usePermissions')
     const { result } = renderHook(() => usePermissions())
     expect(result.current.allowRules).toEqual([{ tool: 'Bash', pattern: 'ls' }])
     expect(result.current.denyRules).toEqual([])
-    expect(result.current.scope).toBe('global')
+    expect(result.current.origin).toBe('global')
   })
 
-  it('add uses form scope, not permScope', async () => {
+  it('add writes permissions as nonsensitive', async () => {
     const { usePermissions } = await import('./usePermissions')
     const { result } = renderHook(() => usePermissions())
     await act(async () => {
-      await result.current.add('deny', { tool: 'Bash', pattern: 'rm' }, 'project')
+      await result.current.add('deny', { tool: 'Bash', pattern: 'rm' })
     })
-    expect(mocks.writeConfig).toHaveBeenCalledWith('project', 'permissions', {
+    expect(mocks.writeConfig).toHaveBeenCalledWith('permissions', {
       allow: [{ tool: 'Bash', pattern: 'ls' }],
       deny: [{ tool: 'Bash', pattern: 'rm' }],
-    })
+    }, false)
   })
 
-  it('remove uses scope', async () => {
+  it('remove writes permissions as nonsensitive', async () => {
     const { usePermissions } = await import('./usePermissions')
     const { result } = renderHook(() => usePermissions())
     await act(async () => {
       await result.current.remove('allow', 0)
     })
-    expect(mocks.writeConfig).toHaveBeenCalledWith('global', 'permissions', { allow: [], deny: [] })
+    expect(mocks.writeConfig).toHaveBeenCalledWith('permissions', { allow: [], deny: [] }, false)
   })
 
   it('handles null config with defaults', async () => {
@@ -57,6 +57,6 @@ describe('usePermissions', () => {
     const { result } = renderHook(() => usePermissions())
     expect(result.current.allowRules).toEqual([])
     expect(result.current.denyRules).toEqual([])
-    expect(result.current.scope).toBe('global')
+    expect(result.current.origin).toBe('global')
   })
 })
