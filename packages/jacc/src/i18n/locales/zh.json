@@ -127,6 +127,7 @@
   "source.shared": "共享",
   "source.local": "本地",
   "config.wroteLocal": "已写入 settings.local.json，不会提交到 git",
+  "general.slotProjectHint": "绑定将写入项目本地 settings.local.json（含密钥，自动 gitignore）",
   "source.global": "全局",
   "source.project": "项目",
   "source.user": "用户",

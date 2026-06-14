@@ -127,6 +127,7 @@
   "source.shared": "Shared",
   "source.local": "Local",
   "config.wroteLocal": "Saved to settings.local.json, won't be committed to git",
+  "general.slotProjectHint": "Bindings write to project-local settings.local.json (with credentials, auto-gitignored)",
   "source.global": "Global",
   "source.project": "Project",
   "source.user": "User",

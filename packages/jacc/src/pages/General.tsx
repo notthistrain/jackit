@@ -3,10 +3,14 @@ import { useEffect, useState } from 'react'
 import { SelectRow, SlotRow, ToggleRow } from '@/features/general'
 import { buildDriftItems } from '@/features/general/utils/drift'
 import { useT } from '@/i18n'
+import { EmptyState } from '@/shared/components/ui/EmptyState'
+import { ScopeSwitcher } from '@/shared/components/ui/ScopeSwitcher'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
 import { useConfig } from '@/shared/hooks/useConfig'
 import { usePreferences } from '@/shared/hooks/usePreferences'
+import { useSelectProject } from '@/shared/hooks/useSelectProject'
 import { useSlotBindings } from '@/shared/hooks/useSlotBindings'
+import { useAppStore } from '@/stores/useAppStore'
 
 type Slot = 'opus' | 'sonnet' | 'haiku'
 
@@ -18,9 +22,11 @@ const LOCALE_OPTIONS = [{ value: 'zh', label: '中文' }, { value: 'en', label: 
 
 export function General() {
   const { t, locale, setLocale } = useT()
+  const { configScope, currentProject, setConfigScope } = useAppStore()
   const { config, refresh: refreshConfig, writeConfig } = useConfig()
   const { bindings, bind, setCurrentModel } = useSlotBindings()
   const { set: setPreference } = usePreferences()
+  const selectProject = useSelectProject()
   const [currentSlot, setCurrentSlot] = useState<Slot>('opus')
   const [slotContexts, setSlotContexts] = useState<Record<Slot, string>>({ opus: '', sonnet: '', haiku: '' })
 
@@ -35,6 +41,18 @@ export function General() {
     }
   }, [config])
 
+  // needsProject 守卫必须在 !config 之前：无项目时 useConfig 返回空 items，不应卡在 loading
+  if (configScope === 'project' && !currentProject) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-medium text-foreground">{t('general.title')}</h2>
+          <ScopeSwitcher value={configScope} onChange={setConfigScope} />
+        </div>
+        <EmptyState onSelectProject={selectProject} />
+      </div>
+    )
+  }
   if (!config)
     return <div className="p-6 text-xs text-muted">{t('common.loading')}</div>
 
@@ -77,28 +95,36 @@ export function General() {
 
   return (
     <div className="p-6">
-      <h2 className="text-base font-medium text-foreground mb-5">{t('general.title')}</h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-base font-medium text-foreground">{t('general.title')}</h2>
+        <ScopeSwitcher value={configScope} onChange={setConfigScope} />
+      </div>
       <div className="flex flex-col gap-2.5">
         <div className="p-3 bg-card border border-border-light rounded-[4px]">
           <div className="text-[13px] font-medium text-foreground mb-2.5">{t('general.slots')}</div>
           <div className="flex flex-col gap-2">
             {SLOTS.map(slot => <SlotRow key={slot} {...buildSlotProps(slot)} />)}
           </div>
+          {configScope === 'project' && (
+            <div className="mt-2.5 text-[11px] text-muted-foreground">
+              🧠 {t('general.slotProjectHint')}
+            </div>
+          )}
         </div>
         <SelectRow
           label={t('general.effortLevel')}
           description={t('general.effortLevel.desc')}
           value={(effortLevel?.value as string) || 'high'}
           options={EFFORT_OPTIONS}
-          onChange={v => writeConfig(effortLevel?.scope || 'global', 'effortLevel', v)}
-          badge={effortLevel && <SourceBadge scope={effortLevel.scope} />}
+          onChange={v => writeConfig('effortLevel', v, false)}
+          badge={effortLevel && <SourceBadge scope={effortLevel.origin} />}
         />
         <ToggleRow
           label={t('general.skipDangerous')}
           description={t('general.skipDangerous.desc')}
           checked={!!skipDangerous?.value}
-          onToggle={() => writeConfig(skipDangerous?.scope || 'global', 'skipDangerousModePermissionPrompt', !(skipDangerous?.value as boolean))}
-          badge={skipDangerous && <SourceBadge scope={skipDangerous.scope} />}
+          onToggle={() => writeConfig('skipDangerousModePermissionPrompt', !(skipDangerous?.value as boolean), false)}
+          badge={skipDangerous && <SourceBadge scope={skipDangerous.origin} />}
         />
         <SelectRow
           label={t('general.language')}
