@@ -76,6 +76,41 @@ async fn read_layer_at(shared: &Path, local: Option<&Path>) -> AppResult<LayerCo
     Ok(LayerConfig { items })
 }
 
+#[derive(Debug, Serialize)]
+pub struct WriteConfigResult {
+    pub wrote_local: bool,
+    pub gitignore_updated: bool,
+}
+
+/// 项目 scope 下按 sensitive 分流写入。
+async fn write_kv_routed(
+    project: &Path,
+    key: &str,
+    value: serde_json::Value,
+    sensitive: bool,
+) -> AppResult<WriteConfigResult> {
+    if sensitive {
+        let local = crate::claude_settings::project_local_settings_path(project);
+        crate::claude_settings::write_kv(&local, key, value).await?;
+        let gitignore_updated = crate::claude_settings::ensure_local_settings_gitignored(project)?;
+        Ok(WriteConfigResult { wrote_local: true, gitignore_updated })
+    } else {
+        let shared = crate::claude_settings::project_settings_path(project);
+        crate::claude_settings::write_kv(&shared, key, value).await?;
+        Ok(WriteConfigResult { wrote_local: false, gitignore_updated: false })
+    }
+}
+
+/// 项目 scope 下按 origin 删对应文件。
+async fn delete_kv_routed(project: &Path, key: &str, origin: ConfigOrigin) -> AppResult<()> {
+    let path = match origin {
+        ConfigOrigin::Local => crate::claude_settings::project_local_settings_path(project),
+        // Shared 与 Global（项目场景不应出现 Global）都删 shared 文件
+        _ => crate::claude_settings::project_settings_path(project),
+    };
+    crate::claude_settings::delete_kv(&path, key).await
+}
+
 #[tauri::command]
 pub async fn read_config_layer(
     scope: ConfigScope,
@@ -159,22 +194,23 @@ pub async fn write_config(
     project_path: Option<String>,
     key: String,
     value: serde_json::Value,
-) -> AppResult<()> {
+    sensitive: bool,
+) -> AppResult<WriteConfigResult> {
     log_command!("write_config", {
-        let path = match scope {
-            ConfigScope::Global => crate::claude_settings::global_settings_path(),
+        match scope {
+            ConfigScope::Global => {
+                let path = crate::claude_settings::global_settings_path();
+                crate::claude_settings::write_kv(&path, &key, value).await?;
+                Ok(WriteConfigResult { wrote_local: false, gitignore_updated: false })
+            }
             ConfigScope::Project => {
                 let pp = project_path.ok_or_else(|| {
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
                 let validated = crate::path_guard::validate_project_path(&pp)?;
-                crate::claude_settings::project_settings_path(&validated)
+                write_kv_routed(&validated, &key, value, sensitive).await
             }
-        };
-
-        crate::claude_settings::write_kv(&path, &key, value).await?;
-        tracing::info!(scope = ?scope, key = %key, path = %path.display(), "config written");
-        Ok(())
+        }
     })
 }
 
@@ -183,22 +219,22 @@ pub async fn delete_config(
     scope: ConfigScope,
     project_path: Option<String>,
     key: String,
+    origin: ConfigOrigin,
 ) -> AppResult<()> {
     log_command!("delete_config", {
-        let path = match scope {
-            ConfigScope::Global => crate::claude_settings::global_settings_path(),
+        match scope {
+            ConfigScope::Global => {
+                let path = crate::claude_settings::global_settings_path();
+                crate::claude_settings::delete_kv(&path, &key).await
+            }
             ConfigScope::Project => {
                 let pp = project_path.ok_or_else(|| {
                     crate::error::AppError::Custom("项目路径不能为空".to_string())
                 })?;
                 let validated = crate::path_guard::validate_project_path(&pp)?;
-                crate::claude_settings::project_settings_path(&validated)
+                delete_kv_routed(&validated, &key, origin).await
             }
-        };
-
-        crate::claude_settings::delete_kv(&path, &key).await?;
-        tracing::info!(scope = ?scope, key = %key, path = %path.display(), "config deleted");
-        Ok(())
+        }
     })
 }
 
@@ -259,5 +295,47 @@ mod tests {
         assert_eq!(get("b").value, serde_json::json!(99));
         assert!(matches!(get("b").origin, ConfigOrigin::Local));
         assert!(matches!(get("c").origin, ConfigOrigin::Local));
+    }
+
+    #[tokio::test]
+    async fn write_project_sensitive_goes_to_local_and_gitignores() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path();
+        std::fs::create_dir_all(proj.join(".claude")).unwrap();
+        let res = write_kv_routed(proj, "ANTHROPIC_AUTH_TOKEN", serde_json::json!("sk-x"), true)
+            .await
+            .unwrap();
+        assert!(res.wrote_local);
+        assert!(res.gitignore_updated);
+        let local = std::fs::read_to_string(proj.join(".claude/settings.local.json")).unwrap();
+        assert!(local.contains("sk-x"));
+        assert!(!proj.join(".claude/settings.json").exists());
+        let gi = std::fs::read_to_string(proj.join(".gitignore")).unwrap();
+        assert!(gi.contains(".claude/settings.local.json"));
+    }
+
+    #[tokio::test]
+    async fn write_project_nonsensitive_goes_to_shared() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path();
+        std::fs::create_dir_all(proj.join(".claude")).unwrap();
+        let res = write_kv_routed(proj, "effortLevel", serde_json::json!("high"), false)
+            .await
+            .unwrap();
+        assert!(!res.wrote_local);
+        let shared = std::fs::read_to_string(proj.join(".claude/settings.json")).unwrap();
+        assert!(shared.contains("high"));
+        assert!(!proj.join(".claude/settings.local.json").exists());
+    }
+
+    #[tokio::test]
+    async fn delete_local_origin_removes_from_local_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path();
+        std::fs::create_dir_all(proj.join(".claude")).unwrap();
+        std::fs::write(proj.join(".claude/settings.local.json"), r#"{"ANTHROPIC_AUTH_TOKEN":"sk-x"}"#).unwrap();
+        delete_kv_routed(proj, "ANTHROPIC_AUTH_TOKEN", ConfigOrigin::Local).await.unwrap();
+        let local = std::fs::read_to_string(proj.join(".claude/settings.local.json")).unwrap();
+        assert!(!local.contains("sk-x"));
     }
 }
