@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/providers/ToastProvider'
+import { useAppStore } from '@/stores/useAppStore'
 
 export interface SlotBindingIntent {
   slot: string
@@ -33,14 +34,23 @@ export interface SlotBindingFull {
 }
 
 export function useSlotBindings() {
+  const { configScope, currentProject } = useAppStore()
   const [bindings, setBindings] = useState<SlotBindingFull[]>([])
   const [loading, setLoading] = useState(false)
   const { error } = useToast()
 
+  const needsProject = configScope === 'project' && !currentProject
+
   const refresh = useCallback(async () => {
+    if (needsProject) {
+      setBindings([])
+      return
+    }
     setLoading(true)
     try {
-      const list = await invoke<SlotBindingFull[]>('get_slot_bindings')
+      const list = await invoke<SlotBindingFull[]>('get_slot_bindings', {
+        scope: configScope, projectPath: currentProject,
+      })
       setBindings(list)
     }
     catch (e) {
@@ -49,12 +59,12 @@ export function useSlotBindings() {
     finally {
       setLoading(false)
     }
-  }, [error])
+  }, [configScope, currentProject, needsProject, error])
 
   const bind = useCallback(
     async (slot: string, modelId: number) => {
       try {
-        await invoke('bind_slot', { slot, modelId })
+        await invoke('bind_slot', { slot, modelId, scope: configScope, projectPath: currentProject })
         await refresh()
       }
       catch (e) {
@@ -62,13 +72,13 @@ export function useSlotBindings() {
         throw e
       }
     },
-    [refresh, error],
+    [refresh, error, configScope, currentProject],
   )
 
   const unbind = useCallback(
     async (slot: string) => {
       try {
-        await invoke('unbind_slot', { slot })
+        await invoke('unbind_slot', { slot, scope: configScope, projectPath: currentProject })
         await refresh()
       }
       catch (e) {
@@ -76,20 +86,22 @@ export function useSlotBindings() {
         throw e
       }
     },
-    [refresh, error],
+    [refresh, error, configScope, currentProject],
   )
 
   const setCurrentModel = useCallback(
     async (slot: string, contextSize: string | null) => {
       try {
-        await invoke('set_current_model', { slot, contextSize })
+        await invoke('set_current_model', {
+          slot, contextSize, scope: configScope, projectPath: currentProject,
+        })
       }
       catch (e) {
         error(String(e))
         throw e
       }
     },
-    [error],
+    [error, configScope, currentProject],
   )
 
   useEffect(() => {
@@ -109,5 +121,5 @@ export function useSlotBindings() {
     }
   }, [refresh])
 
-  return { bindings, loading, refresh, bind, unbind, setCurrentModel }
+  return { bindings, loading, needsProject, refresh, bind, unbind, setCurrentModel }
 }
