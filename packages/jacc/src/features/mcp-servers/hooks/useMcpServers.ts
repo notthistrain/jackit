@@ -7,23 +7,23 @@ export type { McpServer }
 
 export function useMcpServers() {
   const { config, writeConfig } = useConfig()
-  const { servers, scope } = extractMcpServers(config)
+  const { servers, origin } = extractMcpServers(config)
 
   const save = useCallback(async (name: string, server: McpServer) => {
-    await writeConfig(scope, 'mcpServers', upsertServer(servers, name, server))
-  }, [scope, servers, writeConfig])
+    await writeConfig('mcpServers', upsertServer(servers, name, server), false)
+  }, [servers, writeConfig])
 
   const remove = useCallback(async (name: string) => {
-    await writeConfig(scope, 'mcpServers', removeServer(servers, name))
-  }, [scope, servers, writeConfig])
+    await writeConfig('mcpServers', removeServer(servers, name), false)
+  }, [servers, writeConfig])
 
   const add = useCallback(async (name: string, command: string, argsString: string) => {
     const server: McpServer = {
       command,
       args: argsString ? argsString.split(' ') : undefined,
     }
-    await writeConfig(scope, 'mcpServers', upsertServer(servers, name, server))
-  }, [scope, servers, writeConfig])
+    await writeConfig('mcpServers', upsertServer(servers, name, server), false)
+  }, [servers, writeConfig])
 
-  return { servers, scope, save, remove, add }
+  return { servers, origin, save, remove, add }
 }
