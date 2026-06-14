@@ -105,22 +105,25 @@ export function useSlotBindings() {
           scope: configScope,
           projectPath: currentProject,
         })
+        // 写盘后显式刷新 binding/drift：项目级写 settings.local.json，
+        // 文件 watcher 不认该文件（仅认 settings.json），不显式刷新则 UI 不更新。
+        await refresh()
       }
       catch (e) {
         error(String(e))
         throw e
       }
     },
-    [error, configScope, currentProject],
+    [refresh, error, configScope, currentProject],
   )
 
   useEffect(() => {
     refresh()
   }, [refresh])
 
-  // 订阅后端 settings-changed event，settings.json 变化时刷新 drift 状态。
-  // bind/unbind 只写 DB 不落盘，watcher 不会触发——故二者显式 refresh；
-  // setCurrentModel 写盘，由本监听器间接触发刷新。
+  // 订阅后端 settings-changed event：settings.json 被外部修改时刷新 drift。
+  // 注意 watcher 仅认 settings.json；bind/unbind/setCurrentModel 均已显式 refresh，
+  // 此监听器主要用于捕获本应用之外的文件改动。
   useEffect(() => {
     let cancelled = false
     let unlisten: (() => void) | undefined

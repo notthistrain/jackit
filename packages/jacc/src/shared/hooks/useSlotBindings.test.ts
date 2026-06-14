@@ -51,4 +51,22 @@ describe('useSlotBindings scope', () => {
       projectPath: '/proj',
     })
   })
+
+  it('setCurrentModel refreshes bindings after apply (so UI updates without relying on fs watcher)', async () => {
+    mocks.store.configScope = 'project'
+    mocks.store.currentProject = '/proj'
+    const { useSlotBindings } = await import('./useSlotBindings')
+    const { result } = renderHook(() => useSlotBindings())
+    await waitFor(() =>
+      expect(mocks.invoke).toHaveBeenCalledWith('get_slot_bindings', expect.anything()))
+    const readsBefore = mocks.invoke.mock.calls.filter(c => c[0] === 'get_slot_bindings').length
+
+    await act(async () => {
+      await result.current.setCurrentModel('opus', null)
+    })
+
+    expect(mocks.invoke).toHaveBeenCalledWith('set_current_model', expect.objectContaining({ slot: 'opus' }))
+    const readsAfter = mocks.invoke.mock.calls.filter(c => c[0] === 'get_slot_bindings').length
+    expect(readsAfter).toBeGreaterThan(readsBefore)
+  })
 })
