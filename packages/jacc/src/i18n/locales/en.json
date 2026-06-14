@@ -123,6 +123,7 @@
   "project.currentLabel": "Current",
   "project.recent": "Recent Projects",
   "project.openOther": "📂 Open other project...",
+  "scope.label": "Scope",
   "source.global": "Global",
   "source.project": "Project",
   "source.user": "User",
