@@ -4,6 +4,7 @@ use std::path::Path;
 use tauri::State;
 
 use super::api_keys::mask_api_key;
+use crate::commands::config::ConfigScope;
 use crate::error::{AppError, AppResult};
 
 #[derive(Debug, Serialize)]
@@ -210,6 +211,8 @@ pub async fn bind_slot_at(
     model_id: i64,
     settings_path: &Path,
 ) -> AppResult<SlotBindingIntent> {
+    // 绑定仅写 DB；settings_path 由调用方传入以统一槽位命令接口，激活落盘由 set_current_model_at 负责。
+    let _ = settings_path;
     if !ALLOWED_SLOTS.contains(&slot) {
         return Err(AppError::Custom(format!("INVALID_SLOT:{}", slot)));
     }
@@ -339,17 +342,56 @@ fn get_global_settings_path() -> std::path::PathBuf {
     home.join(".claude").join("settings.json")
 }
 
+/// 按 scope 解析槽位读写目标。项目 scope → settings.local.json（槽位含密钥）。
+/// `ensure_gitignore=true`（写盘命令）时确保 .gitignore 含 local 行；
+/// 读命令与不写盘的 bind/unbind 传 false，避免产生文件副作用。
+fn resolve_slot_settings_path(
+    scope: ConfigScope,
+    project_path: Option<String>,
+    ensure_gitignore: bool,
+) -> AppResult<(std::path::PathBuf, bool)> {
+    match scope {
+        ConfigScope::Global => Ok((get_global_settings_path(), false)),
+        ConfigScope::Project => {
+            let pp = project_path
+                .ok_or_else(|| AppError::Custom("项目路径不能为空".to_string()))?;
+            let validated = crate::path_guard::validate_project_path(&pp)?;
+            let gitignored = if ensure_gitignore {
+                crate::claude_settings::ensure_local_settings_gitignored(&validated)?
+            } else {
+                false
+            };
+            Ok((
+                crate::claude_settings::project_local_settings_path(&validated),
+                gitignored,
+            ))
+        }
+    }
+}
+
 #[tauri::command]
-pub async fn get_slot_bindings(pool: State<'_, SqlitePool>) -> AppResult<Vec<SlotBindingFull>> {
+pub async fn get_slot_bindings(
+    pool: State<'_, SqlitePool>,
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<Vec<SlotBindingFull>> {
     log_read_command!("get_slot_bindings", {
-        get_slot_bindings_full_at(pool.inner(), &crate::claude_settings::global_settings_path()).await
+        let (path, _) = resolve_slot_settings_path(scope, project_path, false)?;
+        get_slot_bindings_full_at(pool.inner(), &path).await
     })
 }
 
 #[tauri::command]
-pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64) -> AppResult<()> {
+pub async fn bind_slot(
+    pool: State<'_, SqlitePool>,
+    slot: String,
+    model_id: i64,
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<()> {
     log_command!("bind_slot", {
-        let path = crate::claude_settings::global_settings_path();
+        // bind 仅写 DB 不写盘，ensure_gitignore=false 避免绑定操作产生文件副作用
+        let (path, _) = resolve_slot_settings_path(scope, project_path, false)?;
         bind_slot_at(pool.inner(), &slot, model_id, &path).await?;
         tracing::info!(slot = %slot, model_id, "slot bound");
         Ok(())
@@ -357,9 +399,14 @@ pub async fn bind_slot(pool: State<'_, SqlitePool>, slot: String, model_id: i64)
 }
 
 #[tauri::command]
-pub async fn unbind_slot(pool: State<'_, SqlitePool>, slot: String) -> AppResult<()> {
+pub async fn unbind_slot(
+    pool: State<'_, SqlitePool>,
+    slot: String,
+    scope: ConfigScope,
+    project_path: Option<String>,
+) -> AppResult<()> {
     log_command!("unbind_slot", {
-        let path = crate::claude_settings::global_settings_path();
+        let (path, _) = resolve_slot_settings_path(scope, project_path, false)?;
         unbind_slot_at(pool.inner(), &slot, &path).await?;
         tracing::info!(slot = %slot, "slot unbound");
         Ok(())
@@ -371,9 +418,13 @@ pub async fn set_current_model(
     pool: State<'_, SqlitePool>,
     slot: String,
     context_size: Option<String>,
+    scope: ConfigScope,
+    project_path: Option<String>,
 ) -> AppResult<()> {
     log_command!("set_current_model", {
-        set_current_model_at(pool.inner(), &slot, context_size.as_deref(), &get_global_settings_path()).await?;
+        // set_current_model 写盘，项目 scope 落 settings.local.json 并确保 gitignore
+        let (path, _) = resolve_slot_settings_path(scope, project_path, true)?;
+        set_current_model_at(pool.inner(), &slot, context_size.as_deref(), &path).await?;
         tracing::info!(slot = %slot, context_size = ?context_size, "current model set");
         Ok(())
     })
@@ -768,5 +819,45 @@ mod tests {
         assert!(r.is_err());
         let err_str = r.unwrap_err().to_string();
         assert!(err_str.contains("INVALID_SLOT") && err_str.contains("evil"));
+    }
+
+    #[tokio::test]
+    async fn slot_path_project_scope_write_resolves_to_local_and_gitignores() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path();
+        std::fs::create_dir_all(proj.join(".claude")).unwrap();
+        let (path, gitignored) = resolve_slot_settings_path(
+            ConfigScope::Project,
+            Some(proj.to_string_lossy().to_string()),
+            true,
+        )
+        .unwrap();
+        assert!(path.ends_with(".claude/settings.local.json"));
+        assert!(gitignored);
+        assert!(proj.join(".gitignore").exists());
+    }
+
+    #[tokio::test]
+    async fn slot_path_project_scope_read_does_not_touch_gitignore() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path();
+        std::fs::create_dir_all(proj.join(".claude")).unwrap();
+        let (path, gitignored) = resolve_slot_settings_path(
+            ConfigScope::Project,
+            Some(proj.to_string_lossy().to_string()),
+            false,
+        )
+        .unwrap();
+        assert!(path.ends_with(".claude/settings.local.json"));
+        assert!(!gitignored);
+        assert!(!proj.join(".gitignore").exists());
+    }
+
+    #[tokio::test]
+    async fn slot_path_global_scope_resolves_to_global() {
+        let (path, gitignored) =
+            resolve_slot_settings_path(ConfigScope::Global, None, false).unwrap();
+        assert!(path.ends_with(".claude/settings.json"));
+        assert!(!gitignored);
     }
 }
