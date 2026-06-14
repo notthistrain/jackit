@@ -1,7 +1,7 @@
 import type { EnvVarMeta } from '../api/env-catalog'
+import { addEnvVarFormVariants } from './add-env-var-form.variants'
 import { EnvValueInput } from './EnvValueInput'
 import { EnvVarCombobox } from './EnvVarCombobox'
-import { addEnvVarFormVariants } from './add-env-var-form.variants'
 
 export interface AddEnvVarFormProps {
   visible: boolean

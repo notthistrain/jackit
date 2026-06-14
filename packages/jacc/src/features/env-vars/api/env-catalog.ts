@@ -1,21 +1,21 @@
-export type EnvGroup =
-  | 'auth' // 认证凭证
-  | 'endpoint' // API 端点/网关
-  | 'model' // 模型选择
-  | 'cache' // 缓存
-  | 'bedrock' // AWS Bedrock
-  | 'vertex' // Google Vertex
-  | 'foundry' // Foundry
-  | 'feature' // 功能开关
-  | 'context' // 上下文/记忆
-  | 'effort' // Effort/思考
-  | 'timeout' // 超时/限制
-  | 'proxy' // 网络代理
-  | 'tls' // TLS 证书
-  | 'telemetry' // 遥测/隐私
-  | 'ui' // UI 显示
-  | 'session' // 会话/进程
-  | 'debug' // 调试/日志
+export type EnvGroup
+  = | 'auth' // 认证凭证
+    | 'endpoint' // API 端点/网关
+    | 'model' // 模型选择
+    | 'cache' // 缓存
+    | 'bedrock' // AWS Bedrock
+    | 'vertex' // Google Vertex
+    | 'foundry' // Foundry
+    | 'feature' // 功能开关
+    | 'context' // 上下文/记忆
+    | 'effort' // Effort/思考
+    | 'timeout' // 超时/限制
+    | 'proxy' // 网络代理
+    | 'tls' // TLS 证书
+    | 'telemetry' // 遥测/隐私
+    | 'ui' // UI 显示
+    | 'session' // 会话/进程
+    | 'debug' // 调试/日志
 
 export interface EnvVarMeta {
   name: string
@@ -89,15 +89,15 @@ export const ENV_CATALOG: EnvVarMeta[] = [
   { name: 'DISABLE_TELEMETRY', group: 'telemetry', type: 'boolean', sensitive: false, default: '0', description: '关闭遥测上报。' },
   { name: 'CLAUDE_CODE_ENABLE_TELEMETRY', group: 'telemetry', type: 'boolean', sensitive: false, default: '0', description: '启用 OTEL 遥测。' },
   { name: 'OTEL_EXPORTER_OTLP_HEADERS', group: 'telemetry', type: 'string', sensitive: true, description: 'OTLP 导出请求头（可能含 token）。' },
-  { name: 'OTEL_METRICS_EXPORTER', group: 'telemetry', type: 'enum', enumValues: ['none', 'otlp', 'prometheus'], default: 'otlp', description: '指标导出器。' },
-  { name: 'OTEL_LOGS_EXPORTER', group: 'telemetry', type: 'enum', enumValues: ['none', 'otlp'], default: 'otlp', description: '日志导出器。' },
+  { name: 'OTEL_METRICS_EXPORTER', group: 'telemetry', type: 'enum', sensitive: false, enumValues: ['none', 'otlp', 'prometheus'], default: 'otlp', description: '指标导出器。' },
+  { name: 'OTEL_LOGS_EXPORTER', group: 'telemetry', type: 'enum', sensitive: false, enumValues: ['none', 'otlp'], default: 'otlp', description: '日志导出器。' },
   // ── ui UI 显示 ──
-  { name: 'FORCE_COLOR', group: 'ui', type: 'enum', enumValues: ['0', '1', '2', '3'], description: '强制颜色等级。' },
+  { name: 'FORCE_COLOR', group: 'ui', type: 'enum', sensitive: false, enumValues: ['0', '1', '2', '3'], description: '强制颜色等级。' },
   { name: 'CLAUDE_CODE_DISABLE_TERMINAL_TITLE', group: 'ui', type: 'boolean', sensitive: false, default: '0', description: '关闭终端标题更新。' },
   // ── session 会话/进程 ──
   { name: 'CLAUDE_CONFIG_DIR', group: 'session', type: 'string', sensitive: false, description: '配置目录路径。' },
   // ── debug 调试/日志 ──
-  { name: 'ANTHROPIC_LOG', group: 'debug', type: 'enum', enumValues: ['debug', 'info', 'warn', 'error'], description: 'API 日志级别。' },
+  { name: 'ANTHROPIC_LOG', group: 'debug', type: 'enum', sensitive: false, enumValues: ['debug', 'info', 'warn', 'error'], description: 'API 日志级别。' },
   { name: 'DEBUG', group: 'debug', type: 'string', sensitive: false, description: '调试模块（如 *）。' },
 ]
 

@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import type { EnvVarMeta } from '@/features/env-vars/api/env-catalog'
+import { useState } from 'react'
 import { findEnvMeta } from '@/features/env-vars/api/env-catalog'
 import { AddEnvVarForm } from '@/features/env-vars/components/AddEnvVarForm'
 import { EnvVarRow } from '@/features/env-vars/components/EnvVarRow'
@@ -13,7 +13,7 @@ import { useAppStore } from '@/stores/useAppStore'
 
 export function EnvVars() {
   const { t } = useT()
-  const { configScope, currentProject, setConfigScope } = useAppStore()
+  const { configScope, setConfigScope } = useAppStore()
   const { regularEntries, modelEntries, needsProject, setVar, remove } = useEnvVars()
   const selectProject = useSelectProject()
   const [showAdd, setShowAdd] = useState(false)

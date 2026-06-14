@@ -1,8 +1,8 @@
-import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import type { EnvVarMeta } from '../api/env-catalog'
+import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import { SourceBadge } from '@/shared/components/ui/SourceBadge'
-import { EnvValueInput } from './EnvValueInput'
 import { envVarRowVariants } from './env-var-row.variants'
+import { EnvValueInput } from './EnvValueInput'
 
 export interface EnvVarRowProps {
   envKey: string
@@ -42,7 +42,10 @@ export function EnvVarRow({
       <div className={valueCell()}>
         {masked
           ? (
-              <div className={managedHint()}>•••• {t('envvars.managedByModels')}</div>
+              <div className={managedHint()}>
+                ••••
+                {t('envvars.managedByModels')}
+              </div>
             )
           : (
               <EnvValueInput

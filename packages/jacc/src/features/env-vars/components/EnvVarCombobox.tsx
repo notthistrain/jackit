@@ -1,6 +1,6 @@
+import type { EnvGroup, EnvVarMeta } from '../api/env-catalog'
 import { useMemo, useState } from 'react'
 import { useT } from '@/i18n'
-import type { EnvGroup, EnvVarMeta } from '../api/env-catalog'
 import { searchCatalog } from '../api/env-catalog'
 import { envVarCombobox } from './env-var-combobox.variants'
 
@@ -10,8 +10,7 @@ export interface EnvVarComboboxProps {
   className?: string
 }
 
-const GROUP_ORDER: EnvGroup[] = ['auth', 'endpoint', 'model', 'cache', 'bedrock', 'vertex',
-  'foundry', 'feature', 'context', 'effort', 'timeout', 'proxy', 'tls', 'telemetry', 'ui', 'session', 'debug']
+const GROUP_ORDER: EnvGroup[] = ['auth', 'endpoint', 'model', 'cache', 'bedrock', 'vertex', 'foundry', 'feature', 'context', 'effort', 'timeout', 'proxy', 'tls', 'telemetry', 'ui', 'session', 'debug']
 
 export function EnvVarCombobox({ value, onSelect }: EnvVarComboboxProps) {
   const { t } = useT()
@@ -42,7 +41,10 @@ export function EnvVarCombobox({ value, onSelect }: EnvVarComboboxProps) {
     <div className={root()}>
       <input
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setOpen(true)
+        }}
         onFocus={() => setOpen(true)}
         placeholder={t('envvars.add.searchPlaceholder')}
         className={input()}

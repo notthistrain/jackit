@@ -1,9 +1,9 @@
+import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import { invoke } from '@tauri-apps/api/core'
 import { useCallback, useEffect, useState } from 'react'
 import { useT } from '@/i18n'
 import { useToast } from '@/providers/ToastProvider'
 import { useAppStore } from '@/stores/useAppStore'
-import type { ConfigOrigin } from '@/shared/hooks/useConfig'
 import { findEnvMeta } from '../api/env-catalog'
 import { MODEL_ENV_KEYS } from '../api/env-vars-api'
 
@@ -35,7 +35,11 @@ export function useEnvVars() {
   const setVar = useCallback(async (key: string, value: string) => {
     const sensitive = findEnvMeta(key)?.sensitive ?? false
     const res = await invoke<WriteResult>('set_env_var', {
-      scope: configScope, projectPath: currentProject, key, value, sensitive,
+      scope: configScope,
+      projectPath: currentProject,
+      key,
+      value,
+      sensitive,
     })
     if (res.wrote_local)
       success(t('config.wroteLocal'))

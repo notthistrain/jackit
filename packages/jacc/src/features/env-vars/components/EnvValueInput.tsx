@@ -20,7 +20,10 @@ export function EnvValueInput({ type, value, enumValues, default: def, unit, onC
         <button type="button" aria-pressed={on} onClick={() => onChange(on ? '0' : '1')} className={toggle()}>
           <span className={knob()} />
         </button>
-        <span className={toggleLabel()}>{on ? '已开启(1)' : '已关闭(0)'}{def ? ` · 默认 ${def}` : ''}</span>
+        <span className={toggleLabel()}>
+          {on ? '已开启(1)' : '已关闭(0)'}
+          {def ? ` · 默认 ${def}` : ''}
+        </span>
       </div>
     )
   }

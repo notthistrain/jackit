@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor, act } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
@@ -42,7 +42,11 @@ describe('useEnvVars per-var routing', () => {
       await result.current.setVar('ANTHROPIC_API_KEY', 'sk-x')
     })
     expect(mocks.invoke).toHaveBeenCalledWith('set_env_var', {
-      scope: 'project', projectPath: '/proj', key: 'ANTHROPIC_API_KEY', value: 'sk-x', sensitive: true,
+      scope: 'project',
+      projectPath: '/proj',
+      key: 'ANTHROPIC_API_KEY',
+      value: 'sk-x',
+      sensitive: true,
     })
   })
 
@@ -57,7 +61,6 @@ describe('useEnvVars per-var routing', () => {
     await act(async () => {
       await result.current.setVar('MY_CUSTOM', 'v')
     })
-    expect(mocks.invoke).toHaveBeenCalledWith('set_env_var',
-      expect.objectContaining({ key: 'MY_CUSTOM', sensitive: false }))
+    expect(mocks.invoke).toHaveBeenCalledWith('set_env_var', expect.objectContaining({ key: 'MY_CUSTOM', sensitive: false }))
   })
 })

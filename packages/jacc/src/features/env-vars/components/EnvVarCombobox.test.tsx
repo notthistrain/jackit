@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { EnvVarCombobox } from './EnvVarCombobox'
+
 vi.mock('@/i18n', () => ({
   useT: () => ({ t: (key: string) => key }),
 }))
-
-import { EnvVarCombobox } from './EnvVarCombobox'
 
 describe('envVarCombobox', () => {
   it('filters options by query', async () => {
