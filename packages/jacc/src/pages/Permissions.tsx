@@ -3,57 +3,70 @@ import { AddPermissionForm } from '@/features/permissions/components/AddPermissi
 import { PermissionTable } from '@/features/permissions/components/PermissionTable'
 import { usePermissions } from '@/features/permissions/hooks/usePermissions'
 import { useT } from '@/i18n'
+import { EmptyState } from '@/shared/components/ui/EmptyState'
 import { Fab } from '@/shared/components/ui/Fab'
+import { ScopeSwitcher } from '@/shared/components/ui/ScopeSwitcher'
+import { useSelectProject } from '@/shared/hooks/useSelectProject'
+import { useAppStore } from '@/stores/useAppStore'
 
 export function Permissions() {
   const { t } = useT()
-  const { allowRules, denyRules, scope, add, remove } = usePermissions()
+  const { configScope, currentProject, setConfigScope } = useAppStore()
+  const { allowRules, denyRules, origin, add, remove } = usePermissions()
+  const selectProject = useSelectProject()
   const [showAdd, setShowAdd] = useState(false)
-  const [newValues, setNewValues] = useState<{
-    type: 'allow' | 'deny'
-    tool: string
-    pattern: string
-    scope: 'global' | 'project'
-  }>({ type: 'allow', tool: 'Bash', pattern: '', scope: 'project' })
+  const [newValues, setNewValues] = useState<{ type: 'allow' | 'deny', tool: string, pattern: string }>(
+    { type: 'allow', tool: 'Bash', pattern: '' },
+  )
+  const showSource = configScope === 'project'
+  const needsProject = configScope === 'project' && !currentProject
 
   async function handleSubmit() {
     if (!newValues.pattern.trim())
       return
-    await add(newValues.type, { tool: newValues.tool, pattern: newValues.pattern }, newValues.scope)
+    await add(newValues.type, { tool: newValues.tool, pattern: newValues.pattern })
     setNewValues(v => ({ ...v, pattern: '' }))
     setShowAdd(false)
   }
 
   return (
     <div className="p-6">
-      <h2 className="text-base font-medium text-foreground mb-4">{t('permissions.title')}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-medium text-foreground">{t('permissions.title')}</h2>
+        <ScopeSwitcher value={configScope} onChange={setConfigScope} />
+      </div>
 
-      <PermissionTable
-        kind="allow"
-        rules={allowRules}
-        scope={scope}
-        onDelete={i => remove('allow', i)}
-        t={t}
-      />
-
-      <PermissionTable
-        kind="deny"
-        rules={denyRules}
-        scope={scope}
-        onDelete={i => remove('deny', i)}
-        t={t}
-      />
-
-      <AddPermissionForm
-        visible={showAdd}
-        values={newValues}
-        onChange={setNewValues}
-        onSubmit={handleSubmit}
-        onCancel={() => setShowAdd(false)}
-        t={t}
-      />
-
-      <Fab onClick={() => setShowAdd(true)} />
+      {needsProject
+        ? <EmptyState onSelectProject={selectProject} />
+        : (
+            <>
+              <PermissionTable
+                kind="allow"
+                rules={allowRules}
+                origin={origin}
+                showSource={showSource}
+                onDelete={i => remove('allow', i)}
+                t={t}
+              />
+              <PermissionTable
+                kind="deny"
+                rules={denyRules}
+                origin={origin}
+                showSource={showSource}
+                onDelete={i => remove('deny', i)}
+                t={t}
+              />
+              <AddPermissionForm
+                visible={showAdd}
+                values={newValues}
+                onChange={setNewValues}
+                onSubmit={handleSubmit}
+                onCancel={() => setShowAdd(false)}
+                t={t}
+              />
+              <Fab onClick={() => setShowAdd(true)} />
+            </>
+          )}
     </div>
   )
 }

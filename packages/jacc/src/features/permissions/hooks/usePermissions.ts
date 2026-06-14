@@ -7,23 +7,23 @@ export type { PermissionRule, PermissionType }
 
 export function usePermissions() {
   const { config, writeConfig } = useConfig()
-  const { permissions, scope } = extractPermissions(config)
+  const { permissions, origin } = extractPermissions(config)
   const allowRules = permissions.allow || []
   const denyRules = permissions.deny || []
 
   const add = useCallback(
-    async (type: PermissionType, rule: PermissionRule, formScope: 'global' | 'project') => {
-      await writeConfig(formScope, 'permissions', addRule(permissions, type, rule))
+    async (type: PermissionType, rule: PermissionRule) => {
+      await writeConfig('permissions', addRule(permissions, type, rule), false)
     },
     [permissions, writeConfig],
   )
 
   const remove = useCallback(
     async (type: PermissionType, index: number) => {
-      await writeConfig(scope, 'permissions', removeRule(permissions, type, index))
+      await writeConfig('permissions', removeRule(permissions, type, index), false)
     },
-    [permissions, scope, writeConfig],
+    [permissions, writeConfig],
   )
 
-  return { allowRules, denyRules, scope, add, remove }
+  return { allowRules, denyRules, origin, add, remove }
 }
