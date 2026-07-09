@@ -13,19 +13,31 @@ pub struct ResDTO<T: Serialize> {
 
 impl<T: Serialize> ResDTO<T> {
     pub fn ok(data: T) -> Self {
-        Self { code: 0, msg: "ok".to_string(), data: Some(data) }
+        Self {
+            code: 0,
+            msg: "ok".to_string(),
+            data: Some(data),
+        }
     }
 }
 
 impl ResDTO<()> {
     pub fn fail(msg: impl Into<String>) -> ResDTO<()> {
-        ResDTO { code: 1, msg: msg.into(), data: None }
+        ResDTO {
+            code: 1,
+            msg: msg.into(),
+            data: None,
+        }
     }
 }
 
 impl ResDTO<serde_json::Value> {
     pub fn fail_value(msg: impl Into<String>) -> ResDTO<serde_json::Value> {
-        ResDTO { code: 1, msg: msg.into(), data: None }
+        ResDTO {
+            code: 1,
+            msg: msg.into(),
+            data: None,
+        }
     }
 }
 
@@ -49,6 +61,9 @@ pub enum AppError {
 
     #[error("{0}")]
     Internal(String),
+
+    #[error("Too many requests: {0}")]
+    TooManyRequests(String),
 }
 
 impl IntoResponse for AppError {
@@ -57,6 +72,7 @@ impl IntoResponse for AppError {
             AppError::NotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
             AppError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
             AppError::BadRequest(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            AppError::TooManyRequests(_) => (StatusCode::TOO_MANY_REQUESTS, self.to_string()),
             _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
         let body = ResDTO::<()>::fail(msg);

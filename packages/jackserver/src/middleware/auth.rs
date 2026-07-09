@@ -5,7 +5,7 @@ use axum::response::Response;
 
 use crate::error::AppError;
 
-/// Bearer token 校验中间件
+/// Bearer token 校验中间件（publish 等固定 token 接口使用）。
 pub async fn require_token(
     State(token): State<String>,
     req: Request,
@@ -22,12 +22,10 @@ pub async fn require_token(
             AppError::Unauthorized("Missing Authorization header".to_string())
         })?;
 
-    let provided = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or_else(|| {
-            tracing::warn!(path = %path, "auth failed: invalid Authorization format");
-            AppError::Unauthorized("Invalid Authorization format".to_string())
-        })?;
+    let provided = auth_header.strip_prefix("Bearer ").ok_or_else(|| {
+        tracing::warn!(path = %path, "auth failed: invalid Authorization format");
+        AppError::Unauthorized("Invalid Authorization format".to_string())
+    })?;
 
     // timing-safe 比较
     if !constant_time_eq(provided.as_bytes(), token.as_bytes()) {
@@ -39,7 +37,7 @@ pub async fn require_token(
 }
 
 /// 常量时间比较，防止 timing 攻击
-fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+pub(crate) fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
     }

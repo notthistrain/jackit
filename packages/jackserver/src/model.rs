@@ -67,14 +67,15 @@ pub struct VersionItem {
 }
 
 /// 保存或更新软件版本（publish 核心逻辑）
-pub async fn save_version(pool: &SqlitePool, input: &GithubPublishInput) -> AppResult<SoftwareVersion> {
+pub async fn save_version(
+    pool: &SqlitePool,
+    input: &GithubPublishInput,
+) -> AppResult<SoftwareVersion> {
     // 查找或创建 software
-    let software = sqlx::query_as::<_, Software>(
-        "SELECT * FROM software WHERE name = ?",
-    )
-    .bind(&input.name)
-    .fetch_optional(pool)
-    .await?;
+    let software = sqlx::query_as::<_, Software>("SELECT * FROM software WHERE name = ?")
+        .bind(&input.name)
+        .fetch_optional(pool)
+        .await?;
 
     let software = if let Some(s) = software {
         tracing::debug!(id = s.id, name = %s.name, "software found, updating");
@@ -136,16 +137,22 @@ pub async fn save_version(pool: &SqlitePool, input: &GithubPublishInput) -> AppR
              WHERE id = ?",
         )
         .bind(&input.download_url)
-        .bind(if input.force.unwrap_or(false) { 0 } else { v.size })
+        .bind(if input.force.unwrap_or(false) {
+            0
+        } else {
+            v.size
+        })
         .bind(input.force.unwrap_or(false))
         .bind(&input.changelog)
         .bind(v.id)
         .execute(pool)
         .await?;
-        Ok(sqlx::query_as::<_, SoftwareVersion>("SELECT * FROM software_version WHERE id = ?")
-            .bind(v.id)
-            .fetch_one(pool)
-            .await?)
+        Ok(
+            sqlx::query_as::<_, SoftwareVersion>("SELECT * FROM software_version WHERE id = ?")
+                .bind(v.id)
+                .fetch_one(pool)
+                .await?,
+        )
     } else {
         tracing::info!(
             software = %input.name,
@@ -169,11 +176,10 @@ pub async fn save_version(pool: &SqlitePool, input: &GithubPublishInput) -> AppR
 
 /// 获取所有软件及版本列表
 pub async fn list_all_software(pool: &SqlitePool) -> AppResult<Vec<SoftwareListItem>> {
-    let software_list = sqlx::query_as::<_, Software>(
-        "SELECT * FROM software ORDER BY created_at DESC",
-    )
-    .fetch_all(pool)
-    .await?;
+    let software_list =
+        sqlx::query_as::<_, Software>("SELECT * FROM software ORDER BY created_at DESC")
+            .fetch_all(pool)
+            .await?;
 
     let mut result = Vec::new();
     for s in software_list {
@@ -191,14 +197,17 @@ pub async fn list_all_software(pool: &SqlitePool) -> AppResult<Vec<SoftwareListI
             display_name: s.display_name,
             identifier: s.identifier,
             description: s.description,
-            versions: versions.into_iter().map(|v| VersionItem {
-                version_id: v.id,
-                sequence: v.sequence,
-                size: v.size,
-                force: v.force,
-                changelog: v.changelog,
-                created_at: v.created_at,
-            }).collect(),
+            versions: versions
+                .into_iter()
+                .map(|v| VersionItem {
+                    version_id: v.id,
+                    sequence: v.sequence,
+                    size: v.size,
+                    force: v.force,
+                    changelog: v.changelog,
+                    created_at: v.created_at,
+                })
+                .collect(),
         });
     }
     Ok(result)
@@ -214,14 +223,15 @@ pub async fn get_version_by_id(pool: &SqlitePool, id: i64) -> AppResult<Software
 }
 
 /// 按软件名获取最新版本（用于 download-latest/:name）
-pub async fn get_latest_version(pool: &SqlitePool, name: &str) -> AppResult<(Software, SoftwareVersion)> {
-    let software = sqlx::query_as::<_, Software>(
-        "SELECT * FROM software WHERE name = ?",
-    )
-    .bind(name)
-    .fetch_optional(pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound(format!("Software '{}' not found", name)))?;
+pub async fn get_latest_version(
+    pool: &SqlitePool,
+    name: &str,
+) -> AppResult<(Software, SoftwareVersion)> {
+    let software = sqlx::query_as::<_, Software>("SELECT * FROM software WHERE name = ?")
+        .bind(name)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("Software '{}' not found", name)))?;
 
     let version = sqlx::query_as::<_, SoftwareVersion>(
         "SELECT * FROM software_version WHERE software_id = ? ORDER BY id DESC LIMIT 1",
@@ -232,6 +242,177 @@ pub async fn get_latest_version(pool: &SqlitePool, name: &str) -> AppResult<(Sof
     .ok_or_else(|| AppError::NotFound(format!("No versions for '{}'", name)))?;
 
     Ok((software, version))
+}
+
+// ===== 访问量统计（page_view）=====
+
+/// 一条原始访问记录（对应 page_view 表一行）
+#[derive(Debug, sqlx::FromRow)]
+pub struct PageView {
+    pub id: i64,
+    pub site: String,
+    pub path: String,
+    pub visitor_hash: String,
+    pub ip: Option<String>,
+    pub ua: Option<String>,
+    pub referer: Option<String>,
+    pub device: Option<String>,
+    pub created_at: String,
+}
+
+/// 打点上报请求体
+///
+/// `ts` 为秒级 unix 时间戳，仅用于签名防重放校验；
+/// 入库时间一律以服务端 `datetime('now')` 为准，避免客户端时钟造假。
+#[derive(Debug, Clone, Deserialize)]
+pub struct TrackInput {
+    pub site: String,
+    pub path: String,
+    pub referer: Option<String>,
+    pub ts: i64,
+    pub sig: String,
+}
+
+/// 中间件校验通过后注入到请求 extensions 的数据，供 track handler 使用。
+#[derive(Debug, Clone)]
+pub struct TrackedData {
+    pub input: TrackInput,
+    pub ip: Option<String>,
+    pub ua: Option<String>,
+}
+
+/// 时间序列聚合点（按天/小时分桶）
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct OverviewPoint {
+    pub bucket: String,
+    pub pv: i64,
+    pub uv: i64,
+}
+
+/// 维度计数（按 path / referer / device 分组的 Top-N）
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct DimensionCount {
+    pub key: Option<String>,
+    pub count: i64,
+}
+
+/// 写入一条访问记录。`created_at` 由 DB 默认值填充（服务端 UTC）。
+#[allow(clippy::too_many_arguments)] // 7 个字段即 page_view 的列，语义直观
+pub async fn insert_page_view(
+    pool: &SqlitePool,
+    site: &str,
+    path: &str,
+    visitor_hash: &str,
+    ip: Option<&str>,
+    ua: Option<&str>,
+    referer: Option<&str>,
+    device: Option<&str>,
+) -> AppResult<i64> {
+    let result = sqlx::query(
+        "INSERT INTO page_view (site, path, visitor_hash, ip, ua, referer, device)
+         VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(site)
+    .bind(path)
+    .bind(visitor_hash)
+    .bind(ip)
+    .bind(ua)
+    .bind(referer)
+    .bind(device)
+    .execute(pool)
+    .await?;
+    Ok(result.last_insert_rowid())
+}
+
+/// 按时间粒度聚合 PV / UV。
+/// `granularity` 取值 "day" | "hour"，其它值按 day 处理。
+/// `from` / `to` 为 UTC 时间字符串（如 "2026-07-01" 或 "2026-07-01 00:00:00"），
+/// 通过字符串比较过滤 created_at。
+pub async fn query_overview(
+    pool: &SqlitePool,
+    site: &str,
+    from: &str,
+    to: &str,
+    granularity: &str,
+) -> AppResult<Vec<OverviewPoint>> {
+    let fmt = match granularity {
+        "hour" => "%Y-%m-%dT%H:00:00",
+        _ => "%Y-%m-%d",
+    };
+    let sql = format!(
+        "SELECT strftime('{fmt}', created_at) AS bucket,
+                COUNT(*)              AS pv,
+                COUNT(DISTINCT visitor_hash) AS uv
+         FROM page_view
+         WHERE site = ? AND created_at >= ? AND created_at < ?
+         GROUP BY bucket
+         ORDER BY bucket ASC"
+    );
+    let rows = sqlx::query_as::<_, OverviewPoint>(&sql)
+        .bind(site)
+        .bind(from)
+        .bind(to)
+        .fetch_all(pool)
+        .await?;
+    Ok(rows)
+}
+
+/// 按页面路径 Top-N。
+pub async fn query_top_paths(
+    pool: &SqlitePool,
+    site: &str,
+    from: &str,
+    to: &str,
+    limit: i64,
+) -> AppResult<Vec<DimensionCount>> {
+    sqlx::query_as::<_, DimensionCount>(
+        "SELECT path AS key, COUNT(*) AS count
+         FROM page_view
+         WHERE site = ? AND created_at >= ? AND created_at < ?
+         GROUP BY path
+         ORDER BY count DESC, path ASC
+         LIMIT ?",
+    )
+    .bind(site)
+    .bind(from)
+    .bind(to)
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+    .map_err(Into::into)
+}
+
+/// 按 referer 或 device 维度 Top-N（`field` 仅接受 "referer" | "device"）。
+pub async fn query_top_sources(
+    pool: &SqlitePool,
+    site: &str,
+    from: &str,
+    to: &str,
+    field: &str,
+    limit: i64,
+) -> AppResult<Vec<DimensionCount>> {
+    // 白名单限定列名，杜绝 SQL 注入
+    let column = match field {
+        "device" => "device",
+        _ => "referer",
+    };
+    let sql = format!(
+        "SELECT {column} AS key, COUNT(*) AS count
+         FROM page_view
+         WHERE site = ? AND created_at >= ? AND created_at < ?
+           AND {column} IS NOT NULL AND {column} <> ''
+         GROUP BY {column}
+         ORDER BY count DESC
+         LIMIT ?"
+    );
+    sqlx::query_as::<_, DimensionCount>(&sql)
+        .bind(site)
+        .bind(from)
+        .bind(to)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .map_err(Into::into)
 }
 
 #[cfg(all(test, feature = "test-utils"))]
@@ -264,8 +445,11 @@ mod tests {
             name: "toolbox".to_string(),
             version: "0.1.0".to_string(),
             download_url: "https://github.com/test/v1.exe".to_string(),
-            display: None, identifier: None, description: None,
-            changelog: Some("v1".to_string()), force: None,
+            display: None,
+            identifier: None,
+            description: None,
+            changelog: Some("v1".to_string()),
+            force: None,
         };
         save_version(&pool, &input).await.unwrap();
 
@@ -282,13 +466,21 @@ mod tests {
     async fn test_list_all_software() {
         let pool = setup_test_db().await;
         for name in &["toolbox", "jackcom"] {
-            save_version(&pool, &GithubPublishInput {
-                name: name.to_string(),
-                version: "0.1.0".to_string(),
-                download_url: format!("https://github.com/test/{}-0.1.0.exe", name),
-                display: None, identifier: None, description: None,
-                changelog: None, force: None,
-            }).await.unwrap();
+            save_version(
+                &pool,
+                &GithubPublishInput {
+                    name: name.to_string(),
+                    version: "0.1.0".to_string(),
+                    download_url: format!("https://github.com/test/{}-0.1.0.exe", name),
+                    display: None,
+                    identifier: None,
+                    description: None,
+                    changelog: None,
+                    force: None,
+                },
+            )
+            .await
+            .unwrap();
         }
         let list = list_all_software(&pool).await.unwrap();
         assert_eq!(list.len(), 2);
@@ -298,18 +490,36 @@ mod tests {
     #[tokio::test]
     async fn test_get_latest_version() {
         let pool = setup_test_db().await;
-        save_version(&pool, &GithubPublishInput {
-            name: "toolbox".to_string(), version: "0.1.0".to_string(),
-            download_url: "https://github.com/test/v1.exe".to_string(),
-            display: None, identifier: None, description: None,
-            changelog: None, force: None,
-        }).await.unwrap();
-        save_version(&pool, &GithubPublishInput {
-            name: "toolbox".to_string(), version: "0.2.0".to_string(),
-            download_url: "https://github.com/test/v2.exe".to_string(),
-            display: None, identifier: None, description: None,
-            changelog: None, force: None,
-        }).await.unwrap();
+        save_version(
+            &pool,
+            &GithubPublishInput {
+                name: "toolbox".to_string(),
+                version: "0.1.0".to_string(),
+                download_url: "https://github.com/test/v1.exe".to_string(),
+                display: None,
+                identifier: None,
+                description: None,
+                changelog: None,
+                force: None,
+            },
+        )
+        .await
+        .unwrap();
+        save_version(
+            &pool,
+            &GithubPublishInput {
+                name: "toolbox".to_string(),
+                version: "0.2.0".to_string(),
+                download_url: "https://github.com/test/v2.exe".to_string(),
+                display: None,
+                identifier: None,
+                description: None,
+                changelog: None,
+                force: None,
+            },
+        )
+        .await
+        .unwrap();
 
         let (sw, v) = get_latest_version(&pool, "toolbox").await.unwrap();
         assert_eq!(sw.name, "toolbox");
@@ -321,5 +531,59 @@ mod tests {
         let pool = setup_test_db().await;
         let result = get_version_by_id(&pool, 999).await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_insert_and_query_page_view() {
+        let pool = setup_test_db().await;
+        // 同一 visitor_hash 访问同一 path 3 次 -> PV=3, UV=1
+        for _ in 0..3 {
+            insert_page_view(
+                &pool,
+                "blog",
+                "/",
+                "hash1",
+                Some("1.2.3.4"),
+                Some("Mozilla/5.0"),
+                None,
+                Some("desktop"),
+            )
+            .await
+            .unwrap();
+        }
+        // 不同 visitor 访问 /about
+        insert_page_view(
+            &pool,
+            "blog",
+            "/about",
+            "hash2",
+            Some("1.2.3.5"),
+            Some("curl/8"),
+            None,
+            Some("bot"),
+        )
+        .await
+        .unwrap();
+
+        let overview = query_overview(&pool, "blog", "2000-01-01", "2999-01-01", "day")
+            .await
+            .unwrap();
+        let total_pv: i64 = overview.iter().map(|p| p.pv).sum();
+        let total_uv: i64 = overview.iter().map(|p| p.uv).sum();
+        assert_eq!(total_pv, 4);
+        assert_eq!(total_uv, 2);
+
+        let paths = query_top_paths(&pool, "blog", "2000-01-01", "2999-01-01", 10)
+            .await
+            .unwrap();
+        assert_eq!(paths.len(), 2);
+        assert_eq!(paths[0].key.as_deref(), Some("/"));
+        assert_eq!(paths[0].count, 3);
+
+        let devs = query_top_sources(&pool, "blog", "2000-01-01", "2999-01-01", "device", 10)
+            .await
+            .unwrap();
+        assert!(devs.iter().any(|d| d.key.as_deref() == Some("desktop")));
+        assert!(devs.iter().any(|d| d.key.as_deref() == Some("bot")));
     }
 }

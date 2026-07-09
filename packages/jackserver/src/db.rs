@@ -54,6 +54,31 @@ async fn migrate(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    // 访问量统计：每次打点一条原始记录
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS page_view (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            site         TEXT NOT NULL,
+            path         TEXT NOT NULL DEFAULT '/',
+            visitor_hash TEXT NOT NULL,
+            ip           TEXT,
+            ua           TEXT,
+            referer      TEXT,
+            device       TEXT,
+            created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(pool)
+    .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_pv_site_time ON page_view(site, created_at)")
+        .execute(pool)
+        .await?;
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_pv_site_visitor ON page_view(site, visitor_hash, created_at)",
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }
 

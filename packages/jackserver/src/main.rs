@@ -17,17 +17,20 @@ async fn main() {
         .await
         .expect("Failed to initialize database");
 
-    let app = handler::app(pool, config.publish.token.clone());
+    let app = handler::app(pool, config.publish.token.clone(), config.metrics.clone());
 
     let addr = format!("127.0.0.1:{}", config.server.port);
     tracing::info!("Listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .unwrap();
 }
 
 async fn shutdown_signal() {

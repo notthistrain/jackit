@@ -6,3 +6,14 @@ path = "./data/jackserver.db"
 
 [publish]
 token = "change-me-to-a-secret-token"
+
+[metrics]
+# 访问量统计（打点）总开关
+enabled = true
+# 上报签名密钥（嵌入前端 SDK）。注意：前端可见的密钥无法做到密码学级防伪，
+# 仅用于提高伪造门槛；真正的兜底是 rate_limit_per_minute 限流。
+track_secret = "940457524"
+# 允许上报的来源域名白名单（校验浏览器 Origin / Referer）
+allowed_origins = ["http://114.124.36.46", "http://127.0.0.1", "http://localhost"]
+# 单 IP 每分钟上报上限（限流，防刷量）
+rate_limit_per_minute = 1
