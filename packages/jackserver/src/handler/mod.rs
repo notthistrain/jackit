@@ -19,9 +19,14 @@ use crate::middleware::track::{check_report, check_track, ReportGuard, TrackGuar
 /// - 报表 `/api/metrics/{overview,paths,sources}`：**无鉴权**，仅单 IP 限流（防滥用）
 pub fn app(pool: SqlitePool, publish_token: String, metrics: MetricsConfig) -> Router {
     let allowed_origins = metrics.allowed_origins.clone();
+    let (rate_limit_max, rate_limit_window) = metrics
+        .parse_rate_limit()
+        .unwrap_or_else(|e| panic!("invalid metrics.rate_limit: {e}"));
     let track_guard = TrackGuard {
         metrics: metrics.clone(),
         limiter: RateLimiter::new(),
+        rate_limit_max,
+        rate_limit_window,
     };
     let report_guard = ReportGuard {
         limiter: RateLimiter::new(),

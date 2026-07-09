@@ -3,7 +3,7 @@
 //! 安全说明：前端 track_secret 可被逆向抠出，签名仅提高伪造门槛、不保证防伪；
 //! 真正兜底是限流（RateLimiter）。详见 plan「安全说明」一节。
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use axum::body::{to_bytes, Body};
 use axum::extract::{Request, State};
@@ -26,11 +26,15 @@ const TS_FRESH_WINDOW_SECS: i64 = 300;
 /// 打点请求体最大字节数。
 const MAX_BODY_BYTES: usize = 64 * 1024;
 
-/// 打点中间件持有的状态：metrics 配置 + 共享限流器。
+/// 打点中间件持有的状态：metrics 配置 + 共享限流器 + 解析后的限流参数。
 #[derive(Clone)]
 pub struct TrackGuard {
     pub metrics: MetricsConfig,
     pub limiter: RateLimiter,
+    /// 解析自 metrics.rate_limit 的每窗口最大次数。
+    pub rate_limit_max: u32,
+    /// 解析自 metrics.rate_limit 的窗口时长。
+    pub rate_limit_window: Duration,
 }
 
 pub async fn check_track(
@@ -107,7 +111,7 @@ pub async fn check_track(
     let ip_key = ip.clone().unwrap_or_else(|| "unknown".to_string());
     if !guard
         .limiter
-        .allow(&ip_key, guard.metrics.rate_limit_per_minute)
+        .allow(&ip_key, guard.rate_limit_max, guard.rate_limit_window)
         .await
     {
         tracing::warn!(ip = %ip_key, "track rejected: rate limit");
@@ -197,7 +201,11 @@ pub async fn check_report(
     let ip_key = ip.clone().unwrap_or_else(|| "unknown".to_string());
     if !guard
         .limiter
-        .allow(&ip_key, REPORT_RATE_LIMIT_PER_MINUTE)
+        .allow(
+            &ip_key,
+            REPORT_RATE_LIMIT_PER_MINUTE,
+            Duration::from_secs(60),
+        )
         .await
     {
         tracing::warn!(ip = %ip_key, "report rejected: rate limit");

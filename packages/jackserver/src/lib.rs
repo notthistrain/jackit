@@ -18,7 +18,7 @@ pub fn test_app(pool: SqlitePool) -> axum::Router {
             enabled: true,
             track_secret: "test-track".to_string(),
             allowed_origins: vec!["https://test.local".to_string()],
-            rate_limit_per_minute: 1000,
+            rate_limit: "1000/m".to_string(),
         },
     )
 }
