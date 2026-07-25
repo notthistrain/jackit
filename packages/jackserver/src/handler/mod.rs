@@ -1,4 +1,5 @@
 pub mod health;
+pub mod message;
 pub mod metrics;
 pub mod publish;
 pub mod tools;
@@ -9,6 +10,7 @@ use sqlx::SqlitePool;
 use tower_http::cors::CorsLayer;
 
 use crate::config::MetricsConfig;
+use crate::middleware::message::check_message;
 use crate::middleware::rate_limit::RateLimiter;
 use crate::middleware::track::{check_report, check_track, ReportGuard, TrackGuard};
 
@@ -31,18 +33,25 @@ pub fn app(pool: SqlitePool, publish_token: String, metrics: MetricsConfig) -> R
     let report_guard = ReportGuard {
         limiter: RateLimiter::new(),
     };
+    // 留言提交用独立限流器（同一份 secret/origins，但配额不与 track 互相挤占）
+    let message_guard = TrackGuard {
+        metrics: metrics.clone(),
+        limiter: RateLimiter::new(),
+        rate_limit_max,
+        rate_limit_window,
+    };
 
     // 打点：POST /api/metrics/track（半鉴权）
     let track_routes = Router::new()
         .route("/track", post(metrics::track))
-        .layer(axum_mw::from_fn_with_state(track_guard, check_track));
+        .layer(axum_mw::from_fn_with_state(track_guard.clone(), check_track));
 
     // 报表查询：GET /api/metrics/{overview,paths,sources}（无鉴权，仅限流）
     let report_routes = Router::new()
         .route("/overview", get(metrics::overview))
         .route("/paths", get(metrics::paths))
         .route("/sources", get(metrics::sources))
-        .layer(axum_mw::from_fn_with_state(report_guard, check_report));
+        .layer(axum_mw::from_fn_with_state(report_guard.clone(), check_report));
 
     let metrics_routes = track_routes.merge(report_routes);
 
@@ -50,7 +59,7 @@ pub fn app(pool: SqlitePool, publish_token: String, metrics: MetricsConfig) -> R
         Router::new()
             .route("/github", post(publish::github))
             .layer(axum_mw::from_fn_with_state(
-                publish_token,
+                publish_token.clone(),
                 crate::middleware::auth::require_token,
             ));
 
@@ -59,11 +68,35 @@ pub fn app(pool: SqlitePool, publish_token: String, metrics: MetricsConfig) -> R
         .route("/download/{id}", get(tools::download_by_id))
         .route("/download-latest/{name}", get(tools::download_latest));
 
+    // 留言：按站点收集用户反馈，三组路由分别套用不同中间件
+    // - /submit：半鉴权（共用 track 的 secret/origins，但独立限流器，配额不与 track 互相挤占）
+    // - /list  ：admin token（仅站长在管理后台查询，复用 publish_token）
+    // - /admin/*：admin token（复用 publish_token）
+    let message_submit_routes = Router::new()
+        .route("/submit", post(message::submit))
+        .layer(axum_mw::from_fn_with_state(message_guard.clone(), check_message));
+    let message_list_routes = Router::new()
+        .route("/list", get(message::list))
+        .layer(axum_mw::from_fn_with_state(
+            publish_token.clone(),
+            crate::middleware::auth::require_token,
+        ));
+    let message_admin_routes = Router::new()
+        .route("/consume", post(message::consume))
+        .layer(axum_mw::from_fn_with_state(
+            publish_token,
+            crate::middleware::auth::require_token,
+        ));
+    let messages_routes = message_submit_routes
+        .merge(message_list_routes)
+        .nest("/admin", message_admin_routes);
+
     let api_routes = Router::new()
         .route("/health", get(health::health))
         .nest("/publish", publish_routes)
         .nest("/tools", tools_routes)
-        .nest("/metrics", metrics_routes);
+        .nest("/metrics", metrics_routes)
+        .nest("/messages", messages_routes);
 
     Router::new()
         .nest("/api", api_routes)

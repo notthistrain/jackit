@@ -22,7 +22,7 @@ use crate::model::{TrackInput, TrackedData};
 type HmacSha256 = Hmac<Sha256>;
 
 /// 打点时间戳允许的偏差（秒），超出视为重放/时钟错乱，拒绝。
-const TS_FRESH_WINDOW_SECS: i64 = 300;
+pub(crate) const TS_FRESH_WINDOW_SECS: i64 = 300;
 /// 打点请求体最大字节数。
 const MAX_BODY_BYTES: usize = 64 * 1024;
 
@@ -125,7 +125,7 @@ pub async fn check_track(
 }
 
 /// 校验 HMAC-SHA256 签名。拼接规则必须与前端 SDK 完全一致：`{site}|{path}|{ts}`，hex 输出。
-fn verify_sig(secret: &str, site: &str, path: &str, ts: i64, sig: &str) -> bool {
+pub(crate) fn verify_sig(secret: &str, site: &str, path: &str, ts: i64, sig: &str) -> bool {
     let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
         Ok(m) => m,
         Err(_) => return false,
@@ -136,7 +136,7 @@ fn verify_sig(secret: &str, site: &str, path: &str, ts: i64, sig: &str) -> bool 
 }
 
 /// 取请求来源：优先 Origin 头，缺失时从 Referer 解析 scheme://host。
-fn request_origin(headers: &HeaderMap) -> Option<String> {
+pub(crate) fn request_origin(headers: &HeaderMap) -> Option<String> {
     if let Some(o) = headers.get("origin").and_then(|v| v.to_str().ok()) {
         let o = o.trim();
         if !o.is_empty() {

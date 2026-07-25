@@ -79,6 +79,28 @@ async fn migrate(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    // 用户留言（按 site 隔离；consumed=0 待处理，1 已消费）
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS message (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            site         TEXT NOT NULL,
+            path         TEXT,
+            nickname     TEXT NOT NULL,
+            content      TEXT NOT NULL,
+            consumed     INTEGER NOT NULL DEFAULT 0,
+            ip           TEXT,
+            ua           TEXT,
+            created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(pool)
+    .await?;
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_msg_site_consumed ON message(site, consumed, created_at)",
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }
 

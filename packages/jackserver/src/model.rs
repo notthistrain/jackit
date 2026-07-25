@@ -415,6 +415,166 @@ pub async fn query_top_sources(
         .map_err(Into::into)
 }
 
+// ===== 用户留言（message）=====
+
+/// 留言提交请求体
+///
+/// `ts` 为秒级 unix 时间戳，仅用于签名防重放校验；
+/// `path` 可选，用于标记留言所在页面。
+/// 签名拼接规则与 track 一致：`{site}|{path_or_empty}|{ts}`。
+#[derive(Debug, Clone, Deserialize)]
+pub struct MessageInput {
+    pub site: String,
+    pub path: Option<String>,
+    pub nickname: String,
+    pub content: String,
+    pub ts: i64,
+    pub sig: String,
+}
+
+/// 中间件校验通过后注入到请求 extensions 的数据，供 submit handler 使用。
+#[derive(Debug, Clone)]
+pub struct MessageData {
+    pub input: MessageInput,
+    pub ip: Option<String>,
+    pub ua: Option<String>,
+}
+
+/// 留言列表查询参数
+#[derive(Debug, Deserialize)]
+pub struct MessageListQuery {
+    pub site: String,
+    /// 0=待处理（默认）、1=已消费、all=全部
+    pub consumed: Option<String>,
+    pub page: Option<i64>,
+    pub size: Option<i64>,
+}
+
+/// 留言列表项（对外输出，省略 ip/ua/visitor_hash 等审计字段）
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct MessageListItem {
+    pub id: i64,
+    pub site: String,
+    pub path: Option<String>,
+    pub nickname: String,
+    pub content: String,
+    pub consumed: bool,
+    pub created_at: String,
+}
+
+/// 留言列表分页响应
+#[derive(Debug, Serialize)]
+pub struct MessageListPage {
+    pub items: Vec<MessageListItem>,
+    pub total: i64,
+    pub page: i64,
+    pub size: i64,
+}
+
+/// 消费留言请求体
+#[derive(Debug, Deserialize)]
+pub struct ConsumeInput {
+    pub id: i64,
+}
+
+/// 写入一条留言。`created_at` 由 DB 默认值填充（服务端 UTC）。
+pub async fn insert_message(
+    pool: &SqlitePool,
+    site: &str,
+    path: Option<&str>,
+    nickname: &str,
+    content: &str,
+    ip: Option<&str>,
+    ua: Option<&str>,
+) -> AppResult<i64> {
+    let result = sqlx::query(
+        "INSERT INTO message (site, path, nickname, content, ip, ua)
+         VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(site)
+    .bind(path)
+    .bind(nickname)
+    .bind(content)
+    .bind(ip)
+    .bind(ua)
+    .execute(pool)
+    .await?;
+    Ok(result.last_insert_rowid())
+}
+
+/// 按站点分页查询留言。
+///
+/// `consumed` 取值 "0" / "1" / "all"（其它值按 "0" 处理）。
+/// 排序：created_at DESC, id DESC（最新优先）。
+pub async fn query_messages(
+    pool: &SqlitePool,
+    site: &str,
+    consumed: &str,
+    page: i64,
+    size: i64,
+) -> AppResult<MessageListPage> {
+    let page = page.max(1);
+    let offset = (page - 1) * size;
+
+    let items = match consumed {
+        "all" => sqlx::query_as::<_, MessageListItem>(
+            "SELECT id, site, path, nickname, content, consumed, created_at
+             FROM message
+             WHERE site = ?
+             ORDER BY created_at DESC, id DESC
+             LIMIT ? OFFSET ?",
+        ),
+        "1" => sqlx::query_as::<_, MessageListItem>(
+            "SELECT id, site, path, nickname, content, consumed, created_at
+             FROM message
+             WHERE site = ? AND consumed = 1
+             ORDER BY created_at DESC, id DESC
+             LIMIT ? OFFSET ?",
+        ),
+        _ => sqlx::query_as::<_, MessageListItem>(
+            "SELECT id, site, path, nickname, content, consumed, created_at
+             FROM message
+             WHERE site = ? AND consumed = 0
+             ORDER BY created_at DESC, id DESC
+             LIMIT ? OFFSET ?",
+        ),
+    }
+    .bind(site)
+    .bind(size)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
+
+    let total: i64 = match consumed {
+        "all" => sqlx::query_scalar("SELECT COUNT(*) FROM message WHERE site = ?"),
+        "1" => {
+            sqlx::query_scalar("SELECT COUNT(*) FROM message WHERE site = ? AND consumed = 1")
+        }
+        _ => {
+            sqlx::query_scalar("SELECT COUNT(*) FROM message WHERE site = ? AND consumed = 0")
+        }
+    }
+    .bind(site)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(MessageListPage {
+        items,
+        total,
+        page,
+        size,
+    })
+}
+
+/// 标记留言为已消费（软删除）。返回是否实际更新了一行。
+pub async fn consume_message(pool: &SqlitePool, id: i64) -> AppResult<bool> {
+    let result = sqlx::query("UPDATE message SET consumed = 1 WHERE id = ? AND consumed = 0")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+
 #[cfg(all(test, feature = "test-utils"))]
 mod tests {
     use super::*;
